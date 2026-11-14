@@ -49,6 +49,11 @@ jobs:
       - name: Extract TWENDE source
         run: |
           ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          
+      - name: Fix file permissions
+        run: |
+          chmod -R u+rwX,go+rX source
+
           if [ -z "$ZIP_FILE" ]; then
             echo "TWENDE ZIP file not found"
             exit 1
