@@ -45,8 +45,3 @@ jobs:
           name: Twende-Android-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-          
