@@ -47,6 +47,8 @@ jobs:
         run: |
           mkdir -p source
           unzip -o 'TWENDE%202026.zip' -d source
+          - name: Fix file permissions
+  run: chmod -R u+rwX .
 
       - name: Build Android APK
         run: |
