@@ -37,7 +37,7 @@ jobs:
       - name: Extract TWENDE source
         run: |
           mkdir -p source
-          unzip -o "TWENDE 2026.zip" -d source
+          unzip -o "TWENDE%202026.zip" -d source
 
       - name: Fix file permissions
         run: |
