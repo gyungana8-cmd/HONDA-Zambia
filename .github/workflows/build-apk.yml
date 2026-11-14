@@ -66,11 +66,8 @@ jobs:
           fi
           PROJECT_DIR=$(dirname "$PROJECT_FILE")
 
-          chmod -R u+rwX "$PROJECT_DIR"
-          chmod +x "$PROJECT_DIR/gradlew"
-
           cd "$PROJECT_DIR"
-          ./gradlew assembleDebug
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
