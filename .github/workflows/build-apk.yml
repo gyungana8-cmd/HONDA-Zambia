@@ -65,6 +65,7 @@ jobs:
             exit 1
           fi
           PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          chmod -R u+rwX "$PROJECT_DIR"
 
           cd "$PROJECT_DIR"
           gradle assembleDebug
