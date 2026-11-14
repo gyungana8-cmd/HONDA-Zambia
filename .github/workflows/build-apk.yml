@@ -14,10 +14,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,41 +24,34 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Install Android SDK packages
         run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -f "$SDKMANAGER" ]; then
-            echo "Android SDK manager not found"
-            exit 1
-          fi
-          yes | "$SDKMANAGER" --licenses || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager --licenses
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      
       - name: Extract TWENDE source
         run: |
           mkdir -p source
-          unzip -o 'TWENDE%202026.zip' -d source
+          unzip -o "TWENDE 2026.zip" -d source
 
       - name: Fix file permissions
-        run: chmod -R u+rwX source
+        run: |
+          chmod -R u+rwX,go+rX source
 
       - name: Build Android APK
         run: |
-
-        run: |
-          PROJECT_DIR=$(dirname "$(find source -type f -name settings.gradle -o -name settings.gradle.kts | head -n 1)")
-          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
+          PROJECT_FILE=$(find source -type f -name settings.gradle -o -name settings.gradle.kts | head -n 1)
+          if [ -z "$PROJECT_FILE" ]; then
             echo "Android Gradle project not found"
             exit 1
           fi
+          PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          chmod +x "$PROJECT_DIR/gradlew"
           cd "$PROJECT_DIR"
-          gradle assembleDebug
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
