@@ -1,0 +1,10 @@
+{
+  "name": "HONDA Zambia Motorcycle Hire",
+  "short_name": "HONDA Zambia",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#101820",
+  "theme_color": "#101820",
+  "description": "A motorcycle hire marketplace prototype for Zambia.",
+  "icons": []
+}
