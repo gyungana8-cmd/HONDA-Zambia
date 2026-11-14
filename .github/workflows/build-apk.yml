@@ -43,14 +43,18 @@ jobs:
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
+      
       - name: Extract TWENDE source
         run: |
           mkdir -p source
           unzip -o 'TWENDE%202026.zip' -d source
-          - name: Fix file permissions
-  run: chmod -R u+rwX .
+
+      - name: Fix file permissions
+        run: chmod -R u+rwX source
 
       - name: Build Android APK
+        run: |
+
         run: |
           PROJECT_DIR=$(dirname "$(find source -type f -name settings.gradle -o -name settings.gradle.kts | head -n 1)")
           if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
