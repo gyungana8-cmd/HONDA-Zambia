@@ -27,11 +27,8 @@ jobs:
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-
-      
-      
-      
+          gradle-version: '8.9
+          
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -43,20 +40,7 @@ jobs:
         run: |
           set -e
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-          
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: false
-          packages: platform-tools
-          
 
-      - name: Install Android SDK packages
-        shell: bash
-        run: |
-          set -e
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-          
 
       - name: Extract TWENDE source
         run: |
