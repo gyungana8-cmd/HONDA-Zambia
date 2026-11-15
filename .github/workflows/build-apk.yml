@@ -58,6 +58,16 @@ jobs:
           unzip -o "$ZIP_FILE" -d source
 
       - name: Build Android APK
+      
+      - name: Sync live TWENDE website
+        shell: bash
+        run: |
+          PROJECT_FILE=$(find source -type f -name settings.gradle | head -n 1)
+          PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
+          mkdir -p "$ASSET_DIR"
+          cp index.html app.js styles.css manifest.webmanifest "$ASSET_DIR"/
+          
         run: |
           PROJECT_FILE=$(find source -type f -name settings.gradle | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
