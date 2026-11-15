@@ -1,94 +1,54 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#101820">
-<title>HONDA Zambia | Motorcycle Hire</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="styles.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101820"><title>TWENDE | Motorcycle Hire Zambia</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="#"><span class="brand-mark">H</span><span>HONDA <small>ZAMBIA</small></span></a>
-  <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
-  <nav id="nav"><a href="#motorcycles">Motorcycles</a><a href="#how">How it works</a><a href="#dashboard">Dashboard</a></nav>
-  <button class="btn btn-outline" id="roleTop">Rider mode</button>
+<a class="brand" href="#"><span class="brand-mark">T</span><span>TWENDE <small>ZAMBIA</small></span></a>
+<button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+<nav id="nav"><a href="#motorcycles">Motorcycles</a><a href="#how">How it works</a><a href="#dashboard">Dashboard</a></nav>
+<span id="accountStatus" class="account-status">Not signed in</span>
+<button class="btn btn-outline" id="authButton">Sign in / Register</button>
+<button class="btn btn-outline hidden" id="signOutButton">Sign out</button>
 </header>
-
 <main>
-<section class="hero">
-  <div class="hero-copy">
-    <span class="eyebrow">MOTORCYCLE HIRE, MADE SIMPLE</span>
-    <h1>Your next ride<br><em>starts here.</em></h1>
-    <p>Find a motorcycle for your next journey, or earn income by making your motorcycle available for hire.</p>
-    <div class="hero-actions"><a class="btn btn-red" href="#motorcycles">Find a motorcycle</a><button class="btn btn-light" id="ownerHero">List your motorcycle</button></div>
-    <div class="trust-row"><span>✓ Local owners</span><span>✓ Clear hire rates</span><span>✓ Zambia-focused</span></div>
-  </div>
-  <div class="hero-art">
-    <div class="art-circle"></div><div class="bike-emoji" aria-label="Motorcycle">🏍️</div>
-    <div class="art-label"><b>HONDA</b><span>Ride with confidence</span></div>
-  </div>
-</section>
-
+<section class="hero"><div class="hero-copy"><span class="eyebrow">MOTORCYCLE HIRE, MADE SIMPLE</span>
+<h1>Your next ride<br><em>starts here.</em></h1>
+<p>Find a motorcycle for your next journey, or earn income by making your motorcycle available for hire.</p>
+<div class="hero-actions"><a class="btn btn-red" href="#motorcycles">Find a motorcycle</a><button class="btn btn-light" id="ownerHero">List your motorcycle</button></div>
+<div class="trust-row"><span>✓ Local owners</span><span>✓ Clear hire rates</span><span>✓ Zambia-focused</span></div></div>
+<div class="hero-art"><div class="art-circle"></div><div class="bike-emoji">🏍️</div><div class="art-label"><b>TWENDE</b><span>Move with confidence</span></div></div></section>
 <section class="search-panel" id="motorcycles">
-  <div><label for="location">Pickup location</label><input id="location" placeholder="e.g. Mufumbwe, Kitwe, Lusaka"></div>
-  <div><label for="category">Motorcycle type</label><select id="category"><option value="all">All motorcycles</option><option>Commuter</option><option>Delivery</option><option>Off-road</option></select></div>
-  <div><label for="maxPrice">Daily budget (ZMW)</label><select id="maxPrice"><option value="all">Any budget</option><option value="150">Up to K150</option><option value="250">Up to K250</option><option value="400">Up to K400</option></select></div>
-  <button class="btn btn-red" id="searchBtn">Search rides</button>
-</section>
-
-<section class="section">
-  <div class="section-heading"><div><span class="eyebrow">AVAILABLE FOR HIRE</span><h2>Explore motorcycles</h2></div><span class="muted" id="resultCount">Sample listings</span></div>
-  <div class="filters"><button class="chip active" data-filter="all">All</button><button class="chip" data-filter="Commuter">Commuter</button><button class="chip" data-filter="Delivery">Delivery</button><button class="chip" data-filter="Off-road">Off-road</button></div>
-  <div class="bike-grid" id="bikeGrid"></div>
-</section>
-
-<section class="owner-banner" id="how">
-  <div><span class="eyebrow">FOR MOTORCYCLE OWNERS</span><h2>Turn your motorcycle into an income opportunity.</h2><p>List your bike, set your hire rate and manage booking requests. You stay in control of availability.</p><button class="btn btn-light" id="ownerCta">Become an owner partner</button></div>
-  <div class="owner-stat"><strong>01</strong><span>Create a listing</span><strong>02</strong><span>Receive hire requests</span><strong>03</strong><span>Manage your bookings</span></div>
-</section>
-
-<section class="section dashboard" id="dashboard">
-  <div class="section-heading"><div><span class="eyebrow">YOUR SPACE</span><h2 id="dashTitle">Rider dashboard</h2></div><button class="btn btn-outline" id="switchRole">Switch to owner</button></div>
-  <div class="dash-grid">
-    <article class="dash-card"><span class="dash-icon">📋</span><h3 id="dashCardTitle">My hire requests</h3><p id="dashCardText">Your booking requests will appear here after you request a motorcycle.</p></article>
-    <article class="dash-card"><span class="dash-icon">🛡️</span><h3>Safety & verification</h3><p>Before a real hire, verify rider identity, licence, motorcycle documents and agreed handover condition.</p></article>
-    <article class="dash-card"><span class="dash-icon">💬</span><h3>Support</h3><p>Keep booking details and owner-rider communication in one place.</p></article>
-  </div>
-</section>
+<div><label for="location">Pickup location</label><input id="location" placeholder="e.g. Mufumbwe, Kitwe, Lusaka"></div>
+<div><label for="category">Motorcycle type</label><select id="category"><option value="all">All motorcycles</option><option>Commuter</option><option>Delivery</option><option>Off-road</option></select></div>
+<div><label for="maxPrice">Daily budget (ZMW)</label><select id="maxPrice"><option value="all">Any budget</option><option value="150">Up to K150</option><option value="250">Up to K250</option><option value="400">Up to K400</option></select></div>
+<button class="btn btn-red" id="searchBtn">Search rides</button></section>
+<section class="section"><div class="section-heading"><div><span class="eyebrow">AVAILABLE FOR HIRE</span><h2>Explore motorcycles</h2></div><span class="muted" id="resultCount">Loading live listings…</span></div><div class="bike-grid" id="bikeGrid"><p class="muted">Connecting to TWENDE…</p></div></section>
+<section class="owner-banner" id="how"><div><span class="eyebrow">FOR MOTORCYCLE OWNERS</span><h2>Turn your motorcycle into an income opportunity.</h2><p>Register as an owner, list your motorcycle and manage incoming hire requests.</p><button class="btn btn-light" id="ownerCta">Become an owner partner</button></div><div class="owner-stat"><strong>01</strong><span>Create an account</span><strong>02</strong><span>Publish a listing</span><strong>03</strong><span>Manage hire requests</span></div></section>
+<section class="section dashboard" id="dashboard"><div class="section-heading"><div><span class="eyebrow">YOUR SPACE</span><h2 id="dashTitle">Your dashboard</h2></div><button class="btn btn-outline" id="switchRole">Switch to owner</button></div><p id="dashboardIntro" class="muted">Sign in to view your bookings and listings.</p><div id="dashboardContent" class="dashboard-content"></div></section>
 </main>
-
-<footer><a class="brand" href="#"><span class="brand-mark">H</span><span>HONDA <small>ZAMBIA</small></span></a><p>Connecting motorcycle owners and riders across Zambia.</p><small>Prototype demonstration • Prices shown in ZMW • Sample listings only</small></footer>
-
-<dialog id="bookingDialog">
-  <form method="dialog" id="bookingForm">
-    <button class="close" aria-label="Close">×</button>
-    <span class="eyebrow">HIRE REQUEST</span><h2 id="bookingTitle">Request this motorcycle</h2>
-    <p id="bookingPrice" class="muted"></p>
-    <label>Your full name<input required id="riderName" placeholder="Enter your name"></label>
-    <label>Phone number<input required id="riderPhone" type="tel" placeholder="+260 ..."></label>
-    <label>Pickup location<input required id="pickup" placeholder="Town or meeting point"></label>
-    <label>Hire start date<input required id="startDate" type="date"></label>
-    <label>Number of days<input required id="days" type="number" min="1" max="30" value="1"></label>
-    <div class="estimate">Estimated hire total <b id="total">K0</b></div>
-    <button class="btn btn-red full" id="submitBooking" type="submit">Send hire request</button>
-    <small class="muted">Demo only: this request stays in this browser and is not sent to an owner.</small>
-  </form>
+<footer><a class="brand" href="#"><span class="brand-mark">T</span><span>TWENDE <small>ZAMBIA</small></span></a><p>Connecting motorcycle owners and riders across Zambia.</p><small>Online marketplace prototype • Prices shown in ZMW</small></footer>
+<dialog id="authDialog">
+<form id="loginForm" class="dialog-form"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">WELCOME TO TWENDE</span><h2>Sign in</h2>
+<label>Email address<input id="loginEmail" type="email" autocomplete="email" required></label><label>Password<input id="loginPassword" type="password" autocomplete="current-password" minlength="6" required></label>
+<button class="btn btn-red full" type="submit">Sign in</button><p class="muted">New to TWENDE? <button type="button" class="text-button" id="showRegister">Create an account</button></p></form>
+<form id="registerForm" class="dialog-form hidden"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">JOIN THE MARKETPLACE</span><h2>Create your account</h2>
+<label>Full name<input id="registerName" autocomplete="name" required></label><label>Phone number<input id="registerPhone" type="tel" autocomplete="tel" placeholder="+260…" required></label>
+<label>Email address<input id="registerEmail" type="email" autocomplete="email" required></label><label>Account type<select id="registerRole"><option value="rider">Rider</option><option value="owner">Motorcycle owner</option><option value="both">Both rider and owner</option></select></label>
+<label>Password (at least 6 characters)<input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required></label>
+<button class="btn btn-red full" type="submit">Create account</button><p class="muted">Already registered? <button type="button" class="text-button" id="showLogin">Sign in</button></p></form>
 </dialog>
-
-<dialog id="ownerDialog">
-  <form method="dialog" id="ownerForm">
-    <button class="close" aria-label="Close">×</button><span class="eyebrow">OWNER PARTNER</span><h2>List your motorcycle</h2>
-    <label>Owner name<input required placeholder="Full name"></label>
-    <label>Phone number<input required type="tel" placeholder="+260 ..."></label>
-    <label>Motorcycle model<input required placeholder="e.g. Honda CG 125"></label>
-    <label>Location<input required placeholder="Town or district"></label>
-    <label>Daily hire rate (ZMW)<input required type="number" min="1" placeholder="e.g. 180"></label>
-    <button class="btn btn-red full" type="submit">Save demo listing</button>
-    <small class="muted">Demo only: no listing is published to a live marketplace.</small>
-  </form>
-</dialog>
-<div class="toast" id="toast" role="status"></div>
-<script src="app.js"></script>
+<dialog id="bookingDialog"><form id="bookingForm" class="dialog-form"><button class="close" type="button" data-close="bookingDialog">×</button><span class="eyebrow">HIRE REQUEST</span><h2 id="bookingTitle">Request this motorcycle</h2><p id="bookingPrice" class="muted"></p>
+<label>Your full name<input required id="riderName"></label><label>Phone number<input required id="riderPhone" type="tel" placeholder="+260…"></label><label>Pickup location<input required id="pickup"></label>
+<label>Hire start date<input required id="startDate" type="date"></label><label>Number of days<input required id="days" type="number" min="1" max="30" value="1"></label>
+<div class="estimate">Estimated hire total <b id="total">K0</b></div><button class="btn btn-red full" type="submit">Send hire request</button></form></dialog>
+<dialog id="ownerDialog"><form id="ownerForm" class="dialog-form"><button class="close" type="button" data-close="ownerDialog">×</button><span class="eyebrow">OWNER PARTNER</span><h2>List your motorcycle</h2>
+<label>Motorcycle make<input id="bikeMake" value="Other" required></label><label>Motorcycle model<input id="bikeModel" placeholder="e.g. Honda CG 125" required></label>
+<label>Location<input id="bikeLocation" placeholder="Town or district" required></label><label>Daily hire rate (ZMW)<input id="bikeRate" type="number" min="1" step="0.01" required></label>
+<label>Description<textarea id="bikeDescription" rows="3" placeholder="Condition, engine size, transmission…"></textarea></label><button class="btn btn-red full" type="submit">Publish motorcycle listing</button></form></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
 </body></html>

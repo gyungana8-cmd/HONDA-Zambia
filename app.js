@@ -1,26 +1,147 @@
-const bikes=[
-{id:1,model:"Honda CG 125",type:"Commuter",location:"Lusaka",rate:180,emoji:"🏍️",detail:"Manual • 125cc • Daily hire"},
-{id:2,model:"Honda Ace 125",type:"Delivery",location:"Kitwe",rate:150,emoji:"🛵",detail:"Manual • 125cc • Delivery-ready"},
-{id:3,model:"Honda XR 150",type:"Off-road",location:"Mufumbwe",rate:280,emoji:"🏍️",detail:"Manual • 150cc • Rugged roads"}
-];
-let role="rider", selectedBike=null, activeFilter="all";
-const grid=document.querySelector("#bikeGrid"), dialog=document.querySelector("#bookingDialog");
-function money(n){return "K"+Number(n).toLocaleString("en-ZM")}
-function render(){
- const loc=document.querySelector("#location").value.trim().toLowerCase();
- const max=document.querySelector("#maxPrice").value;
- const filtered=bikes.filter(b=>(activeFilter==="all"||b.type===activeFilter)&&(!loc||b.location.toLowerCase().includes(loc))&&(max==="all"||b.rate<=Number(max)));
- grid.innerHTML=filtered.map(b=>`<article class="bike-card"><div class="bike-photo">${b.emoji}</div><div class="bike-info"><h3>${b.model}</h3><div class="bike-meta"><span>📍 ${b.location}</span><span>${b.type}</span></div><p class="muted">${b.detail}</p><div class="bike-bottom"><div class="price">${money(b.rate)} <small>/ day</small></div><button class="btn btn-red" data-hire="${b.id}">Request hire</button></div></div></article>`).join("")||'<p class="muted">No sample motorcycles match those filters. Try another location or budget.</p>';
- document.querySelector("#resultCount").textContent=`${filtered.length} sample listing${filtered.length===1?"":"s"}`;
+/* TWENDE browser client. Publishable keys are public by design.
+   NEVER put a Supabase secret or service_role key in browser code. */
+const SUPABASE_URL = "https://obgteeruczqlebllrafr.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_PeUZGgiMW02w0jstoKhICA_cXw83_Ic";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let currentUser = null, currentProfile = null, role = "rider";
+let selectedBike = null, liveBikes = [];
+const $ = s => document.querySelector(s);
+const money = n => "K" + Number(n || 0).toLocaleString("en-ZM", {maximumFractionDigits: 2});
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(message) { const t=$("#toast"); t.textContent=message; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3500); }
+function closeDialog(id) { document.getElementById(id).close(); }
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click",()=>closeDialog(b.dataset.close)));
+
+function updateUI() {
+  $("#accountStatus").textContent = currentUser ? (currentProfile?.full_name || currentUser.email) : "Not signed in";
+  $("#authButton").classList.toggle("hidden", !!currentUser);
+  $("#signOutButton").classList.toggle("hidden", !currentUser);
+  $("#dashTitle").textContent = role === "owner" ? "Owner dashboard" : "Rider dashboard";
+  $("#switchRole").textContent = role === "owner" ? "Switch to rider" : "Switch to owner";
 }
-function toast(msg){const t=document.querySelector("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
-function setRole(next){role=next;document.querySelector("#dashTitle").textContent=role==="rider"?"Rider dashboard":"Owner dashboard";document.querySelector("#dashCardTitle").textContent=role==="rider"?"My hire requests":"My motorcycle listings";document.querySelector("#dashCardText").textContent=role==="rider"?"Your booking requests will appear here after you request a motorcycle.":"Your motorcycles, availability and incoming hire requests will appear here.";document.querySelector("#roleTop").textContent=role==="rider"?"Rider mode":"Owner mode";document.querySelector("#switchRole").textContent=role==="rider"?"Switch to owner":"Switch to rider";}
-function openOwner(){setRole("owner");document.querySelector("#ownerDialog").showModal()}
-grid.addEventListener("click",e=>{const btn=e.target.closest("[data-hire]");if(!btn)return;selectedBike=bikes.find(b=>b.id===Number(btn.dataset.hire));document.querySelector("#bookingTitle").textContent=`Request ${selectedBike.model}`;document.querySelector("#bookingPrice").textContent=`${money(selectedBike.rate)} per day • ${selectedBike.location}`;document.querySelector("#total").textContent=money(selectedBike.rate);dialog.showModal()});
-document.querySelector("#days").addEventListener("input",e=>{if(selectedBike)document.querySelector("#total").textContent=money(selectedBike.rate*Math.max(1,Number(e.target.value)||1))});
-document.querySelector("#bookingForm").addEventListener("submit",e=>{e.preventDefault();if(!e.target.reportValidity())return;const data={bike:selectedBike.model,name:document.querySelector("#riderName").value,phone:document.querySelector("#riderPhone").value,pickup:document.querySelector("#pickup").value,start:document.querySelector("#startDate").value,days:Number(document.querySelector("#days").value),total:selectedBike.rate*Number(document.querySelector("#days").value)};const saved=JSON.parse(localStorage.getItem("hondaRequests")||"[]");saved.push(data);localStorage.setItem("hondaRequests",JSON.stringify(saved));dialog.close();e.target.reset();toast("Demo hire request saved on this device.");});
-document.querySelector("#ownerForm").addEventListener("submit",e=>{e.preventDefault();if(!e.target.reportValidity())return;document.querySelector("#ownerDialog").close();e.target.reset();toast("Demo listing details captured. Backend publishing is not connected yet.");});
-document.querySelector("#ownerHero").onclick=openOwner;document.querySelector("#ownerCta").onclick=openOwner;document.querySelector("#roleTop").onclick=()=>setRole(role==="rider"?"owner":"rider");document.querySelector("#switchRole").onclick=()=>setRole(role==="rider"?"owner":"rider");
-document.querySelector("#searchBtn").onclick=render;document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));render()});
-document.querySelector("#menuBtn").onclick=()=>document.querySelector("#nav").classList.toggle("open");
-render();setRole("rider");
+async function loadProfile(user) {
+  if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
+  const {data:existing,error:readError}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  if (readError) console.error("Profile read:",readError);
+  if (existing) currentProfile=existing;
+  else {
+    const meta=user.user_metadata||{};
+    const row={id:user.id,full_name:meta.full_name||user.email||"TWENDE user",phone:meta.phone||null,role:meta.role||"rider"};
+    const {data,error}=await db.from("profiles").insert(row).select().single();
+    currentProfile=error?row:data;
+    if(error) console.error("Profile create:",error);
+  }
+  role=currentProfile?.role==="owner"?"owner":"rider";
+  updateUI();
+  await loadDashboard();
+}
+async function onSession(session) {
+  currentUser=session?.user||null;
+  await loadProfile(currentUser);
+  if(currentUser) { $("#authDialog").close(); await loadMotorcycles(); }
+  else { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
+}
+
+$("#authButton").onclick=()=>{ $("#loginForm").classList.remove("hidden"); $("#registerForm").classList.add("hidden"); $("#authDialog").showModal(); };
+$("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
+$("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
+$("#registerForm").onsubmit=async e=>{
+  e.preventDefault(); const b=e.submitter; b.disabled=true;
+  const {data,error}=await db.auth.signUp({email:$("#registerEmail").value.trim(),password:$("#registerPassword").value,
+    options:{data:{full_name:$("#registerName").value.trim(),phone:$("#registerPhone").value.trim(),role:$("#registerRole").value}}});
+  b.disabled=false;
+  if(error){toast(error.message);return;}
+  if(data.session){await onSession(data.session);toast("TWENDE account created.");}
+  else {toast("Account created. Check your email to confirm, then sign in.");$("#registerForm").reset();$("#registerForm").classList.add("hidden");$("#loginForm").classList.remove("hidden");}
+};
+$("#loginForm").onsubmit=async e=>{
+  e.preventDefault();const b=e.submitter;b.disabled=true;
+  const {data,error}=await db.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
+  b.disabled=false;if(error){toast(error.message);return;}await onSession(data.session);toast("Signed in to TWENDE.");
+};
+$("#signOutButton").onclick=async()=>{
+  const {error}=await db.auth.signOut();if(error)toast(error.message);else{await onSession(null);await loadMotorcycles();toast("Signed out.");}
+};
+
+async function loadMotorcycles() {
+  $("#bikeGrid").innerHTML='<p class="muted">Loading live motorcycles…</p>';
+  const {data,error}=await db.from("motorcycles").select("id,make,model,location,daily_rate,description,status").eq("status","available").order("created_at",{ascending:false});
+  if(error){console.error(error);$("#bikeGrid").innerHTML='<p class="muted">Could not load listings. Refresh and try again.</p>';$("#resultCount").textContent="Connection error";return;}
+  liveBikes=data||[];renderBikes();
+}
+function renderBikes() {
+  const loc=$("#location").value.trim().toLowerCase(),max=$("#maxPrice").value,cat=$("#category").value;
+  const rows=liveBikes.filter(b=>b.location.toLowerCase().includes(loc)&&(max==="all"||Number(b.daily_rate)<=Number(max))&&(cat==="all"||[b.make,b.model,b.description].join(" ").toLowerCase().includes(cat.toLowerCase())));
+  $("#bikeGrid").innerHTML=rows.map(b=>`<article class="bike-card"><div class="bike-photo">🏍️</div><div class="bike-info"><h3>${esc(b.make)} ${esc(b.model)}</h3><div class="bike-meta"><span>📍 ${esc(b.location)}</span><span>Available</span></div><p class="muted">${esc(b.description||"Available for daily hire")}</p><div class="bike-bottom"><div class="price">${money(b.daily_rate)} <small>/ day</small></div><button class="btn btn-red" data-hire="${b.id}">Request hire</button></div></div></article>`).join("")||'<p class="muted">No live motorcycles are listed yet. Owners can sign in and publish the first listing.</p>';
+  $("#resultCount").textContent=rows.length+" live listing"+(rows.length===1?"":"s");
+}
+$("#bikeGrid").onclick=e=>{
+  const button=e.target.closest("[data-hire]");if(!button)return;
+  if(!currentUser){toast("Sign in or register before requesting a motorcycle.");$("#authDialog").showModal();return;}
+  selectedBike=liveBikes.find(b=>b.id===button.dataset.hire);if(!selectedBike)return;
+  $("#bookingTitle").textContent="Request "+selectedBike.make+" "+selectedBike.model;
+  $("#bookingPrice").textContent=money(selectedBike.daily_rate)+" per day • "+selectedBike.location;
+  $("#riderName").value=currentProfile?.full_name||"";$("#riderPhone").value=currentProfile?.phone||"";
+  $("#total").textContent=money(selectedBike.daily_rate);$("#bookingDialog").showModal();
+};
+$("#days").oninput=()=>{if(selectedBike)$("#total").textContent=money(Number(selectedBike.daily_rate)*Math.max(1,Number($("#days").value)||1));};
+$("#bookingForm").onsubmit=async e=>{
+  e.preventDefault();if(!currentUser||!selectedBike)return;const b=e.submitter;b.disabled=true;const days=Number($("#days").value);
+  const {error}=await db.from("bookings").insert({motorcycle_id:selectedBike.id,rider_id:currentUser.id,rider_name:$("#riderName").value.trim(),rider_phone:$("#riderPhone").value.trim(),pickup_location:$("#pickup").value.trim(),start_date:$("#startDate").value,days,total_amount:Number(selectedBike.daily_rate)*days});
+  b.disabled=false;if(error){toast("Booking not sent: "+error.message);return;}
+  closeDialog("bookingDialog");e.target.reset();toast("Hire request sent to the motorcycle owner.");await loadDashboard();
+};
+
+function openOwnerForm() {
+  if(!currentUser){toast("Please sign in first.");$("#authDialog").showModal();return;}
+  if(!["owner","both"].includes(currentProfile?.role)){toast("Your account is registered as a rider. Switch your account type to owner to publish a motorcycle.");return;}
+  $("#ownerDialog").showModal();
+}
+$("#ownerHero").onclick=openOwnerForm;$("#ownerCta").onclick=openOwnerForm;
+$("#ownerForm").onsubmit=async e=>{
+  e.preventDefault();if(!currentUser)return;const b=e.submitter;b.disabled=true;
+  const {error}=await db.from("motorcycles").insert({owner_id:currentUser.id,make:$("#bikeMake").value.trim(),model:$("#bikeModel").value.trim(),location:$("#bikeLocation").value.trim(),daily_rate:Number($("#bikeRate").value),description:$("#bikeDescription").value.trim(),status:"available"});
+  b.disabled=false;if(error){toast("Listing not published: "+error.message);return;}
+  closeDialog("ownerDialog");e.target.reset();$("#bikeMake").value="Other";toast("Motorcycle listing published.");await loadMotorcycles();await loadDashboard();
+};
+$("#switchRole").onclick=async()=>{
+  if(!currentUser){toast("Please sign in first.");$("#authDialog").showModal();return;}
+  const next=role==="owner"?"rider":"owner";
+  const {data,error}=await db.from("profiles").update({role:next}).eq("id",currentUser.id).select().single();
+  if(error){toast(error.message);return;}currentProfile=data;role=next;updateUI();await loadDashboard();toast("Switched to "+next+" mode.");
+};
+
+async function loadDashboard() {
+  if(!currentUser)return;
+  $("#dashboardIntro").textContent=role==="owner"?"Your motorcycles and incoming hire requests.":"Your hire requests and their current status.";
+  if(role==="owner"){
+    const {data:bikes,error}=await db.from("motorcycles").select("id,make,model,location,daily_rate,status").eq("owner_id",currentUser.id).order("created_at",{ascending:false});
+    if(error){$("#dashboardContent").textContent=error.message;return;}
+    const ids=(bikes||[]).map(x=>x.id);let requests=[];
+    if(ids.length){const r=await db.from("bookings").select("id,motorcycle_id,rider_name,rider_phone,pickup_location,start_date,days,total_amount,status").in("motorcycle_id",ids).order("created_at",{ascending:false});if(r.error){$("#dashboardContent").textContent=r.error.message;return;}requests=r.data||[];}
+    const bikeHtml=(bikes||[]).map(x=>`<article class="dash-card"><h3>${esc(x.make)} ${esc(x.model)}</h3><p>${esc(x.location)} • ${money(x.daily_rate)}/day • ${esc(x.status)}</p></article>`).join("");
+    const reqHtml=requests.map(x=>`<article class="dash-card"><h3>Hire request from ${esc(x.rider_name)}</h3><p>${esc(x.rider_phone)} • ${esc(x.pickup_location)} • ${esc(x.start_date)} • ${x.days} day(s) • ${money(x.total_amount)}</p><p>Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"?`<button class="btn btn-red" data-booking="${x.id}" data-status="accepted">Accept</button> <button class="btn btn-outline" data-booking="${x.id}" data-status="rejected">Decline</button>`:""}</article>`).join("");
+    $("#dashboardContent").innerHTML="<h3>My motorcycles</h3><div class='dash-grid'>"+(bikeHtml||"<p class='muted'>No motorcycles listed yet.</p>")+"</div><h3>Incoming hire requests</h3><div class='dash-grid'>"+(reqHtml||"<p class='muted'>No hire requests yet.</p>")+"</div>";
+  } else {
+    const {data,error}=await db.from("bookings").select("id,motorcycle_id,pickup_location,start_date,days,total_amount,status").eq("rider_id",currentUser.id).order("created_at",{ascending:false});
+    if(error){$("#dashboardContent").textContent=error.message;return;}
+    const cards=await Promise.all((data||[]).map(async x=>{const {data:bike}=await db.from("motorcycles").select("make,model,location").eq("id",x.motorcycle_id).maybeSingle();return `<article class="dash-card"><h3>${esc(bike?bike.make+" "+bike.model:"Motorcycle hire")}</h3><p>${esc(bike?.location||x.pickup_location)} • Start: ${esc(x.start_date)} • ${x.days} day(s)</p><p>Total: ${money(x.total_amount)} • Status: <strong>${esc(x.status)}</strong></p></article>`;}));
+    $("#dashboardContent").innerHTML=cards.join("")||'<p class="muted">No hire requests yet.</p>';
+  }
+}
+$("#dashboardContent").onclick=async e=>{
+  const b=e.target.closest("[data-booking]");if(!b)return;
+  const {error}=await db.from("bookings").update({status:b.dataset.status}).eq("id",b.dataset.booking);
+  if(error)toast("Could not update: "+error.message);else{toast("Booking status updated.");await loadDashboard();}
+};
+$("#searchBtn").onclick=renderBikes;$("#location").onkeydown=e=>{if(e.key==="Enter")renderBikes();};
+$("#category").onchange=renderBikes;$("#maxPrice").onchange=renderBikes;
+$("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
+
+async function startApp(){
+  const {data,error}=await db.auth.getSession();if(error)console.error(error);
+  await onSession(data?.session||null);await loadMotorcycles();
+  db.auth.onAuthStateChange((_event,session)=>setTimeout(()=>onSession(session),0));
+}
+updateUI();startApp();
