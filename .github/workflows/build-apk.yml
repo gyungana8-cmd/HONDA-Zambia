@@ -4,7 +4,11 @@ name: Build Twende APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -14,104 +18,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      
-      
-      
-      
-      - name: Configure and install Android SDK
-        shell: bash
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
         run: |
-          set -e
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -print -quit 2>/dev/null || true)"
-
-          if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager not found"
-            find "$SDK_ROOT" -name sdkmanager -print || true
-            exit 1
-          fi
-
-          chmod +x "$SDKMANAGER"
-          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
-
-          yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses
-          "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-          
-        run: |
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
-
-          SDKMANAGER=$(find "$SDK_ROOT" -type f -name sdkmanager | head -n 1)
-
-          if [ -z "$SDKMANAGER" ]; then
-            echo "Android SDK Manager not found"
-            exit 1
-          fi
-
-          yes | "$SDKMANAGER" --licenses || true
-
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-          
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-
-          SDKMANAGER=$(find "$SDK_ROOT" -type f -name sdkmanager | head -n 1)
-
-          if [ -z "$SDKMANAGER" ]; then
-            echo "ERROR: Android SDK Manager not found"
-            find "$SDK_ROOT" -maxdepth 5 -type f -name sdkmanager
-            exit 1
-          fi
-
-          echo "Found SDK Manager: $SDKMANAGER"
-
-          yes | "$SDKMANAGER" --licenses || true
-
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
-          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          
-          shell: bash
-          run: |
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-
-          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-
-          SDKMANAGER=$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)
-
-          if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager not found"
-            exit 1
-          fi
-
-          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
-
-          yes | "$SDKMANAGER" --licenses || true
-
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
-          sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Extract TWENDE source
         run: |
-          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          set -e
+          ZIP_FILE="$(find . -maxdepth 1 -type f -iname 'TWENDE*.zip' -print -quit)"
           if [ -z "$ZIP_FILE" ]; then
-            echo "TWENDE ZIP file not found"
+            echo "ERROR: TWENDE ZIP not found"
+            ls -la
             exit 1
           fi
           mkdir -p source
@@ -119,15 +51,16 @@ jobs:
 
       - name: Sync TWENDE website assets
         run: |
-          PROJECT_FILE=$(find source -type f -name settings.gradle | head -n 1)
+          set -e
+          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
           if [ -z "$PROJECT_FILE" ]; then
-            PROJECT_FILE=$(find source -type f -name settings.gradle.kts | head -n 1)
+            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
           fi
           if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project not found"
+            echo "ERROR: Android project not found"
             exit 1
           fi
-          PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
           ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
           mkdir -p "$ASSET_DIR"
           for FILE in index.html app.js styles.css manifest.webmanifest; do
@@ -138,21 +71,41 @@ jobs:
 
       - name: Build Android APK
         run: |
-          PROJECT_FILE=$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)
-          PROJECT_DIR=$(dirname "$PROJECT_FILE")
-          chmod -R u+rwX "$PROJECT_DIR"
+          set -e
+          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
+          if [ -z "$PROJECT_FILE" ]; then
+            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
+          fi
+          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
           cd "$PROJECT_DIR"
           if [ -f gradlew ]; then
             chmod +x gradlew
-            ./gradlew assembleDebug
+            ./gradlew --no-daemon assembleDebug
           else
-            gradle assembleDebug
+            gradle --no-daemon assembleDebug
           fi
 
-      - name: Upload APK
+      - name: Prepare APK artifact
+        run: |
+          set -e
+          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
+          if [ -z "$PROJECT_FILE" ]; then
+            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
+          fi
+          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
+          APK_FILE="$(find "$PROJECT_DIR" -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: APK was not produced"
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$APK_FILE" dist/TWENDE.apk
+
+      - name: Upload TWENDE APK
         uses: actions/upload-artifact@v4
         with:
           name: TWENDE-Android-APK
-          path: source/**/app/build/outputs/apk/debug/*.apk
+          path: dist/TWENDE.apk
           if-no-files-found: error
           retention-days: 30
+          
