@@ -1,0 +1,7 @@
+project_id = "obgteeruczqlebllrafr"
+
+[functions.send-sms-otp]
+verify_jwt = true
+
+[functions.verify-sms-otp]
+verify_jwt = true
