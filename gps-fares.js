@@ -18,6 +18,19 @@
       navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:20000,maximumAge:10000,...options});
     });
   }
+
+  async function reverseGeocode(lat,lng) {
+    const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng);
+    const response=await fetch(url,{headers:{Accept:"application/json"}});
+    if(!response.ok) throw new Error("GPS found your position, but the address could not be identified. Enter your pickup manually.");
+    const data=await response.json();
+    return data.display_name||"Current GPS location";
+  }
+  window.twendeCapturePassengerLocation=async()=>{
+    const p=await getPosition();
+    const label=await reverseGeocode(p.coords.latitude,p.coords.longitude);
+    return {lat:p.coords.latitude,lng:p.coords.longitude,label};
+  };
   async function geocode(address) {
     const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(address+", Zambia");
     const response=await fetch(url,{headers:{Accept:"application/json"}});
@@ -90,8 +103,16 @@
       b.disabled=true;
       try {
         notify("Getting your pickup location…");
-        const pos=await getPosition();
-        const pickup={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        let pickup=window.twendePickupCoords?{lat:window.twendePickupCoords.lat,lng:window.twendePickupCoords.lng}:null;
+        if(!pickup) {
+          try {
+            const pos=await getPosition();
+            pickup={lat:pos.coords.latitude,lng:pos.coords.longitude};
+          } catch(gpsError) {
+            notify("GPS permission unavailable. Using the pickup address you entered…");
+            pickup=await geocode($("#ridePickup").value.trim());
+          }
+        }
         const destination=await geocode($("#rideDestination").value.trim());
         notify("Calculating road distance and fare…");
         const km=await routeDistance(pickup,destination);
