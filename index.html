@@ -9,7 +9,7 @@
 <header class="topbar">
 <a class="brand" href="#"><span class="brand-mark">T</span><span>TWENDE <small>ZAMBIA</small></span></a>
 <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
-<nav id="nav"><a href="#ride-services">Taxi rides</a><a href="#motorcycles">Motorcycle hire</a><a href="#driver-panel">Drive with us</a><a href="#dashboard">Dashboard</a></nav>
+<nav id="nav"><a href="#ride-services">Taxi rides</a><a href="#motorcycles">Motorcycle hire</a><a href="#driver-panel">Drive with us</a><a href="#dashboard">Dashboard</a><a href="#adminPanel" id="adminNav" class="hidden">Admin</a></nav>
 <span id="accountStatus" class="account-status">Not signed in</span>
 <button class="btn btn-outline" id="authButton">Sign in / Register</button>
 <button class="btn btn-outline hidden" id="signOutButton">Sign out</button>
@@ -38,7 +38,7 @@
 <button class="btn btn-red" id="searchBtn">Search rides</button></section>
 <section class="section"><div class="section-heading"><div><span class="eyebrow">AVAILABLE FOR HIRE</span><h2>Explore motorcycles</h2></div><span class="muted" id="resultCount">Loading live listings…</span></div><div class="bike-grid" id="bikeGrid"><p class="muted">Connecting to TWENDE…</p></div></section>
 <section class="owner-banner" id="how"><div><span class="eyebrow">FOR MOTORCYCLE OWNERS</span><h2>Turn your motorcycle into an income opportunity.</h2><p>Register as an owner, list your motorcycle and manage incoming hire requests.</p><button class="btn btn-light" id="ownerCta">Become an owner partner</button></div><div class="owner-stat"><strong>01</strong><span>Create an account</span><strong>02</strong><span>Publish a listing</span><strong>03</strong><span>Manage hire requests</span></div></section>
-<section class="section dashboard" id="dashboard"><div class="section-heading"><div><span class="eyebrow">YOUR SPACE</span><h2 id="dashTitle">Your dashboard</h2></div><button class="btn btn-outline" id="switchRole">Switch to owner</button></div><p id="dashboardIntro" class="muted">Sign in to view your bookings and listings.</p><div id="dashboardContent" class="dashboard-content"></div></section>
+<section class="section hidden" id="adminPanel"><div class="section-heading"><div><span class="eyebrow">TWENDE CONTROL CENTRE</span><h2>Administrator dashboard</h2><p class="muted">Review driver applications and verify their documents before approval.</p></div><button class="btn btn-outline" id="refreshAdmin">Refresh</button></div><div id="adminContent" class="dashboard-content"><p class="muted">Checking administrator access…</p></div></section>\n<section class="section dashboard" id="dashboard"><div class="section-heading"><div><span class="eyebrow">YOUR SPACE</span><h2 id="dashTitle">Your dashboard</h2></div><button class="btn btn-outline" id="switchRole">Switch to owner</button></div><p id="dashboardIntro" class="muted">Sign in to view your bookings and listings.</p><div id="dashboardContent" class="dashboard-content"></div></section>
 </main>
 <footer><a class="brand" href="#"><span class="brand-mark">T</span><span>TWENDE <small>ZAMBIA</small></span></a><p>Connecting motorcycle owners and riders across Zambia.</p><small>Online marketplace prototype • Prices shown in ZMW</small></footer>
 <dialog id="authDialog">
