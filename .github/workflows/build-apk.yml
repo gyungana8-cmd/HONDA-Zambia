@@ -46,6 +46,7 @@ jobs:
           fi
           mkdir -p source
           unzip -o "$ZIP_FILE" -d source
+          chmod -R u+rwX source
       - name: Sync TWENDE website assets
         shell: bash
         run: |
