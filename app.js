@@ -266,3 +266,9 @@ async function startApp(){
   db.auth.onAuthStateChange((_event,session)=>setTimeout(()=>onSession(session),0));
 }
 updateUI();startApp();
+
+
+// Public extension hooks for TWENDE GPS/fare module (publishable Supabase client only).
+window.twendeDb = db;
+Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
+window.loadTwendePassengerRides = loadPassengerRides;
