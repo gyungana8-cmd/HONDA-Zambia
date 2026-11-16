@@ -31,14 +31,85 @@
     const label=await reverseGeocode(p.coords.latitude,p.coords.longitude);
     return {lat:p.coords.latitude,lng:p.coords.longitude,label};
   };
-  async function geocode(address) {
-    const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(address+", Zambia");
+  // Mufumbwe-focused place search. Photon provides live suggestions; selected
+  // results retain their exact coordinates so fare routing does not geocode a label again.
+  const placeCache = new Map();
+  const MUFUMBWE_BIAS = {lat:-13.68, lon:24.80};
+  function placeLabel(p) {
+    const parts=[p.name,p.street,p.district,p.city,p.county,p.state,p.country].filter(Boolean);
+    return [...new Set(parts)].join(", ");
+  }
+  async function searchPlaces(query) {
+    const q=query.trim();
+    if(q.length<3) return [];
+    const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Mufumbwe, Zambia")+
+      "&lat="+MUFUMBWE_BIAS.lat+"&lon="+MUFUMBWE_BIAS.lon+"&limit=8&lang=en";
     const response=await fetch(url,{headers:{Accept:"application/json"}});
-    if(!response.ok) throw new Error("Could not find that destination. Check the place name.");
+    if(!response.ok) throw new Error("Destination search is temporarily unavailable.");
+    const data=await response.json();
+    return (data.features||[]).filter(f=>
+      (f.properties?.country||"").toLowerCase()==="zambia" &&
+      Number.isFinite(Number(f.geometry?.coordinates?.[0])) &&
+      Number.isFinite(Number(f.geometry?.coordinates?.[1]))
+    ).map(f=>{
+      const p=f.properties||{}, label=placeLabel(p)||q;
+      const point={lat:Number(f.geometry.coordinates[1]),lng:Number(f.geometry.coordinates[0]),label};
+      placeCache.set(label.toLowerCase(),point);
+      return point;
+    });
+  }
+  async function geocode(address) {
+    const q=address.trim();
+    if(!q) throw new Error("Enter a destination in Mufumbwe.");
+    const cached=placeCache.get(q.toLowerCase());
+    if(cached) return cached;
+    // First try the Mufumbwe-biased search service.
+    try {
+      const matches=await searchPlaces(q);
+      if(matches.length) return matches[0];
+    } catch(err) { console.warn("Photon place search:",err.message); }
+    // Fallback to Zambia-restricted Nominatim search with a Mufumbwe view bias.
+    const params=new URLSearchParams({format:"jsonv2",limit:"5",countrycodes:"zm",q:q+", Mufumbwe, North-Western Province, Zambia",viewbox:"24.2,-13.0,25.5,-14.5",bounded:"0"});
+    const response=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
+    if(!response.ok) throw new Error("Could not search Mufumbwe destinations. Check your internet connection and try again.");
     const rows=await response.json();
-    if(!rows.length) throw new Error("Destination not found. Add a town, district or nearby landmark.");
+    if(!rows.length) throw new Error("Destination not found in Mufumbwe. Try a nearby school, clinic, market, village or landmark name.");
     return {lat:Number(rows[0].lat),lng:Number(rows[0].lon),label:rows[0].display_name};
   }
+  function attachDestinationSuggestions() {
+    const input=$("#rideDestination");
+    if(!input) return;
+    const list=document.createElement("datalist");
+    list.id="twendeDestinationSuggestions";
+    input.setAttribute("list",list.id);
+    input.setAttribute("autocomplete","off");
+    input.setAttribute("placeholder","Search a place in Mufumbwe…");
+    input.insertAdjacentElement("afterend",list);
+    let timer=null, lastQuery="";
+    input.addEventListener("input",()=>{
+      clearTimeout(timer);
+      const q=input.value.trim();
+      if(q.length<3){list.replaceChildren();return;}
+      timer=setTimeout(async()=>{
+        if(q===lastQuery) return;
+        lastQuery=q;
+        try {
+          const places=await searchPlaces(q);
+          list.replaceChildren(...places.map(place=>{
+            const option=document.createElement("option");
+            option.value=place.label;
+            return option;
+          }));
+        } catch(err) { console.warn("TWENDE destination suggestions:",err.message); }
+      },450);
+    });
+    input.addEventListener("change",()=>{
+      const selected=placeCache.get(input.value.trim().toLowerCase());
+      if(selected) input.dataset.latitude=String(selected.lat),input.dataset.longitude=String(selected.lng);
+      else {delete input.dataset.latitude;delete input.dataset.longitude;}
+    });
+  }
+  attachDestinationSuggestions();
   async function routeDistance(from,to) {
     const url="https://router.project-osrm.org/route/v1/driving/"+from.lng+","+from.lat+";"+to.lng+","+to.lat+"?overview=false&alternatives=false&steps=false";
     const response=await fetch(url);
