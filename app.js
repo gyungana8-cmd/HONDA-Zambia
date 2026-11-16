@@ -5,9 +5,13 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_PeUZGgiMW02w0jstoKhICA_cXw83_Ic
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 let currentUser = null, currentProfile = null, role = "rider";
-let selectedBike = null, liveBikes = [];
+let selectedBike = null, liveBikes = [], liveBookings = [];
 const $ = s => document.querySelector(s);
 const money = n => "K" + Number(n || 0).toLocaleString("en-ZM", {maximumFractionDigits: 2});
+const addDaysISO = (date,days) => { const d=new Date(date+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+Number(days||1)); return d.toISOString().slice(0,10); };
+const datesOverlap = (aStart,aDays,bStart,bDays) => aStart < addDaysISO(bStart,bDays) && bStart < addDaysISO(aStart,aDays);
+const localISODate = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const bikeBookedOn = (bikeId,date) => liveBookings.some(x=>x.motorcycle_id===bikeId && datesOverlap(x.start_date,x.days,date,1));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(message) { const t=$("#toast"); t.textContent=message; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3500); }
 function closeDialog(id) { document.getElementById(id).close(); }
@@ -68,12 +72,16 @@ async function loadMotorcycles() {
   $("#bikeGrid").innerHTML='<p class="muted">Loading live motorcycles…</p>';
   const {data,error}=await db.from("motorcycles").select("id,make,model,location,daily_rate,description,status").eq("status","available").order("created_at",{ascending:false});
   if(error){console.error(error);$("#bikeGrid").innerHTML='<p class="muted">Could not load listings. Refresh and try again.</p>';$("#resultCount").textContent="Connection error";return;}
-  liveBikes=data||[];renderBikes();
+  liveBikes=data||[];
+  liveBookings=[];
+  const ids=liveBikes.map(x=>x.id);
+  if(ids.length){const bookings=await db.from("bookings").select("motorcycle_id,start_date,days").in("motorcycle_id",ids).eq("status","accepted");if(bookings.error)console.warn("Could not load accepted booking dates:",bookings.error);else liveBookings=bookings.data||[];}
+  renderBikes();
 }
 function renderBikes() {
   const loc=$("#location").value.trim().toLowerCase(),max=$("#maxPrice").value,cat=$("#category").value;
   const rows=liveBikes.filter(b=>b.location.toLowerCase().includes(loc)&&(max==="all"||Number(b.daily_rate)<=Number(max))&&(cat==="all"||[b.make,b.model,b.description].join(" ").toLowerCase().includes(cat.toLowerCase())));
-  $("#bikeGrid").innerHTML=rows.map(b=>`<article class="bike-card"><div class="bike-photo">🏍️</div><div class="bike-info"><h3>${esc(b.make)} ${esc(b.model)}</h3><div class="bike-meta"><span>📍 ${esc(b.location)}</span><span>Available</span></div><p class="muted">${esc(b.description||"Available for daily hire")}</p><div class="bike-bottom"><div class="price">${money(b.daily_rate)} <small>/ day</small></div><button class="btn btn-red" data-hire="${b.id}">Request hire</button></div></div></article>`).join("")||'<p class="muted">No live motorcycles are listed yet. Owners can sign in and publish the first listing.</p>';
+  $("#bikeGrid").innerHTML=rows.map(b=>{const booked=bikeBookedOn(b.id,localISODate());return `<article class="bike-card"><div class="bike-photo">🏍️</div><div class="bike-info"><h3>${esc(b.make)} ${esc(b.model)}</h3><div class="bike-meta"><span>📍 ${esc(b.location)}</span><span>${booked?"Booked today":"Available"}</span></div><p class="muted">${esc(b.description||"Available for daily hire")}</p><div class="bike-bottom"><div class="price">${money(b.daily_rate)} <small>/ day</small></div><button class="btn btn-red" data-hire="${b.id}" ${booked?"disabled":""}>${booked?"Booked today":"Request hire"}</button></div></div></article>`;}).join("")||'<p class="muted">No live motorcycles are listed yet. Owners can sign in and publish the first listing.</p>';
   $("#resultCount").textContent=rows.length+" live listing"+(rows.length===1?"":"s");
 }
 $("#bikeGrid").onclick=e=>{
@@ -87,8 +95,12 @@ $("#bikeGrid").onclick=e=>{
 };
 $("#days").oninput=()=>{if(selectedBike)$("#total").textContent=money(Number(selectedBike.daily_rate)*Math.max(1,Number($("#days").value)||1));};
 $("#bookingForm").onsubmit=async e=>{
-  e.preventDefault();if(!currentUser||!selectedBike)return;const b=e.submitter;b.disabled=true;const days=Number($("#days").value);
-  const {error}=await db.from("bookings").insert({motorcycle_id:selectedBike.id,rider_id:currentUser.id,rider_name:$("#riderName").value.trim(),rider_phone:$("#riderPhone").value.trim(),pickup_location:$("#pickup").value.trim(),start_date:$("#startDate").value,days,total_amount:Number(selectedBike.daily_rate)*days});
+  e.preventDefault();if(!currentUser||!selectedBike)return;const b=e.submitter;b.disabled=true;const days=Math.max(1,Number($("#days").value)||1),startDate=$("#startDate").value;
+  if(!startDate){b.disabled=false;toast("Please choose a hire start date.");return;}
+  const {data:accepted,error:availabilityError}=await db.from("bookings").select("start_date,days").eq("motorcycle_id",selectedBike.id).eq("status","accepted");
+  if(availabilityError){b.disabled=false;toast("Could not verify motorcycle availability. Please try again.");console.error(availabilityError);return;}
+  if((accepted||[]).some(x=>datesOverlap(x.start_date,x.days,startDate,days))){b.disabled=false;toast("This motorcycle is already booked for one or more of those dates. Choose different dates.");return;}
+  const {error}=await db.from("bookings").insert({motorcycle_id:selectedBike.id,rider_id:currentUser.id,rider_name:$("#riderName").value.trim(),rider_phone:$("#riderPhone").value.trim(),pickup_location:$("#pickup").value.trim(),start_date:startDate,days,total_amount:Number(selectedBike.daily_rate)*days});
   b.disabled=false;if(error){toast("Booking not sent: "+error.message);return;}
   closeDialog("bookingDialog");e.target.reset();toast("Hire request sent to the motorcycle owner.");await loadDashboard();
 };
