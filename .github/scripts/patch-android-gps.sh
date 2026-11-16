@@ -19,7 +19,7 @@ p.write_text(s)
 import re
 s=p.read_text()
 s=re.sub(r'\s+android:(?:roundIcon|icon)="[^"]+"', '', s)
-s=s.replace('<application', '<application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:label="TWENDE" ', 1)
+s=s.replace('<application', '<application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" ', 1)
 p.write_text(s)
 
 res=Path("source/app/src/main/res")
