@@ -95,6 +95,14 @@ jobs:
           echo "--- COMPLETE MAIN ACTIVITY ---"
           ACTIVITY="$(find source -type f -name MainActivity.java -print -quit)"
           if [ -n "$ACTIVITY" ]; then cat "$ACTIVITY"; fi
+          echo "--- PROJECT GRADLE FILES ---"
+          find source -type f \( -name build.gradle -o -name build.gradle.kts \) -print
+          while IFS= read -r FILE; do
+            echo "--- $FILE ---"
+            cat "$FILE"
+          done < <(find source -type f \( -name build.gradle -o -name build.gradle.kts \) -print)
+          echo "--- JAVA SOURCE TREE ---"
+          find source/app/src/main -maxdepth 10 -type f -print
 
       - name: Sync TWENDE website assets
         shell: bash
