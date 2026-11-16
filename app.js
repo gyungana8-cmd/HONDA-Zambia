@@ -83,12 +83,26 @@ $("#passengerOtpForm").onsubmit=async e=>{
   b.disabled=false;
   if(error){toast("Phone verification failed: "+error.message);return;}
   await onSession(data.session);
-  $("#authDialog").close();
-  toast("Phone number verified.");
-  if(pendingPassengerService){const service=pendingPassengerService;pendingPassengerService=null;openRideDialog(service);}
+  toast("Phone number verified. Please enter your name.");
+  $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
+  $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.add("hidden");
+  $("#passengerNameForm").classList.remove("hidden");$("#authDialog").showModal();
 };
 $("#changePassengerPhone").onclick=()=>{
   $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
+};
+$("#passengerNameForm").onsubmit=async e=>{
+  e.preventDefault();const b=e.submitter;b.disabled=true;
+  const first=$("#passengerFirstName").value.trim(),last=$("#passengerLastName").value.trim();
+  const fullName=(first+" "+last).trim();
+  const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
+  if(authError){b.disabled=false;toast("Could not save your name: "+authError.message);return;}
+  const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone:currentUser.phone,role:"rider"},{onConflict:"id"});
+  if(profileError){b.disabled=false;toast("Name verified, but profile could not be saved: "+profileError.message);return;}
+  currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone:currentUser.phone,role:"rider"};
+  b.disabled=false;$("#authDialog").close();$("#passengerNameForm").reset();
+  toast("Welcome to TWENDE, "+first+".");
+  if(pendingPassengerService){const service=pendingPassengerService;pendingPassengerService=null;openRideDialog(service);}
 };
 $("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
 $("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
