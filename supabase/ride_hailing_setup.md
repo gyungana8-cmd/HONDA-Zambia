@@ -1,6 +1,6 @@
 # TWENDE ride-hailing setup
 
-This branch adds the first cash-based taxi-request and driver-onboarding flows while preserving the existing daily motorcycle-hire feature.
+This release adds the first cash-based taxi-request and driver-onboarding flows while preserving the existing daily motorcycle-hire feature.
 
 ## Deploy the database changes
 
@@ -32,4 +32,14 @@ Only approved drivers can go online. Drivers can accept only requests matching t
 
 This is the first implementation milestone, not a complete Yango-equivalent release. It supports cash taxi request creation, driver registration, manual approval, online/offline status, ride acceptance and trip completion after the SQL migration is installed.
 
-Live GPS driver discovery, map routing, continuously updated trip location, push notifications, fare calculation, in-app support/emergency workflows, driver document uploads and an admin approval screen still require additional integrations and testing. Taxi fares are agreed directly with the driver; the app does not calculate or collect taxi payments. Existing motorcycle daily-hire bookings remain in the original `motorcycles` and `bookings` tables.
+Taxi fares are currently agreed directly between the passenger and driver. The app does not yet calculate, estimate, collect or process taxi fares. Cash is paid directly to the driver. Existing motorcycle daily-hire bookings remain in the original `motorcycles` and `bookings` tables.
+
+## Later development phases
+
+The following capabilities are deliberately deferred to later development and must not be treated as available in the current release:
+
+1. **GPS and live maps:** passenger and driver location permissions, live driver location updates, nearby-driver discovery, pickup pin placement, route display, and trip tracking.
+2. **Automatic fare calculation:** fare estimates and final fares calculated from configurable base fares, distance, time, vehicle type and local operating rules.
+3. **Additional platform capabilities:** push notifications, in-app support and emergency workflows, driver document uploads, and an administrator approval dashboard.
+
+These features will require additional implementation, configuration, security review and real-device testing before release. The existing cash-based booking flow remains the current taxi payment arrangement until a later payment feature is deliberately designed and approved.
