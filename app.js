@@ -39,6 +39,7 @@ async function loadProfile(user) {
   role=currentProfile?.role==="owner"?"owner":"rider";
   updateUI();
   await loadDashboard();
+  await loadPassengerRides();await loadDriverDashboard();
 }
 async function onSession(session) {
   currentUser=session?.user||null;
@@ -189,9 +190,79 @@ $("#searchBtn").onclick=renderBikes;$("#location").onkeydown=e=>{if(e.key==="Ent
 $("#category").onchange=renderBikes;$("#maxPrice").onchange=renderBikes;
 $("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
 
+
+/* TWENDE ride-hailing: cash-only taxi requests and driver onboarding.
+   Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
+let selectedRideService = "motorcycle";
+function openRideDialog(service) {
+  if(!currentUser){toast("Sign in or create an account before requesting a taxi.");$("#authDialog").showModal();return;}
+  selectedRideService=service;$("#rideServiceType").value=service;
+  $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
+  $("#passengerName").value=currentProfile?.full_name||"";
+  $("#passengerPhone").value=currentProfile?.phone||"";
+  $("#rideDialog").showModal();
+}
+document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
+$("#rideForm").onsubmit=async e=>{
+  e.preventDefault();
+  if(!currentUser){toast("Please sign in first.");return;}
+  const b=e.submitter;b.disabled=true;
+  const row={rider_id:currentUser.id,passenger_name:$("#passengerName").value.trim(),passenger_phone:$("#passengerPhone").value.trim(),service_type:$("#rideServiceType").value,pickup_text:$("#ridePickup").value.trim(),destination_text:$("#rideDestination").value.trim(),payment_method:"cash",status:"pending"};
+  const {data,error}=await db.from("ride_requests").insert(row).select("id").single();
+  b.disabled=false;
+  if(error){console.error("Taxi request:",error);toast("Taxi request could not be sent. The ride-hailing database setup may still be required.");return;}
+  closeDialog("rideDialog");e.target.reset();toast("Taxi request sent. Waiting for an approved driver.");
+  await loadPassengerRides();await loadDriverDashboard();
+};
+async function loadPassengerRides(){
+  const host=$("#passengerRides");if(!host)return;
+  if(!currentUser){host.innerHTML='<p class="muted">Sign in to see your taxi requests.</p>';return;}
+  const {data,error}=await db.from("ride_requests").select("id,service_type,pickup_text,destination_text,payment_method,status,created_at").eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(8);
+  if(error){host.innerHTML='<p class="muted">Taxi request history will appear after the ride-hailing database is configured.</p>';return;}
+  host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
+}
+$("#driverRegisterBtn").onclick=()=>{
+  if(!currentUser){toast("Sign in or create an account before registering as a driver.");$("#authDialog").showModal();return;}
+  $("#driverName").value=currentProfile?.full_name||"";
+  $("#driverPhone").value=currentProfile?.phone||"";
+  $("#driverDialog").showModal();
+};
+$("#driverForm").onsubmit=async e=>{
+  e.preventDefault();if(!currentUser)return;
+  const b=e.submitter;b.disabled=true;
+  const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:$("#driverVehicleType").value,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverLicence").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
+  const {error}=await db.from("driver_profiles").upsert(row,{onConflict:"user_id"});
+  b.disabled=false;
+  if(error){console.error("Driver registration:",error);toast("Driver registration could not be saved. Apply the ride-hailing database setup first.");return;}
+  closeDialog("driverDialog");e.target.reset();toast("Driver registration submitted for verification.");await loadDriverDashboard();
+};
+async function loadDriverDashboard(){
+  const host=$("#driverDashboard");if(!host)return;
+  if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage a driver account.</p>';return;}
+  const {data:driver,error}=await db.from("driver_profiles").select("*").eq("user_id",currentUser.id).maybeSingle();
+  if(error){host.innerHTML='<p class="muted">Driver services are awaiting database setup.</p>';return;}
+  if(!driver){host.innerHTML='<p class="muted">No driver registration found. Register your motorcycle or car to get started.</p>';return;}
+  if(driver.approval_status!=="approved"){
+    host.innerHTML=`<article class="dash-card"><h3>${esc(driver.vehicle_make)} ${esc(driver.vehicle_model)} • ${esc(driver.vehicle_type)}</h3><p>Registration: ${esc(driver.plate_number)}</p><p>Verification status: <strong>${esc(driver.approval_status)}</strong></p><p class="muted">An administrator must verify your driving licence and vehicle documents before you can go online and accept rides.</p></article>`;
+    return;
+  }
+  const {data:rides}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
+  host.innerHTML=`<article class="dash-card"><h3>Driver status: Approved</h3><p>${esc(driver.vehicle_make)} ${esc(driver.vehicle_model)} • ${esc(driver.vehicle_type)} • ${esc(driver.plate_number)}</p><p>Availability: <strong>${driver.is_online?"Online":"Offline"}</strong></p><button class="btn btn-red" id="driverOnlineBtn" data-online="${!driver.is_online}">${driver.is_online?"Go offline":"Go online"}</button></article><h3>Taxi requests</h3>`+((rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&driver.is_online&&x.service_type===driver.vehicle_type?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>');
+}
+$("#driverDashboard").onclick=async e=>{
+  const online=e.target.closest("#driverOnlineBtn");
+  if(online){const {error}=await db.rpc("set_twende_driver_online",{p_online:online.dataset.online==="true"});if(error){toast("Could not change availability. Check driver approval and database setup.");return;}toast("Driver availability updated.");await loadDriverDashboard();return;}
+  const action=e.target.closest("[data-ride-action]");if(!action)return;
+  const rpc=action.dataset.rideAction==="accept"?"accept_twende_ride":"complete_twende_ride";
+  const {error}=await db.rpc(rpc,{p_ride_id:action.dataset.rideId});
+  if(error){toast("Ride update failed: "+error.message);return;}
+  toast(action.dataset.rideAction==="accept"?"Ride accepted. Contact the passenger to confirm pickup.":"Trip marked completed.");
+  await loadDriverDashboard();await loadPassengerRides();
+};
+
 async function startApp(){
   const {data,error}=await db.auth.getSession();if(error)console.error(error);
-  await onSession(data?.session||null);await loadMotorcycles();
+  await onSession(data?.session||null);await loadMotorcycles();await loadPassengerRides();await loadDriverDashboard();
   db.auth.onAuthStateChange((_event,session)=>setTimeout(()=>onSession(session),0));
 }
 updateUI();startApp();
