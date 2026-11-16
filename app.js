@@ -231,9 +231,9 @@ $("#driverForm").onsubmit=async e=>{
   e.preventDefault();if(!currentUser)return;
   const b=e.submitter;b.disabled=true;
   const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:$("#driverVehicleType").value,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverLicence").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
-  const {error}=await db.from("driver_profiles").upsert(row,{onConflict:"user_id"});
+  const {error}=await db.from("driver_profiles").insert(row);
   b.disabled=false;
-  if(error){console.error("Driver registration:",error);toast("Driver registration could not be saved. Apply the ride-hailing database setup first.");return;}
+  if(error){console.error("Driver registration:",error);toast(error.code==="23505"?"You already have a driver registration. Contact TWENDE support to update it.":"Driver registration could not be saved. Apply the ride-hailing database setup first.");return;}
   closeDialog("driverDialog");e.target.reset();toast("Driver registration submitted for verification.");await loadDriverDashboard();
 };
 async function loadDriverDashboard(){
