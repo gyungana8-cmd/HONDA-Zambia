@@ -39,7 +39,7 @@ async function loadProfile(user) {
   }
   const {data:existing,error:readError}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
   if (readError) console.error("Profile read:",readError);
-  if (existing) currentProfile=existing;
+  if (existing) currentProfile={...existing,full_name:user.user_metadata?.full_name||existing.full_name,phone:user.phone||existing.phone};
   else {
     const meta=user.user_metadata||{};
     const row={id:user.id,full_name:meta.full_name||user.email||"Passenger",phone:user.phone||meta.phone||null,role:meta.role||"rider"};
@@ -97,8 +97,8 @@ $("#passengerNameForm").onsubmit=async e=>{
   const fullName=(first+" "+last).trim();
   const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
   if(authError){b.disabled=false;toast("Could not save your name: "+authError.message);return;}
-  const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone:currentUser.phone,role:"rider"},{onConflict:"id"});
-  if(profileError){b.disabled=false;toast("Name verified, but profile could not be saved: "+profileError.message);return;}
+  const {error:profileError}=await db.from("profiles").update({full_name:fullName,phone:currentUser.phone}).eq("id",currentUser.id);
+  if(profileError) console.warn("Profile name mirror could not be updated; auth metadata remains saved:",profileError);
   currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone:currentUser.phone,role:"rider"};
   b.disabled=false;$("#authDialog").close();$("#passengerNameForm").reset();
   toast("Welcome to TWENDE, "+first+".");
