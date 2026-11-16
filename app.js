@@ -217,9 +217,9 @@ $("#rideForm").onsubmit=async e=>{
 async function loadPassengerRides(){
   const host=$("#passengerRides");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to see your taxi requests.</p>';return;}
-  const {data,error}=await db.from("ride_requests").select("id,service_type,pickup_text,destination_text,payment_method,status,created_at").eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(8);
+  const {data,error}=await db.from("ride_requests").select("id,service_type,pickup_text,destination_text,payment_method,status,created_at,route_distance_km,estimated_fare").eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(8);
   if(error){host.innerHTML='<p class="muted">Taxi request history will appear after the ride-hailing database is configured.</p>';return;}
-  host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
+  host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
 }
 $("#driverRegisterBtn").onclick=()=>{
   if(!currentUser){toast("Sign in or create an account before registering as a driver.");$("#authDialog").showModal();return;}
@@ -247,7 +247,7 @@ async function loadDriverDashboard(){
     return;
   }
   const {data:rides}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
-  host.innerHTML=`<article class="dash-card"><h3>Driver status: Approved</h3><p>${esc(driver.vehicle_make)} ${esc(driver.vehicle_model)} • ${esc(driver.vehicle_type)} • ${esc(driver.plate_number)}</p><p>Availability: <strong>${driver.is_online?"Online":"Offline"}</strong></p><button class="btn btn-red" id="driverOnlineBtn" data-online="${!driver.is_online}">${driver.is_online?"Go offline":"Go online"}</button></article><h3>Taxi requests</h3>`+((rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&driver.is_online&&x.service_type===driver.vehicle_type?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>');
+  host.innerHTML=`<article class="dash-card"><h3>Driver status: Approved</h3><p>${esc(driver.vehicle_make)} ${esc(driver.vehicle_model)} • ${esc(driver.vehicle_type)} • ${esc(driver.plate_number)}</p><p>Availability: <strong>${driver.is_online?"Online":"Offline"}</strong></p><button class="btn btn-red" id="driverOnlineBtn" data-online="${!driver.is_online}">${driver.is_online?"Go offline":"Go online"}</button></article><h3>Taxi requests</h3>`+((rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&driver.is_online&&x.service_type===driver.vehicle_type?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>');
 }
 $("#driverDashboard").onclick=async e=>{
   const online=e.target.closest("#driverOnlineBtn");
@@ -266,3 +266,9 @@ async function startApp(){
   db.auth.onAuthStateChange((_event,session)=>setTimeout(()=>onSession(session),0));
 }
 updateUI();startApp();
+
+
+// Public extension hooks for TWENDE GPS/fare module (publishable Supabase client only).
+window.twendeDb = db;
+Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
+window.loadTwendePassengerRides = loadPassengerRides;
