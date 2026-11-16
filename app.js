@@ -39,7 +39,7 @@ async function loadProfile(user) {
   role=currentProfile?.role==="owner"?"owner":"rider";
   updateUI();
   await loadDashboard();
-  await loadPassengerRides();await loadDriverDashboard();
+  await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
 }
 async function onSession(session) {
   currentUser=session?.user||null;
@@ -259,6 +259,31 @@ $("#driverDashboard").onclick=async e=>{
   toast(action.dataset.rideAction==="accept"?"Ride accepted. Contact the passenger to confirm pickup.":"Trip marked completed.");
   await loadDriverDashboard();await loadPassengerRides();
 };
+
+
+async function loadAdminDashboard(){
+  const panel=$("#adminPanel"),nav=$("#adminNav"),host=$("#adminContent");
+  if(!panel||!host)return;
+  panel.classList.add("hidden");if(nav)nav.classList.add("hidden");
+  if(!currentUser){host.innerHTML='<p class="muted">Sign in with the designated administrator account.</p>';return;}
+  const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
+  if(adminError||!isAdmin){host.innerHTML='<p class="muted">This account does not have TWENDE administrator access.</p>';return;}
+  panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
+  const {data:drivers,error}=await db.from("driver_profiles").select("user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,licence_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
+  if(error){host.innerHTML='<p class="muted">Could not load driver applications: '+esc(error.message)+'</p>';return;}
+  const rows=drivers||[];
+  host.innerHTML='<h3>Driver applications ('+rows.length+')</h3>'+rows.map(d=>`<article class="dash-card"><h3>${esc(d.driver_name)} • ${esc(d.vehicle_type)}</h3><p>Phone: ${esc(d.phone)} • Area: ${esc(d.operating_area)}</p><p>Vehicle: ${esc(d.vehicle_make)} ${esc(d.vehicle_model)} • Registration: ${esc(d.plate_number)}</p><p>Driving licence: ${esc(d.licence_number)}</p><p>Status: <strong>${esc(d.approval_status)}</strong></p>${d.approval_status==="pending"?`<button class="btn btn-red" data-admin-decision="approved" data-driver-id="${d.user_id}">Approve</button> <button class="btn btn-outline" data-admin-decision="rejected" data-driver-id="${d.user_id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No driver applications have been submitted.</p>';
+}
+$("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
+$("#adminContent")?.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-admin-decision]");if(!b)return;
+  const decision=b.dataset.adminDecision;
+  if(!window.confirm((decision==="approved"?"Approve":"Reject")+" this driver application?"))return;
+  b.disabled=true;
+  const {error}=await db.rpc("twende_admin_review_driver",{p_driver_id:b.dataset.driverId,p_decision:decision});
+  if(error){b.disabled=false;toast("Driver review failed: "+error.message);return;}
+  toast("Driver application "+decision+".");await loadAdminDashboard();
+});
 
 async function startApp(){
   const {data,error}=await db.auth.getSession();if(error)console.error(error);
