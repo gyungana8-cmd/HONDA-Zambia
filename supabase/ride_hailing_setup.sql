@@ -44,7 +44,8 @@ alter table public.ride_requests enable row level security;
 drop policy if exists "Drivers can read own profile" on public.driver_profiles;
 create policy "Drivers can read own profile" on public.driver_profiles for select to authenticated using (user_id = auth.uid());
 drop policy if exists "Users can register as drivers" on public.driver_profiles;
-create policy "Users can register as drivers" on public.driver_profiles for insert to authenticated with check (user_id = auth.uid());
+create policy "Users can register as drivers" on public.driver_profiles for insert to authenticated
+with check (user_id = auth.uid() and approval_status = 'pending' and is_online = false);
 drop policy if exists "Passengers and assigned drivers can read rides" on public.ride_requests;
 create policy "Passengers and assigned drivers can read rides" on public.ride_requests for select to authenticated using (
   rider_id = auth.uid() or driver_id = auth.uid() or
