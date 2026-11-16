@@ -53,6 +53,7 @@ existing=colors.read_text() if colors.exists() else '<?xml version="1.0" encodin
 if 'name="twende_icon_background"' not in existing:
     existing=existing.replace('</resources>', '    <color name="twende_icon_background">#C91F2C</color>\n</resources>')
 colors.write_text(existing)
+PY
 
 cat > "$ACTIVITY" <<'JAVA'
 package com.yangu.hondazambia;
