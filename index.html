@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#101820"><title>TWENDE | Motorcycle Hire Zambia</title>
+<meta name="theme-color" content="#101820"><title>TWENDE | Taxi & Motorcycle Hire Zambia</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="topbar">
 <a class="brand" href="#"><span class="brand-mark">T</span><span>TWENDE <small>ZAMBIA</small></span></a>
 <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
-<nav id="nav"><a href="#motorcycles">Motorcycles</a><a href="#how">How it works</a><a href="#dashboard">Dashboard</a></nav>
+<nav id="nav"><a href="#ride-services">Taxi rides</a><a href="#motorcycles">Motorcycle hire</a><a href="#driver-panel">Drive with us</a><a href="#dashboard">Dashboard</a></nav>
 <span id="accountStatus" class="account-status">Not signed in</span>
 <button class="btn btn-outline" id="authButton">Sign in / Register</button>
 <button class="btn btn-outline hidden" id="signOutButton">Sign out</button>
@@ -21,6 +21,16 @@
 <div class="hero-actions"><a class="btn btn-red" href="#motorcycles">Find a motorcycle</a><button class="btn btn-light" id="ownerHero">List your motorcycle</button></div>
 <div class="trust-row"><span>✓ Local owners</span><span>✓ Clear hire rates</span><span>✓ Zambia-focused</span></div></div>
 <div class="hero-art"><div class="art-circle"></div><div class="bike-emoji">🏍️</div><div class="art-label"><b>TWENDE</b><span>Move with confidence</span></div></div></section>
+<section class="section ride-services" id="ride-services">
+<div class="section-heading"><div><span class="eyebrow">GET THERE WITH TWENDE</span><h2>Choose your ride</h2><p class="muted">Request a local motorcycle taxi or car taxi. Pay the driver in cash.</p></div></div>
+<div class="service-grid">
+<article class="service-card"><div class="service-icon">🏍️</div><h3>Motorcycle taxi</h3><p>Request a motorcycle driver for a local trip.</p><button class="btn btn-red full" data-ride-service="motorcycle">Request motorcycle taxi</button></article>
+<article class="service-card"><div class="service-icon">🚕</div><h3>Car taxi</h3><p>Request a car and driver for your journey.</p><button class="btn btn-red full" data-ride-service="car">Request car taxi</button></article>
+</div>
+<p class="muted cash-note">Cash payment • Agree the fare with your driver before starting the trip. Fare estimates and live GPS matching will be added in the next integration stage.</p>
+<div id="passengerRides" class="dashboard-content"></div>
+</section>
+<section class="section driver-panel" id="driver-panel"><div class="section-heading"><div><span class="eyebrow">EARN WITH TWENDE</span><h2>Drive with TWENDE</h2><p class="muted">Register your motorcycle or car to receive taxi ride requests.</p></div><button class="btn btn-red" id="driverRegisterBtn">Register as a driver</button></div><div id="driverDashboard" class="dashboard-content"><p class="muted">Sign in and register your vehicle to get started. Driver accounts require verification before going online.</p></div></section>
 <section class="search-panel" id="motorcycles">
 <div><label for="location">Pickup location</label><input id="location" placeholder="e.g. Mufumbwe, Kitwe, Lusaka"></div>
 <div><label for="category">Motorcycle type</label><select id="category"><option value="all">All motorcycles</option><option>Commuter</option><option>Delivery</option><option>Off-road</option></select></div>
@@ -49,6 +59,8 @@
 <label>Motorcycle make<input id="bikeMake" value="Other" required></label><label>Motorcycle model<input id="bikeModel" placeholder="e.g. Honda CG 125" required></label>
 <label>Location<input id="bikeLocation" placeholder="Town or district" required></label><label>Daily hire rate (ZMW)<input id="bikeRate" type="number" min="1" step="0.01" required></label>
 <label>Description<textarea id="bikeDescription" rows="3" placeholder="Condition, engine size, transmission…"></textarea></label><button class="btn btn-red full" type="submit">Publish motorcycle listing</button></form></dialog>
+<dialog id="rideDialog"><form id="rideForm" class="dialog-form"><button class="close" type="button" data-close="rideDialog">×</button><span class="eyebrow">TWENDE TAXI</span><h2 id="rideDialogTitle">Request a ride</h2><p class="muted">Cash payment to the driver. Confirm the fare before travel.</p><input type="hidden" id="rideServiceType"><label>Your name<input id="passengerName" required></label><label>Phone number<input id="passengerPhone" type="tel" placeholder="+260…" required></label><label>Pickup location<input id="ridePickup" placeholder="e.g. Munyambala, Mufumbwe" required></label><label>Destination<input id="rideDestination" placeholder="Where are you going?" required></label><div class="estimate">Payment method <b>Cash</b></div><button class="btn btn-red full" type="submit">Request taxi</button></form></dialog>
+<dialog id="driverDialog"><form id="driverForm" class="dialog-form"><button class="close" type="button" data-close="driverDialog">×</button><span class="eyebrow">DRIVER PARTNER</span><h2>Register as a TWENDE driver</h2><p class="muted">Submit your details for review. You cannot receive rides until your driver account is approved.</p><label>Full name<input id="driverName" required></label><label>Phone number<input id="driverPhone" type="tel" placeholder="+260…" required></label><label>Vehicle type<select id="driverVehicleType" required><option value="motorcycle">Motorcycle taxi</option><option value="car">Car taxi</option></select></label><label>Vehicle make<input id="driverVehicleMake" placeholder="e.g. Honda, Toyota" required></label><label>Vehicle model<input id="driverVehicleModel" placeholder="e.g. CG 125, Corolla" required></label><label>Registration number<input id="driverPlate" required></label><label>Driving licence number<input id="driverLicence" required></label><label>Operating area<input id="driverArea" placeholder="e.g. Mufumbwe" required></label><button class="btn btn-red full" type="submit">Submit driver registration</button></form></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
 </body></html>
