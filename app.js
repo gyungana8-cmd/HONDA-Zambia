@@ -100,9 +100,30 @@ $("#passengerNameForm").onsubmit=async e=>{
   const {error:profileError}=await db.from("profiles").update({full_name:fullName,phone:currentUser.phone}).eq("id",currentUser.id);
   if(profileError) console.warn("Profile name mirror could not be updated; auth metadata remains saved:",profileError);
   currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone:currentUser.phone,role:"rider"};
-  b.disabled=false;$("#authDialog").close();$("#passengerNameForm").reset();
+  b.disabled=false;$("#passengerNameForm").reset();
   toast("Welcome to TWENDE, "+first+".");
-  if(pendingPassengerService){const service=pendingPassengerService;pendingPassengerService=null;openRideDialog(service);}
+  $("#authDialog").close();
+  if(pendingPassengerService) $("#locationPermissionDialog").showModal();
+};
+
+$("#sharePickupLocation").onclick=async()=>{
+  const b=$("#sharePickupLocation");b.disabled=true;
+  try {
+    const location=await window.twendeCapturePassengerLocation();
+    window.twendePickupCoords=location;
+    $("#ridePickup").value=location.label;
+    $("#locationPermissionDialog").close();
+    const service=pendingPassengerService||"car";pendingPassengerService=null;
+    openRideDialog(service);
+    toast("Pickup location found using GPS.");
+  } catch(err) {
+    toast(err.message||"Could not get your location. You can enter it manually.");
+  } finally {b.disabled=false;}
+};
+$("#enterPickupManually").onclick=()=>{
+  $("#locationPermissionDialog").close();
+  const service=pendingPassengerService||"car";pendingPassengerService=null;
+  openRideDialog(service);
 };
 $("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
 $("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
