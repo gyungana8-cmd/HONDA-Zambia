@@ -5,6 +5,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_PeUZGgiMW02w0jstoKhICA_cXw83_Ic
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 let currentUser = null, currentProfile = null, role = "rider";
+let verifiedPassengerPhone = null;
 let selectedBike = null, liveBikes = [], liveBookings = [];
 const $ = s => document.querySelector(s);
 const money = n => "K" + Number(n || 0).toLocaleString("en-ZM", {maximumFractionDigits: 2});
@@ -30,7 +31,9 @@ function updateUI() {
 async function loadProfile(user) {
   if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
   if (isGuestRider(user)) {
-    currentProfile={id:user.id,full_name:"Passenger",phone:null,role:"rider"};
+    const {data:guestProfile}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
+    currentProfile={id:user.id,full_name:guestProfile?.full_name||"Passenger",phone:guestProfile?.phone||null,role:"rider"};
+    verifiedPassengerPhone=currentProfile.phone;
     role="rider";updateUI();
     $("#dashboardIntro").textContent="You are using TWENDE as a passenger without creating an account.";
     $("#dashboardContent").innerHTML='<p class="muted">No passenger account is needed to request a taxi.</p>';
@@ -69,20 +72,21 @@ $("#authButton").onclick=()=>{
 $("#passengerPhoneForm").onsubmit=async e=>{
   e.preventDefault();const b=e.submitter;b.disabled=true;
   const phone=$("#passengerPhoneEntry").value.trim();
-  const {data,error}=await db.auth.signInWithOtp({phone,options:{shouldCreateUser:true}});
+  const {data,error}=await db.functions.invoke("send-sms-otp",{body:{phone}});
   b.disabled=false;
-  if(error){toast("SMS code could not be sent: "+error.message);return;}
-  $("#passengerOtpPhone").value=phone;
+  if(error || data?.error){toast("SMS code could not be sent: "+(data?.error||error.message));return;}
+  $("#passengerOtpPhone").value=data.phone||phone;
   $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.remove("hidden");
   toast("Verification code sent to "+phone);
 };
 $("#passengerOtpForm").onsubmit=async e=>{
   e.preventDefault();const b=e.submitter;b.disabled=true;
   const phone=$("#passengerOtpPhone").value.trim(),token=$("#passengerOtpCode").value.trim();
-  const {data,error}=await db.auth.verifyOtp({phone,token,type:"sms"});
+  const {data,error}=await db.functions.invoke("verify-sms-otp",{body:{phone,code:token}});
   b.disabled=false;
-  if(error){toast("Phone verification failed: "+error.message);return;}
-  await onSession(data.session);
+  if(error || data?.error){toast("Phone verification failed: "+(data?.error||error.message));return;}
+  verifiedPassengerPhone=data.phone||phone;
+  currentProfile={...(currentProfile||{}),id:currentUser.id,phone:verifiedPassengerPhone,role:"rider"};
   toast("Phone number verified. Please enter your name.");
   $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
   $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.add("hidden");
@@ -97,9 +101,10 @@ $("#passengerNameForm").onsubmit=async e=>{
   const fullName=(first+" "+last).trim();
   const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
   if(authError){b.disabled=false;toast("Could not save your name: "+authError.message);return;}
-  const {error:profileError}=await db.from("profiles").update({full_name:fullName,phone:currentUser.phone}).eq("id",currentUser.id);
-  if(profileError) console.warn("Profile name mirror could not be updated; auth metadata remains saved:",profileError);
-  currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone:currentUser.phone,role:"rider"};
+  const passengerPhone=verifiedPassengerPhone||currentProfile?.phone||null;
+  const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone:passengerPhone,role:"rider"});
+  if(profileError) console.warn("Profile details could not be mirrored:",profileError);
+  currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone:passengerPhone,role:"rider"};
   b.disabled=false;$("#passengerNameForm").reset();
   toast("Welcome to TWENDE, "+first+".");
   $("#authDialog").close();
@@ -282,7 +287,7 @@ function openRideDialog(service,skipLocationPrompt=false) {
     $("#locationPermissionDialog").showModal();
     return;
   }
-  if(currentUser.is_anonymous || !currentUser.phone){
+  if(!currentProfile?.phone){
     pendingPassengerService=service;
     $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
     $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
