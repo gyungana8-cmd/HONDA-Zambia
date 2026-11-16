@@ -282,16 +282,16 @@ let selectedRideService = "motorcycle";
 let pendingPassengerService=null;
 function openRideDialog(service,skipLocationPrompt=false) {
   if(!currentUser){toast("Passenger access is still starting. Please wait a moment and retry.");return;}
-  if(!skipLocationPrompt && !window.twendePickupCoords){
-    pendingPassengerService=service;
-    $("#locationPermissionDialog").showModal();
-    return;
-  }
   if(!currentProfile?.phone){
     pendingPassengerService=service;
     $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
     $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
     $("#authDialog").showModal();return;
+  }
+  if(!skipLocationPrompt && !window.twendePickupCoords){
+    pendingPassengerService=service;
+    $("#locationPermissionDialog").showModal();
+    return;
   }
   selectedRideService=service;$("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
