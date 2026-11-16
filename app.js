@@ -68,29 +68,28 @@ $("#authButton").onclick=()=>{
   $("#authDialog").showModal();
 };
 
-// Passenger phone verification: SMS OTP, no email/password account form.
+// Temporary TWENDE pilot mode: collect passenger contact details without SMS OTP.
+// Phone numbers are NOT verified in this pilot; retain server-side ride access controls.
+function normalizePilotPhone(input){
+  const value=String(input||"").replace(/[\s()-]/g,"");
+  if(/^\+260[0-9]{9}$/.test(value))return value;
+  if(/^260[0-9]{9}$/.test(value))return "+"+value;
+  if(/^0[0-9]{9}$/.test(value))return "+260"+value.slice(1);
+  return null;
+}
 $("#passengerPhoneForm").onsubmit=async e=>{
-  e.preventDefault();const b=e.submitter;b.disabled=true;
-  const phone=$("#passengerPhoneEntry").value.trim();
-  const {data,error}=await db.functions.invoke("send-sms-otp",{body:{phone}});
-  b.disabled=false;
-  if(error || data?.error){toast("SMS code could not be sent: "+(data?.error||error.message));return;}
-  $("#passengerOtpPhone").value=data.phone||phone;
-  $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.remove("hidden");
-  toast("Verification code sent to "+phone);
-};
-$("#passengerOtpForm").onsubmit=async e=>{
-  e.preventDefault();const b=e.submitter;b.disabled=true;
-  const phone=$("#passengerOtpPhone").value.trim(),token=$("#passengerOtpCode").value.trim();
-  const {data,error}=await db.functions.invoke("verify-sms-otp",{body:{phone,code:token}});
-  b.disabled=false;
-  if(error || data?.error){toast("Phone verification failed: "+(data?.error||error.message));return;}
-  verifiedPassengerPhone=data.phone||phone;
-  currentProfile={...(currentProfile||{}),id:currentUser.id,phone:verifiedPassengerPhone,role:"rider"};
-  toast("Phone number verified. Please enter your name.");
+  e.preventDefault();
+  const b=e.submitter;b.disabled=true;
+  const phone=normalizePilotPhone($("#passengerPhoneEntry").value);
+  if(!phone){b.disabled=false;toast("Enter a valid Zambian mobile number, for example 097XXXXXXX.");return;}
+  if(!currentUser){b.disabled=false;toast("Passenger session is not ready. Please refresh and try again.");return;}
+  verifiedPassengerPhone=phone;
+  currentProfile={...(currentProfile||{}),id:currentUser.id,phone,role:"rider"};
   $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
   $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.add("hidden");
-  $("#passengerNameForm").classList.remove("hidden");$("#authDialog").showModal();
+  $("#passengerNameForm").classList.remove("hidden");
+  b.disabled=false;
+  toast("Pilot mode: phone number saved but not SMS-verified.");
 };
 $("#changePassengerPhone").onclick=()=>{
   $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
