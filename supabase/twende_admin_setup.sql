@@ -18,6 +18,11 @@ from auth.users
 where lower(email) = lower('gyungana8@gmail.com')
 on conflict (user_id) do update set email = excluded.email;
 
+drop policy if exists "Admins can review driver applications" on public.driver_profiles;
+create policy "Admins can review driver applications"
+on public.driver_profiles for select to authenticated
+using (exists(select 1 from public.twende_admins a where a.user_id=auth.uid()));
+
 create or replace function public.twende_is_admin()
 returns boolean
 language sql stable security definer set search_path=public
