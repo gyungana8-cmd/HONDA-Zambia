@@ -11,14 +11,14 @@
 <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
 <nav id="nav"><a href="#ride-services">Taxi rides</a><a href="#motorcycles">Motorcycle hire</a><a href="#driver-panel">Drive with us</a><a href="#dashboard">Dashboard</a><a href="#adminPanel" id="adminNav" class="hidden">Admin</a></nav>
 <span id="accountStatus" class="account-status">Not signed in</span>
-<button class="btn btn-outline" id="authButton">Sign in / Register</button>
+<button class="btn btn-outline" id="authButton">Driver / owner sign in</button>
 <button class="btn btn-outline hidden" id="signOutButton">Sign out</button>
 </header>
 <main>
 <section class="hero"><div class="hero-copy"><span class="eyebrow">MOTORCYCLE HIRE, MADE SIMPLE</span>
 <h1>Your next ride<br><em>starts here.</em></h1>
-<p>Find a motorcycle for your next journey, or earn income by making your motorcycle available for hire.</p>
-<div class="hero-actions"><a class="btn btn-red" href="#motorcycles">Find a motorcycle</a><button class="btn btn-light" id="ownerHero">List your motorcycle</button></div>
+<p>Book a car or motorcycle taxi without creating a passenger account. Drivers and motorcycle owners create accounts to earn with TWENDE.</p>
+<div class="hero-actions"><a class="btn btn-red" href="#ride-services">Request a taxi</a><button class="btn btn-light" id="ownerHero">Driver / owner access</button></div>
 <div class="trust-row"><span>✓ Local owners</span><span>✓ Clear hire rates</span><span>✓ Zambia-focused</span></div></div>
 <div class="hero-art"><div class="art-circle"></div><div class="bike-emoji">🏍️</div><div class="art-label"><b>TWENDE</b><span>Move with confidence</span></div></div></section>
 <section class="section ride-services" id="ride-services">
@@ -44,10 +44,10 @@
 <dialog id="authDialog">
 <form id="loginForm" class="dialog-form"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">WELCOME TO TWENDE</span><h2>Sign in</h2>
 <label>Email address<input id="loginEmail" type="email" autocomplete="email" required></label><label>Password<input id="loginPassword" type="password" autocomplete="current-password" minlength="6" required></label>
-<button class="btn btn-red full" type="submit">Sign in</button><p class="muted">New to TWENDE? <button type="button" class="text-button" id="showRegister">Create an account</button></p></form>
-<form id="registerForm" class="dialog-form hidden"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">JOIN THE MARKETPLACE</span><h2>Create your account</h2>
+<button class="btn btn-red full" type="submit">Sign in</button><p class="muted">Driver or motorcycle owner? <button type="button" class="text-button" id="showRegister">Create an account</button></p></form>
+<form id="registerForm" class="dialog-form hidden"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">JOIN THE MARKETPLACE</span><h2>Create a driver / owner account</h2>
 <label>Full name<input id="registerName" autocomplete="name" required></label><label>Phone number<input id="registerPhone" type="tel" autocomplete="tel" placeholder="+260…" required></label>
-<label>Email address<input id="registerEmail" type="email" autocomplete="email" required></label><label>Account type<select id="registerRole"><option value="rider">Rider</option><option value="owner">Motorcycle owner</option><option value="both">Both rider and owner</option></select></label>
+<label>Email address<input id="registerEmail" type="email" autocomplete="email" required></label><input type="hidden" id="registerRole" value="owner"><p class="muted">This account is for drivers and motorcycle / car owners. Passengers can request rides without registering.</p>
 <label>Password (at least 6 characters)<input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required></label>
 <button class="btn btn-red full" type="submit">Create account</button><p class="muted">Already registered? <button type="button" class="text-button" id="showLogin">Sign in</button></p></form>
 </dialog>
