@@ -47,6 +47,16 @@ jobs:
           mkdir -p source
           unzip -o "$ZIP_FILE" -d source
           chmod -R u+rwX source
+      - name: Inspect Android wrapper sources for GPS support
+        shell: bash
+        run: |
+          set -e
+          echo "--- ANDROID MANIFESTS ---"
+          find source -name AndroidManifest.xml -print
+          while IFS= read -r FILE; do echo "--- $FILE ---"; sed -n '1,240p' "$FILE"; done < <(find source -name AndroidManifest.xml -print)
+          echo "--- MAIN ACTIVITY CANDIDATES ---"
+          find source -type f \( -name 'MainActivity.java' -o -name 'MainActivity.kt' -o -name '*Activity.java' -o -name '*Activity.kt' \) -print
+          while IFS= read -r FILE; do echo "--- $FILE ---"; sed -n '1,260p' "$FILE"; done < <(find source -type f \( -name 'MainActivity.java' -o -name 'MainActivity.kt' \) -print)
       - name: Sync TWENDE website assets
         shell: bash
         run: |
