@@ -1,10 +1,10 @@
 {
-  "name": "TWENDE Motorcycle Hire Zambia",
+  "name": "TWENDE Taxi & Motorcycle Hire Zambia",
   "short_name": "TWENDE",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#101820",
   "theme_color": "#101820",
-  "description": "Connect motorcycle owners and riders across Zambia.",
+  "description": "Book motorcycle taxis, car taxis and hire motorcycles across Zambia.",
   "icons": []
 }
