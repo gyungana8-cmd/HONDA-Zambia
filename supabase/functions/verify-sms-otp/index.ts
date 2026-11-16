@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const phone = String(body.phone || "");
-    const code = String(body.code || "").replace(/\\s/g, "");
-    if (!/^\\+260[0-9]{9}$/.test(phone) || !/^[0-9]{6}$/.test(code)) {
+    const code = String(body.code || "").replace(/\s/g, "");
+    if (!/^\+260[0-9]{9}$/.test(phone) || !/^[0-9]{6}$/.test(code)) {
       return json({ error: "Enter the six-digit code sent to your Zambian number." }, 400);
     }
 
