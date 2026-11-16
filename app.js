@@ -266,13 +266,19 @@ async function loadAdminDashboard(){
   if(!panel||!host)return;
   panel.classList.add("hidden");if(nav)nav.classList.add("hidden");
   if(!currentUser){host.innerHTML='<p class="muted">Sign in with the designated administrator account.</p>';return;}
-  const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
-  if(adminError||!isAdmin){host.innerHTML='<p class="muted">This account does not have TWENDE administrator access.</p>';return;}
+  // Reveal the entry point only for the specifically assigned account. All data
+  // access and approval actions remain protected by the server-side admin RPC/RLS.
+  const designatedAdmin=String(currentUser.email||"").toLowerCase()==="gyungana8@gmail.com";
+  if(!designatedAdmin){host.innerHTML='<p class="muted">This account does not have TWENDE administrator access.</p>';return;}
   panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
-  const {data:drivers,error}=await db.from("driver_profiles").select("user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,licence_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
+  host.innerHTML='<p class="muted">Verifying administrator permissions…</p>';
+  const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
+  if(adminError){host.innerHTML='<p class="muted">Admin menu is available, but permission verification failed: '+esc(adminError.message)+'. Sign out and sign in again, then refresh.</p>';return;}
+  if(isAdmin!==true){host.innerHTML='<p class="muted">Your email is recognised, but the database has not confirmed administrator permissions. Sign out and sign in again, then refresh. If this persists, re-run the TWENDE admin SQL setup.</p>';return;}
+  const {data:drivers,error}=await db.from("driver_profiles").select("user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Could not load driver applications: '+esc(error.message)+'</p>';return;}
   const rows=drivers||[];
-  host.innerHTML='<h3>Driver applications ('+rows.length+')</h3>'+rows.map(d=>`<article class="dash-card"><h3>${esc(d.driver_name)} • ${esc(d.vehicle_type)}</h3><p>Phone: ${esc(d.phone)} • Area: ${esc(d.operating_area)}</p><p>Vehicle: ${esc(d.vehicle_make)} ${esc(d.vehicle_model)} • Registration: ${esc(d.plate_number)}</p><p>Driving licence: ${esc(d.licence_number)}</p><p>Status: <strong>${esc(d.approval_status)}</strong></p>${d.approval_status==="pending"?`<button class="btn btn-red" data-admin-decision="approved" data-driver-id="${d.user_id}">Approve</button> <button class="btn btn-outline" data-admin-decision="rejected" data-driver-id="${d.user_id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No driver applications have been submitted.</p>';
+  host.innerHTML='<h3>Driver applications ('+rows.length+')</h3>'+rows.map(d=>`<article class="dash-card"><h3>${esc(d.driver_name)} • ${esc(d.vehicle_type)}</h3><p>Phone: ${esc(d.phone)} • Area: ${esc(d.operating_area)}</p><p>Vehicle: ${esc(d.vehicle_make)} ${esc(d.vehicle_model)} • Registration: ${esc(d.plate_number)}</p><p>Status: <strong>${esc(d.approval_status)}</strong></p>${d.approval_status==="pending"?`<button class="btn btn-red" data-admin-decision="approved" data-driver-id="${d.user_id}">Approve</button> <button class="btn btn-outline" data-admin-decision="rejected" data-driver-id="${d.user_id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No driver applications have been submitted.</p>';
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("click",async e=>{
