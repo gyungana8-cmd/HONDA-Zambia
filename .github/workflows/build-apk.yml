@@ -57,12 +57,20 @@ jobs:
         shell: bash
         run: |
           set -e
-          PROJECT_FILE="$(find source -type f \\( -name settings.gradle -o -name settings.gradle.kts \\) -print -quit)"
+          PROJECT_FILE="$(find source -name settings.gradle -print -quit)"
+          if [ -z "$PROJECT_FILE" ]; then
+            PROJECT_FILE="$(find source -name settings.gradle.kts -print -quit)"
+          fi
+          if [ -z "$PROJECT_FILE" ]; then
+            echo "ERROR: Android settings file not found"
+            exit 1
+          fi
           PROJECT_DIR="$(dirname "$PROJECT_FILE")"
           if [ ! -f google-services.json ]; then
             echo "ERROR: google-services.json is missing from repository root"
             exit 1
           fi
+          mkdir -p "$PROJECT_DIR/app"
           cp google-services.json "$PROJECT_DIR/app/google-services.json"
           echo "Firebase Android configuration copied into app module"
 
@@ -92,7 +100,10 @@ jobs:
         shell: bash
         run: |
           set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
+          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
+          if [ -z "$PROJECT_FILE" ]; then
+            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
+          fi
           if [ -z "$PROJECT_FILE" ]; then
             echo "Android project not found"
             exit 1
@@ -108,7 +119,10 @@ jobs:
         shell: bash
         run: |
           set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
+          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
+          if [ -z "$PROJECT_FILE" ]; then
+            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
+          fi
           if [ -z "$PROJECT_FILE" ]; then
             echo "Android project settings file not found"
             exit 1
