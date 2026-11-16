@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       return json({ error: "Could not prepare verification. Apply the TWENDE OTP database SQL first." }, 500);
     }
 
-    const form = new URLSearchParams({ username, to: phone, message: "Your TWENDE verification code is " + otp + ". It expires in 5 minutes." });
+    const form = new URLSearchParams({ username, to: phone, from: "TWENDE", message: "Your TWENDE verification code is " + otp + ". It expires in 5 minutes." });
     const smsResponse = await fetch("https://api.africastalking.com/version1/messaging", {
       method: "POST",
       headers: { apiKey, Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
