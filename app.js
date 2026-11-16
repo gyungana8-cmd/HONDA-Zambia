@@ -132,9 +132,15 @@ async function loadDashboard() {
     if(error){$("#dashboardContent").textContent=error.message;return;}
     const ids=(bikes||[]).map(x=>x.id);let requests=[];
     if(ids.length){const r=await db.from("bookings").select("id,motorcycle_id,rider_name,rider_phone,pickup_location,start_date,days,total_amount,status").in("motorcycle_id",ids).order("created_at",{ascending:false});if(r.error){$("#dashboardContent").textContent=r.error.message;return;}requests=r.data||[];}
+    const acceptedRequests=requests.filter(x=>x.status==="accepted");
+    const pendingRequests=requests.filter(x=>x.status==="pending");
+    const acceptedValue=acceptedRequests.reduce((sum,x)=>sum+Number(x.total_amount||0),0);
+    const thisMonth=localISODate().slice(0,7);
+    const monthValue=acceptedRequests.filter(x=>String(x.start_date).slice(0,7)===thisMonth).reduce((sum,x)=>sum+Number(x.total_amount||0),0);
+    const statsHtml=`<div class="owner-metrics"><article class="metric-card"><span>Motorcycles listed</span><strong>${(bikes||[]).length}</strong></article><article class="metric-card"><span>Pending requests</span><strong>${pendingRequests.length}</strong></article><article class="metric-card"><span>Accepted hire value</span><strong>${money(acceptedValue)}</strong><small>Expected value, not confirmed payments</small></article><article class="metric-card"><span>Accepted this month</span><strong>${money(monthValue)}</strong><small>Based on hire start date</small></article></div>`;
     const bikeHtml=(bikes||[]).map(x=>`<article class="dash-card"><h3>${esc(x.make)} ${esc(x.model)}</h3><p>${esc(x.location)} • ${money(x.daily_rate)}/day • ${esc(x.status)}</p></article>`).join("");
     const reqHtml=requests.map(x=>`<article class="dash-card"><h3>Hire request from ${esc(x.rider_name)}</h3><p>${esc(x.rider_phone)} • ${esc(x.pickup_location)} • ${esc(x.start_date)} • ${x.days} day(s) • ${money(x.total_amount)}</p><p>Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"?`<button class="btn btn-red" data-booking="${x.id}" data-status="accepted">Accept</button> <button class="btn btn-outline" data-booking="${x.id}" data-status="rejected">Decline</button>`:""}</article>`).join("");
-    $("#dashboardContent").innerHTML="<h3>My motorcycles</h3><div class='dash-grid'>"+(bikeHtml||"<p class='muted'>No motorcycles listed yet.</p>")+"</div><h3>Incoming hire requests</h3><div class='dash-grid'>"+(reqHtml||"<p class='muted'>No hire requests yet.</p>")+"</div>";
+    $("#dashboardContent").innerHTML=statsHtml+"<h3>My motorcycles</h3><div class='dash-grid'>"+(bikeHtml||"<p class='muted'>No motorcycles listed yet.</p>")+"</div><h3>Incoming hire requests</h3><div class='dash-grid'>"+(reqHtml||"<p class='muted'>No hire requests yet.</p>")+"</div>";
   } else {
     const {data,error}=await db.from("bookings").select("id,motorcycle_id,pickup_location,start_date,days,total_amount,status").eq("rider_id",currentUser.id).order("created_at",{ascending:false});
     if(error){$("#dashboardContent").textContent=error.message;return;}
@@ -144,6 +150,14 @@ async function loadDashboard() {
 }
 $("#dashboardContent").onclick=async e=>{
   const b=e.target.closest("[data-booking]");if(!b)return;
+  if(b.dataset.status==="accepted"){
+    const {data:target,error:targetError}=await db.from("bookings").select("id,motorcycle_id,start_date,days,status").eq("id",b.dataset.booking).maybeSingle();
+    if(targetError||!target){toast("Could not verify this hire request. Refresh and try again.");return;}
+    const {data:accepted,error:acceptedError}=await db.from("bookings").select("id,start_date,days").eq("motorcycle_id",target.motorcycle_id).eq("status","accepted");
+    if(acceptedError){toast("Could not check existing bookings. Try again.");return;}
+    const conflict=(accepted||[]).some(x=>x.id!==target.id&&datesOverlap(x.start_date,x.days,target.start_date,target.days));
+    if(conflict){toast("Cannot accept: this motorcycle already has an accepted booking for overlapping dates.");return;}
+  }
   const {error}=await db.from("bookings").update({status:b.dataset.status}).eq("id",b.dataset.booking);
   if(error)toast("Could not update: "+error.message);else{toast("Booking status updated.");await loadDashboard();}
 };
