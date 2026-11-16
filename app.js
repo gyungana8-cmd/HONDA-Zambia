@@ -68,7 +68,7 @@ $("#authButton").onclick=()=>{
 // Passenger phone verification: SMS OTP, no email/password account form.
 $("#passengerPhoneForm").onsubmit=async e=>{
   e.preventDefault();const b=e.submitter;b.disabled=true;
-  const phone=$("#passengerPhone").value.trim();
+  const phone=$("#passengerPhoneEntry").value.trim();
   const {data,error}=await db.auth.signInWithOtp({phone,options:{shouldCreateUser:true}});
   b.disabled=false;
   if(error){toast("SMS code could not be sent: "+error.message);return;}
