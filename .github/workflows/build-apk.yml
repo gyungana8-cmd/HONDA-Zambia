@@ -53,6 +53,19 @@ jobs:
           unzip -o "$ZIP_FILE" -d source
           chmod -R u+rwX source
 
+      - name: Add Firebase Android configuration
+        shell: bash
+        run: |
+          set -e
+          PROJECT_FILE="$(find source -type f \\( -name settings.gradle -o -name settings.gradle.kts \\) -print -quit)"
+          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
+          if [ ! -f google-services.json ]; then
+            echo "ERROR: google-services.json is missing from repository root"
+            exit 1
+          fi
+          cp google-services.json "$PROJECT_DIR/app/google-services.json"
+          echo "Firebase Android configuration copied into app module"
+
       - name: Apply Android GPS permissions and WebView handler
         shell: bash
         run: bash .github/scripts/patch-android-gps.sh
