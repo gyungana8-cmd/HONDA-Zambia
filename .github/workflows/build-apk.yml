@@ -15,25 +15,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
           packages: platform-tools
+
       - name: Install Android SDK packages
         shell: bash
         run: |
           set -e
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+
       - name: Extract TWENDE source
         shell: bash
         run: |
@@ -47,16 +52,22 @@ jobs:
           mkdir -p source
           unzip -o "$ZIP_FILE" -d source
           chmod -R u+rwX source
+
       - name: Inspect Android wrapper sources for GPS support
         shell: bash
         run: |
           set -e
           echo "--- ANDROID MANIFESTS ---"
           find source -name AndroidManifest.xml -print
-          while IFS= read -r FILE; do echo "--- $FILE ---"; sed -n '1,240p' "$FILE"; done < <(find source -name AndroidManifest.xml -print)
-          echo "--- MAIN ACTIVITY CANDIDATES ---"
-          find source -type f \( -name 'MainActivity.java' -o -name 'MainActivity.kt' -o -name '*Activity.java' -o -name '*Activity.kt' \) -print
-          while IFS= read -r FILE; do echo "--- $FILE ---"; sed -n '1,260p' "$FILE"; done < <(find source -type f \( -name 'MainActivity.java' -o -name 'MainActivity.kt' \) -print)
+          while IFS= read -r FILE; do
+            echo "--- $FILE ---"
+            sed -n '1,240p' "$FILE"
+          done < <(find source -name AndroidManifest.xml -print)
+          echo "--- ACTIVITY CANDIDATES ---"
+          find source -type f | grep -E '/[^/]*Activity\.(java|kt)$' || true
+          echo "--- WEBVIEW REFERENCES ---"
+          grep -RniE 'WebView|WebChromeClient|onGeolocationPermissionsShowPrompt|requestPermissions|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION' source --include='*.java' --include='*.kt' --include='*.xml' || true
+
       - name: Sync TWENDE website assets
         shell: bash
         run: |
@@ -72,6 +83,7 @@ jobs:
           for FILE in index.html app.js gps-fares.js styles.css manifest.webmanifest; do
             if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
           done
+
       - name: Build Android APK
         shell: bash
         run: |
@@ -89,6 +101,7 @@ jobs:
           else
             gradle --no-daemon assembleDebug
           fi
+
       - name: Prepare APK artifact
         shell: bash
         run: |
@@ -100,6 +113,7 @@ jobs:
           fi
           mkdir -p dist
           cp "$APK_FILE" dist/TWENDE.apk
+
       - name: Upload TWENDE APK
         uses: actions/upload-artifact@v4
         with:
@@ -107,197 +121,3 @@ jobs:
           path: dist/TWENDE.apk
           if-no-files-found: error
           retention-days: 30
-
-      - name: Upload Android GPS inspection report
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-GPS-Diagnostics
-          path: diagnostics/android-gps-inspection.txt
-          if-no-files-found: error
-          retention-days: 7
- || true)
-            echo "WEBVIEW REFERENCES"
-            grep -RniE 'WebView|WebChromeClient|onGeolocationPermissionsShowPrompt|requestPermissions|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION' source --include='*.java' --include='*.kt' --include='*.xml' || true
-          } > diagnostics/android-gps-inspection.txt
-      - name: Sync TWENDE website assets
-        shell: bash
-        run: |
-          set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project not found"
-            exit 1
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
-          mkdir -p "$ASSET_DIR"
-          for FILE in index.html app.js gps-fares.js styles.css manifest.webmanifest; do
-            if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
-          done
-      - name: Build Android APK
-        shell: bash
-        run: |
-          set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project settings file not found"
-            exit 1
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          cd "$PROJECT_DIR"
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew --no-daemon assembleDebug
-          else
-            gradle --no-daemon assembleDebug
-          fi
-      - name: Prepare APK artifact
-        shell: bash
-        run: |
-          set -e
-          APK_FILE="$(find source -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: APK was not produced"
-            exit 1
-          fi
-          mkdir -p dist
-          cp "$APK_FILE" dist/TWENDE.apk
-      - name: Upload TWENDE APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-APK
-          path: dist/TWENDE.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload Android GPS inspection report
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-GPS-Diagnostics
-          path: diagnostics/android-gps-inspection.txt
-          if-no-files-found: error
-          retention-days: 7
- || true)
-            echo "WEBVIEW REFERENCES"
-            grep -RniE 'WebView|WebChromeClient|onGeolocationPermissionsShowPrompt|requestPermissions|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION' source --include='*.java' --include='*.kt' --include='*.xml' || true
-          } > diagnostics/android-gps-inspection.txt
-      - name: Sync TWENDE website assets
-        shell: bash
-        run: |
-          set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project not found"
-            exit 1
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
-          mkdir -p "$ASSET_DIR"
-          for FILE in index.html app.js gps-fares.js styles.css manifest.webmanifest; do
-            if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
-          done
-      - name: Build Android APK
-        shell: bash
-        run: |
-          set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project settings file not found"
-            exit 1
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          cd "$PROJECT_DIR"
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew --no-daemon assembleDebug
-          else
-            gradle --no-daemon assembleDebug
-          fi
-      - name: Prepare APK artifact
-        shell: bash
-        run: |
-          set -e
-          APK_FILE="$(find source -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: APK was not produced"
-            exit 1
-          fi
-          mkdir -p dist
-          cp "$APK_FILE" dist/TWENDE.apk
-      - name: Upload TWENDE APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-APK
-          path: dist/TWENDE.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload Android GPS inspection report
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-GPS-Diagnostics
-          path: diagnostics/android-gps-inspection.txt
-          if-no-files-found: error
-          retention-days: 7
- || true)
-            echo "WEBVIEW REFERENCES"
-            grep -RniE 'WebView|WebChromeClient|onGeolocationPermissionsShowPrompt|requestPermissions|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION' source --include='*.java' --include='*.kt' --include='*.xml' || true
-          } > diagnostics/android-gps-inspection.txt
-      - name: Sync TWENDE website assets
-        shell: bash
-        run: |
-          set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project not found"
-            exit 1
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
-          mkdir -p "$ASSET_DIR"
-          for FILE in index.html app.js gps-fares.js styles.css manifest.webmanifest; do
-            if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
-          done
-      - name: Build Android APK
-        shell: bash
-        run: |
-          set -e
-          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Android project settings file not found"
-            exit 1
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          cd "$PROJECT_DIR"
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew --no-daemon assembleDebug
-          else
-            gradle --no-daemon assembleDebug
-          fi
-      - name: Prepare APK artifact
-        shell: bash
-        run: |
-          set -e
-          APK_FILE="$(find source -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: APK was not produced"
-            exit 1
-          fi
-          mkdir -p dist
-          cp "$APK_FILE" dist/TWENDE.apk
-      - name: Upload TWENDE APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-APK
-          path: dist/TWENDE.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload Android GPS inspection report
-        uses: actions/upload-artifact@v4
-        with:
-          name: TWENDE-Android-GPS-Diagnostics
-          path: diagnostics/android-gps-inspection.txt
-          if-no-files-found: error
-          retention-days: 7
