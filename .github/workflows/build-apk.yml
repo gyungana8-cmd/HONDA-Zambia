@@ -1,4 +1,3 @@
-
 name: Build Twende APK
 
 on:
@@ -13,36 +12,30 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
-                    gradle-version: '8.9'
-          
+          gradle-version: '8.9'
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
           packages: platform-tools
-
       - name: Install Android SDK packages
         shell: bash
         run: |
           set -e
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-
-
       - name: Extract TWENDE source
+        shell: bash
         run: |
           set -e
           ZIP_FILE="$(find . -maxdepth 1 -type f -iname 'TWENDE*.zip' -print -quit)"
@@ -53,8 +46,6 @@ jobs:
           fi
           mkdir -p source
           unzip -o "$ZIP_FILE" -d source
-
-      
       - name: Sync TWENDE website assets
         shell: bash
         run: |
@@ -64,27 +55,20 @@ jobs:
             echo "Android project not found"
             exit 1
           fi
-
           PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          chmod -R u+rwX "$PROJECT_DIR"
-
           ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
           mkdir -p "$ASSET_DIR"
-          chmod -R u+rwX "$ASSET_DIR"
-
           for FILE in index.html app.js styles.css manifest.webmanifest; do
-            if [ -f "$FILE" ]; then
-              cp -f "$FILE" "$ASSET_DIR/"
-            fi
+            if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
           done
-          
-
       - name: Build Android APK
+        shell: bash
         run: |
           set -e
-          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
+          PROJECT_FILE="$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
           if [ -z "$PROJECT_FILE" ]; then
-            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
+            echo "Android project settings file not found"
+            exit 1
           fi
           PROJECT_DIR="$(dirname "$PROJECT_FILE")"
           cd "$PROJECT_DIR"
@@ -94,23 +78,17 @@ jobs:
           else
             gradle --no-daemon assembleDebug
           fi
-
       - name: Prepare APK artifact
+        shell: bash
         run: |
           set -e
-          PROJECT_FILE="$(find source -type f -name settings.gradle -print -quit)"
-          if [ -z "$PROJECT_FILE" ]; then
-            PROJECT_FILE="$(find source -type f -name settings.gradle.kts -print -quit)"
-          fi
-          PROJECT_DIR="$(dirname "$PROJECT_FILE")"
-          APK_FILE="$(find "$PROJECT_DIR" -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
+          APK_FILE="$(find source -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
           if [ -z "$APK_FILE" ]; then
             echo "ERROR: APK was not produced"
             exit 1
           fi
           mkdir -p dist
           cp "$APK_FILE" dist/TWENDE.apk
-
       - name: Upload TWENDE APK
         uses: actions/upload-artifact@v4
         with:
@@ -118,4 +96,3 @@ jobs:
           path: dist/TWENDE.apk
           if-no-files-found: error
           retention-days: 30
-          
