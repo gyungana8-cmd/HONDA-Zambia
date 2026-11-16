@@ -42,7 +42,7 @@ async function loadProfile(user) {
   if (existing) currentProfile=existing;
   else {
     const meta=user.user_metadata||{};
-    const row={id:user.id,full_name:meta.full_name||user.email||"TWENDE user",phone:meta.phone||null,role:meta.role||"rider"};
+    const row={id:user.id,full_name:meta.full_name||user.email||"Passenger",phone:user.phone||meta.phone||null,role:meta.role||"rider"};
     const {data,error}=await db.from("profiles").insert(row).select().single();
     currentProfile=error?row:data;
     if(error) console.error("Profile create:",error);
@@ -61,7 +61,34 @@ async function onSession(session) {
 
 $("#authButton").onclick=()=>{
   $("#loginForm").classList.remove("hidden");$("#registerForm").classList.add("hidden");
+  $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.add("hidden");
   $("#authDialog").showModal();
+};
+
+// Passenger phone verification: SMS OTP, no email/password account form.
+$("#passengerPhoneForm").onsubmit=async e=>{
+  e.preventDefault();const b=e.submitter;b.disabled=true;
+  const phone=$("#passengerPhone").value.trim();
+  const {data,error}=await db.auth.signInWithOtp({phone,options:{shouldCreateUser:true}});
+  b.disabled=false;
+  if(error){toast("SMS code could not be sent: "+error.message);return;}
+  $("#passengerOtpPhone").value=phone;
+  $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.remove("hidden");
+  toast("Verification code sent to "+phone);
+};
+$("#passengerOtpForm").onsubmit=async e=>{
+  e.preventDefault();const b=e.submitter;b.disabled=true;
+  const phone=$("#passengerOtpPhone").value.trim(),token=$("#passengerOtpCode").value.trim();
+  const {data,error}=await db.auth.verifyOtp({phone,token,type:"sms"});
+  b.disabled=false;
+  if(error){toast("Phone verification failed: "+error.message);return;}
+  await onSession(data.session);
+  $("#authDialog").close();
+  toast("Phone number verified.");
+  if(pendingPassengerService){const service=pendingPassengerService;pendingPassengerService=null;openRideDialog(service);}
+};
+$("#changePassengerPhone").onclick=()=>{
+  $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
 };
 $("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
 $("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
@@ -212,8 +239,15 @@ $("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
 /* TWENDE ride-hailing: cash-only taxi requests and driver onboarding.
    Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
 let selectedRideService = "motorcycle";
+let pendingPassengerService=null;
 function openRideDialog(service) {
   if(!currentUser){toast("Passenger access is still starting. Please wait a moment and retry.");return;}
+  if(currentUser.is_anonymous || !currentUser.phone){
+    pendingPassengerService=service;
+    $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
+    $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
+    $("#authDialog").showModal();return;
+  }
   selectedRideService=service;$("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
   $("#passengerName").value=currentProfile?.full_name||"";
