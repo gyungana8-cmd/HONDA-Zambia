@@ -18,7 +18,7 @@ p.write_text(s)
 # Apply the TWENDE launcher icon to the native Android application.
 import re
 s=p.read_text()
-s=re.sub(r'\\s+android:(?:roundIcon|icon)="[^"]+"', '', s)
+s=re.sub(r'\s+android:(?:roundIcon|icon)="[^"]+"', '', s)
 s=s.replace('<application', '<application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:label="TWENDE" ', 1)
 p.write_text(s)
 
@@ -35,10 +35,12 @@ res=Path("source/app/src/main/res")
 </vector>
 """)
 (res/"mipmap-anydpi/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/twende_icon_background"/>
-    <foreground android:drawable="@drawable/twende_launcher_foreground"/>
-</adaptive-icon>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFC91F2C" android:pathData="M0,0 L108,0 L108,108 L0,108 Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
+</vector>
 """)
 (res/"mipmap-anydpi-v26/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -47,9 +49,9 @@ res=Path("source/app/src/main/res")
 </adaptive-icon>
 """)
 colors=res/"values/colors.xml"
-existing=colors.read_text() if colors.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+existing=colors.read_text() if colors.exists() else '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n'
 if 'name="twende_icon_background"' not in existing:
-    existing=existing.replace('</resources>', '    <color name="twende_icon_background">#C91F2C</color>\\n</resources>')
+    existing=existing.replace('</resources>', '    <color name="twende_icon_background">#C91F2C</color>\n</resources>')
 colors.write_text(existing)
 
 cat > "$ACTIVITY" <<'JAVA'
