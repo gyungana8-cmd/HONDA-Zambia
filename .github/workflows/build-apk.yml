@@ -109,6 +109,16 @@ jobs:
             gradle --no-daemon assembleDebug
           fi
 
+      - name: Verify GPS permissions in packaged APK
+        shell: bash
+        run: |
+          set -e
+          APK_FILE="$(find source -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump permissions "$APK_FILE" | tee /tmp/twende-permissions.txt
+          grep -q "android.permission.ACCESS_FINE_LOCATION" /tmp/twende-permissions.txt
+          grep -q "android.permission.ACCESS_COARSE_LOCATION" /tmp/twende-permissions.txt
+
       - name: Prepare APK artifact
         shell: bash
         run: |
