@@ -57,7 +57,7 @@ end; $$;
 revoke all on function public.update_twende_driver_location(double precision,double precision,numeric,numeric,numeric) from public;
 grant execute on function public.update_twende_driver_location(double precision,double precision,numeric,numeric,numeric) to authenticated;
 
--- Tariffs intentionally start inactive until TWENDE confirms the approved ZMW rate card.
+-- TWENDE-approved ZMW tariff values. Keep inactive until the migration is applied and tested.
 create table if not exists public.taxi_fare_settings (
   service_type text primary key check(service_type in ('motorcycle','car')),
   base_fare numeric(10,2) not null default 0 check(base_fare >= 0),
@@ -70,9 +70,18 @@ alter table public.taxi_fare_settings enable row level security;
 drop policy if exists "Authenticated users can read active taxi fares" on public.taxi_fare_settings;
 create policy "Authenticated users can read active taxi fares"
 on public.taxi_fare_settings for select to authenticated using (is_active=true);
-insert into public.taxi_fare_settings(service_type) values ('motorcycle'),('car')
-on conflict(service_type) do nothing;
+insert into public.taxi_fare_settings(service_type,base_fare,per_km,minimum_fare,is_active)
+values
+  ('motorcycle',25,20,35,false),
+  ('car',50,35,50,false)
+on conflict(service_type) do update set
+  base_fare=excluded.base_fare,
+  per_km=excluded.per_km,
+  minimum_fare=excluded.minimum_fare,
+  is_active=false,
+  updated_at=now();
 
--- Configure approved rates after management confirms them:
--- update public.taxi_fare_settings set base_fare=..., per_km=..., minimum_fare=..., is_active=true where service_type='motorcycle';
--- update public.taxi_fare_settings set base_fare=..., per_km=..., minimum_fare=..., is_active=true where service_type='car';
+-- Confirmed TWENDE rates (ZMW): motorcycle K25 base, K20/km, K35 minimum;
+-- car K50 base, K35/km, K50 minimum. Deliberately remain inactive pending testing.
+-- After successful tests, activate explicitly with:
+-- update public.taxi_fare_settings set is_active=true, updated_at=now() where service_type in ('motorcycle','car');
