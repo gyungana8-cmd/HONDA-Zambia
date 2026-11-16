@@ -9,8 +9,8 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 function normalizeZambianPhone(input: string): string | null {
-  const digits = input.replace(/[\\s()-]/g, "");
-  if (/^\\+260[0-9]{9}$/.test(digits)) return digits;
+  const digits = input.replace(/[\s()-]/g, "");
+  if (/^\+260[0-9]{9}$/.test(digits)) return digits;
   if (/^260[0-9]{9}$/.test(digits)) return "+" + digits;
   if (/^0[0-9]{9}$/.test(digits)) return "+260" + digits.slice(1);
   return null;
