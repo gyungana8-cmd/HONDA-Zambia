@@ -57,20 +57,6 @@ jobs:
           echo "--- MAIN ACTIVITY CANDIDATES ---"
           find source -type f \( -name 'MainActivity.java' -o -name 'MainActivity.kt' -o -name '*Activity.java' -o -name '*Activity.kt' \) -print
           while IFS= read -r FILE; do echo "--- $FILE ---"; sed -n '1,260p' "$FILE"; done < <(find source -type f \( -name 'MainActivity.java' -o -name 'MainActivity.kt' \) -print)
-      - name: Save Android GPS inspection report
-        shell: bash
-        run: |
-          set -e
-          mkdir -p diagnostics
-          {
-            echo "ANDROID MANIFESTS"
-            while IFS= read -r FILE; do echo "--- $FILE ---"; cat "$FILE"; done < <(find source -name AndroidManifest.xml -print)
-            echo "MAIN ACTIVITIES"
-            while IFS= read -r FILE; do echo "--- $FILE ---"; cat "$FILE"; done < <(find source -type f | grep -E '/MainActivity\.(java|kt)$' || true)
-            echo "WEBVIEW REFERENCES"
-            grep -RniE 'WebView|WebChromeClient|onGeolocationPermissionsShowPrompt|requestPermissions|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION' source --include='*.java' --include='*.kt' --include='*.xml' || true
-          } > diagnostics/android-gps-inspection.txt
-          cat diagnostics/android-gps-inspection.txt
       - name: Sync TWENDE website assets
         shell: bash
         run: |
