@@ -12,3 +12,7 @@
 .brand-wordmark{display:flex;flex-direction:column;line-height:1.02}
 .brand-wordmark small{font-size:.58em;letter-spacing:.22em;color:var(--muted,#68727a);margin-top:4px}
 .hero-art .twende-splash-logo{width:min(210px,65%);height:auto;position:relative;z-index:2;filter:drop-shadow(0 10px 20px #0002)}
+
+
+/* TWENDE launch screen */
+.twende-splash{position:fixed;inset:0;z-index:9999;background:#c91f2c;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;transition:opacity .35s ease,visibility .35s ease}.twende-splash img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 8px 18px #650d1480)}.twende-splash strong{font-size:32px;letter-spacing:.12em}.twende-splash span{font-size:11px;letter-spacing:.45em;font-weight:800}.twende-splash i{font-size:13px;font-style:normal;opacity:.85;margin-top:18px}.twende-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
