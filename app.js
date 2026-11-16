@@ -17,15 +17,26 @@ function toast(message) { const t=$("#toast"); t.textContent=message; t.classLis
 function closeDialog(id) { document.getElementById(id).close(); }
 document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click",()=>closeDialog(b.dataset.close)));
 
+function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
-  $("#accountStatus").textContent = currentUser ? (currentProfile?.full_name || currentUser.email) : "Not signed in";
-  $("#authButton").classList.toggle("hidden", !!currentUser);
-  $("#signOutButton").classList.toggle("hidden", !currentUser);
+  const guest=isGuestRider();
+  $("#accountStatus").textContent = guest ? "Passenger · no account" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
+  $("#authButton").classList.toggle("hidden", !!currentUser && !guest);
+  $("#authButton").textContent = "Driver / owner sign in";
+  $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
   $("#dashTitle").textContent = role === "owner" ? "Owner dashboard" : "Rider dashboard";
   $("#switchRole").textContent = role === "owner" ? "Switch to rider" : "Switch to owner";
 }
 async function loadProfile(user) {
   if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
+  if (isGuestRider(user)) {
+    currentProfile={id:user.id,full_name:"Passenger",phone:null,role:"rider"};
+    role="rider";updateUI();
+    $("#dashboardIntro").textContent="You are using TWENDE as a passenger without creating an account.";
+    $("#dashboardContent").innerHTML='<p class="muted">No passenger account is needed to request a taxi.</p>';
+    await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
+    return;
+  }
   const {data:existing,error:readError}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
   if (readError) console.error("Profile read:",readError);
   if (existing) currentProfile=existing;
@@ -48,13 +59,20 @@ async function onSession(session) {
   else { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
 }
 
-$("#authButton").onclick=()=>{ $("#loginForm").classList.remove("hidden"); $("#registerForm").classList.add("hidden"); $("#authDialog").showModal(); };
+$("#authButton").onclick=()=>{
+  $("#loginForm").classList.remove("hidden");$("#registerForm").classList.add("hidden");
+  $("#authDialog").showModal();
+};
 $("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
 $("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
 $("#registerForm").onsubmit=async e=>{
   e.preventDefault(); const b=e.submitter; b.disabled=true;
-  const {data,error}=await db.auth.signUp({email:$("#registerEmail").value.trim(),password:$("#registerPassword").value,
-    options:{data:{full_name:$("#registerName").value.trim(),phone:$("#registerPhone").value.trim(),role:$("#registerRole").value}}});
+  const credentials={email:$("#registerEmail").value.trim(),password:$("#registerPassword").value,
+    options:{data:{full_name:$("#registerName").value.trim(),phone:$("#registerPhone").value.trim(),role:$("#registerRole").value}}};
+  const result=isGuestRider()
+    ? await db.auth.updateUser({email:credentials.email,password:credentials.password,data:credentials.options.data})
+    : await db.auth.signUp(credentials);
+  const data=result.data,error=result.error;
   b.disabled=false;
   if(error){toast(error.message);return;}
   if(data.session){await onSession(data.session);toast("TWENDE account created.");}
@@ -129,7 +147,7 @@ $("#bookingForm").onsubmit=async e=>{
 };
 
 function openOwnerForm() {
-  if(!currentUser){toast("Please sign in first.");$("#authDialog").showModal();return;}
+  if(!currentUser || isGuestRider()){toast("Create a driver / owner account to publish a motorcycle.");$("#loginForm").classList.add("hidden");$("#registerForm").classList.remove("hidden");$("#authDialog").showModal();return;}
   if(!["owner","both"].includes(currentProfile?.role)){toast("Your account is registered as a rider. Switch your account type to owner to publish a motorcycle.");return;}
   $("#ownerDialog").showModal();
 }
@@ -195,7 +213,7 @@ $("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
    Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
 let selectedRideService = "motorcycle";
 function openRideDialog(service) {
-  if(!currentUser){toast("Sign in or create an account before requesting a taxi.");$("#authDialog").showModal();return;}
+  if(!currentUser){toast("Passenger access is still starting. Please wait a moment and retry.");return;}
   selectedRideService=service;$("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
   $("#passengerName").value=currentProfile?.full_name||"";
@@ -222,7 +240,7 @@ async function loadPassengerRides(){
   host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
 }
 $("#driverRegisterBtn").onclick=()=>{
-  if(!currentUser){toast("Sign in or create an account before registering as a driver.");$("#authDialog").showModal();return;}
+  if(!currentUser || isGuestRider()){toast("Create a driver account before registering your vehicle.");$("#loginForm").classList.add("hidden");$("#registerForm").classList.remove("hidden");$("#authDialog").showModal();return;}
   $("#driverName").value=currentProfile?.full_name||"";
   $("#driverPhone").value=currentProfile?.phone||"";
   $("#driverDialog").showModal();
@@ -293,8 +311,14 @@ $("#adminContent")?.addEventListener("click",async e=>{
 
 async function startApp(){
   const {data,error}=await db.auth.getSession();if(error)console.error(error);
-  await onSession(data?.session||null);await loadMotorcycles();await loadPassengerRides();await loadDriverDashboard();
-  db.auth.onAuthStateChange((_event,session)=>setTimeout(()=>onSession(session),0));
+  let session=data?.session||null;
+  if(!session){
+    const guest=await db.auth.signInAnonymously();
+    if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
+    else session=guest.data.session;
+  }
+  await onSession(session);await loadMotorcycles();await loadPassengerRides();await loadDriverDashboard();
+  db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
 }
 updateUI();startApp();
 
