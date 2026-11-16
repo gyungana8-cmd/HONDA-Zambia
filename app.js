@@ -114,7 +114,7 @@ $("#sharePickupLocation").onclick=async()=>{
     $("#ridePickup").value=location.label;
     $("#locationPermissionDialog").close();
     const service=pendingPassengerService||"car";pendingPassengerService=null;
-    openRideDialog(service);
+    openRideDialog(service,true);
     toast("Pickup location found using GPS.");
   } catch(err) {
     toast(err.message||"Could not get your location. You can enter it manually.");
@@ -123,7 +123,7 @@ $("#sharePickupLocation").onclick=async()=>{
 $("#enterPickupManually").onclick=()=>{
   $("#locationPermissionDialog").close();
   const service=pendingPassengerService||"car";pendingPassengerService=null;
-  openRideDialog(service);
+  openRideDialog(service,true);
 };
 $("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
 $("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
@@ -275,8 +275,13 @@ $("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
    Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
 let selectedRideService = "motorcycle";
 let pendingPassengerService=null;
-function openRideDialog(service) {
+function openRideDialog(service,skipLocationPrompt=false) {
   if(!currentUser){toast("Passenger access is still starting. Please wait a moment and retry.");return;}
+  if(!skipLocationPrompt && !window.twendePickupCoords){
+    pendingPassengerService=service;
+    $("#locationPermissionDialog").showModal();
+    return;
+  }
   if(currentUser.is_anonymous || !currentUser.phone){
     pendingPassengerService=service;
     $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
