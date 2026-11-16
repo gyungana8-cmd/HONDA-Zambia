@@ -58,7 +58,7 @@
       notify("GPS unavailable: "+err.message);
       stopDriverGps();
     },{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
-    const status=$("#driverGpsStatus"); if(status) status.textContent="Waiting for GPS fix…";
+    let status=$("#driverGpsStatus"); if(!status){status=document.createElement("p");status.id="driverGpsStatus";status.className="muted";$("#driverDashboard")?.prepend(status);} status.textContent="Waiting for GPS fix…";
   }
   function stopDriverGps() {
     if(driverWatchId!==null) navigator.geolocation.clearWatch(driverWatchId);
