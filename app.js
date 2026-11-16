@@ -55,9 +55,19 @@ async function loadProfile(user) {
   await loadDashboard();
   await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
 }
+window.twendeReceivePushToken = async function(token) {
+  if (!currentUser || !token) return;
+  const { error } = await db.from("device_push_tokens").upsert(
+    { user_id: currentUser.id, token, platform: "android", updated_at: new Date().toISOString(), last_seen_at: new Date().toISOString() },
+    { onConflict: "token" }
+  );
+  if (error) console.warn("TWENDE push token registration:", error.message);
+};
+
 async function onSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
+  if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
   if(currentUser) { $("#authDialog").close(); await loadMotorcycles(); }
   else { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
 }
