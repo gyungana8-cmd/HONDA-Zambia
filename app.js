@@ -68,15 +68,36 @@ $("#signOutButton").onclick=async()=>{
   const {error}=await db.auth.signOut();if(error)toast(error.message);else{await onSession(null);await loadMotorcycles();toast("Signed out.");}
 };
 
+async function withTimeout(promise,label,ms=15000) {
+  return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+" timed out. Check your internet connection and retry.")),ms))]);
+}
 async function loadMotorcycles() {
   $("#bikeGrid").innerHTML='<p class="muted">Loading live motorcycles…</p>';
-  const {data,error}=await db.from("motorcycles").select("id,make,model,location,daily_rate,description,status").eq("status","available").order("created_at",{ascending:false});
-  if(error){console.error(error);$("#bikeGrid").innerHTML='<p class="muted">Could not load listings. Refresh and try again.</p>';$("#resultCount").textContent="Connection error";return;}
-  liveBikes=data||[];
-  liveBookings=[];
-  const ids=liveBikes.map(x=>x.id);
-  if(ids.length){const bookings=await db.from("bookings").select("motorcycle_id,start_date,days").in("motorcycle_id",ids).eq("status","accepted");if(bookings.error)console.warn("Could not load accepted booking dates:",bookings.error);else liveBookings=bookings.data||[];}
-  renderBikes();
+  $("#resultCount").textContent="Checking live listings…";
+  try {
+    const result=await withTimeout(db.from("motorcycles").select("id,make,model,location,daily_rate,description,status").eq("status","available").order("created_at",{ascending:false}),"Motorcycle listing request");
+    if(result.error) throw result.error;
+    liveBikes=result.data||[];
+    liveBookings=[];
+    const ids=liveBikes.map(x=>x.id);
+    if(ids.length) {
+      try {
+        const bookings=await withTimeout(db.from("bookings").select("motorcycle_id,start_date,days").in("motorcycle_id",ids).eq("status","accepted"),"Booking availability check",10000);
+        if(bookings.error) throw bookings.error;
+        liveBookings=bookings.data||[];
+      } catch(bookError) {
+        console.warn("Booking availability check failed:",bookError);
+        $("#bikeGrid").innerHTML='<p class="muted">Motorcycles loaded, but booking availability could not be checked. Please retry before requesting a hire.</p><button class="btn btn-outline" id="retryBikes">Retry</button>';
+        $("#resultCount").textContent=liveBikes.length+" listings • availability check needed";
+        return;
+      }
+    }
+    renderBikes();
+  } catch(error) {
+    console.error("Motorcycle listings:",error);
+    $("#bikeGrid").innerHTML='<p class="muted">Live motorcycles could not be loaded. Check your internet connection, then try again.</p><button class="btn btn-outline" id="retryBikes">Retry loading</button>';
+    $("#resultCount").textContent="Connection problem";
+  }
 }
 function renderBikes() {
   const loc=$("#location").value.trim().toLowerCase(),max=$("#maxPrice").value,cat=$("#category").value;
@@ -85,6 +106,7 @@ function renderBikes() {
   $("#resultCount").textContent=rows.length+" live listing"+(rows.length===1?"":"s");
 }
 $("#bikeGrid").onclick=e=>{
+  if(e.target.closest("#retryBikes")){loadMotorcycles();return;}
   const button=e.target.closest("[data-hire]");if(!button)return;
   if(!currentUser){toast("Sign in or register before requesting a motorcycle.");$("#authDialog").showModal();return;}
   selectedBike=liveBikes.find(b=>b.id===button.dataset.hire);if(!selectedBike)return;
