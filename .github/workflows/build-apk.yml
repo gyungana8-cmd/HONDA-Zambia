@@ -67,6 +67,9 @@ jobs:
           find source -type f | grep -E '/[^/]*Activity\.(java|kt)$' || true
           echo "--- WEBVIEW REFERENCES ---"
           grep -RniE 'WebView|WebChromeClient|onGeolocationPermissionsShowPrompt|requestPermissions|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION' source --include='*.java' --include='*.kt' --include='*.xml' || true
+          echo "--- COMPLETE MAIN ACTIVITY ---"
+          ACTIVITY="$(find source -type f -name MainActivity.java -print -quit)"
+          if [ -n "$ACTIVITY" ]; then cat "$ACTIVITY"; fi
 
       - name: Sync TWENDE website assets
         shell: bash
