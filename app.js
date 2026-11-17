@@ -20,13 +20,21 @@ document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click
 
 function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
-  const guest=isGuestRider();
-  $("#accountStatus").textContent = guest ? "Passenger · no account" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
-  $("#authButton").classList.toggle("hidden", !!currentUser && !guest);
-  $("#authButton").textContent = "Driver / owner sign in";
+  const guest=!currentUser || isGuestRider();
+  const isAdmin=String(currentUser?.email||"").toLowerCase()==="gyungana8@gmail.com";
+  document.body.classList.toggle("passenger-mode",guest);
+  document.body.classList.toggle("operator-mode",!!currentUser&&!guest);
+  $("#accountStatus").textContent = guest ? "Passenger" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
+  $("#authButton").classList.toggle("hidden", true);
   $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
-  $("#dashTitle").textContent = role === "owner" ? "Owner dashboard" : "Rider dashboard";
-  $("#switchRole").textContent = role === "owner" ? "Switch to rider" : "Switch to owner";
+  $("#dashTitle").textContent = "Driver dashboard";
+  $("#switchRole")?.classList.add("hidden");
+  $("#menuBtn")?.classList.toggle("hidden",guest);
+  $("#nav")?.classList.toggle("hidden",guest);
+  $("#adminNav")?.classList.toggle("hidden",!isAdmin);
+  $("#ride-services")?.classList.toggle("hidden",!guest);
+  $("#driver-panel")?.classList.toggle("hidden",guest);
+  $("#adminPanel")?.classList.toggle("hidden",guest || !isAdmin);
 }
 async function loadProfile(user) {
   if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
@@ -37,7 +45,7 @@ async function loadProfile(user) {
     role="rider";updateUI();
     $("#dashboardIntro").textContent="You are using TWENDE as a passenger without creating an account.";
     $("#dashboardContent").innerHTML='<p class="muted">No passenger account is needed to request a taxi.</p>';
-    await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
+    await loadPassengerRides();
     return;
   }
   const {data:existing,error:readError}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
@@ -68,8 +76,8 @@ async function onSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
   if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
-  if(currentUser) { $("#authDialog").close(); await loadMotorcycles(); }
-  else { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
+  if(currentUser && !isGuestRider()) { $("#authDialog").close(); }
+  else if(!currentUser) { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
 }
 
 $("#authButton").onclick=()=>{
@@ -159,6 +167,7 @@ $("#loginForm").onsubmit=async e=>{
   const {data,error}=await db.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
   b.disabled=false;if(error){toast(error.message);return;}await onSession(data.session);toast("Signed in to TWENDE.");
 };
+$("#driverAccessButton")?.addEventListener("click",()=>{$("#loginForm").classList.remove("hidden");$("#registerForm").classList.add("hidden");$("#authDialog").showModal();});
 $("#signOutButton").onclick=async()=>{
   const {error}=await db.auth.signOut();if(error)toast(error.message);else{await onSession(null);await loadMotorcycles();toast("Signed out.");}
 };
@@ -353,7 +362,7 @@ async function loadDriverDashboard(){
   const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
   const vehicleCards=vehicles.map(v=>`<article class="dash-card"><h3>${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • ${esc(v.vehicle_type)}</h3><p>Registration: ${esc(v.plate_number)} • Area: ${esc(v.operating_area)}</p><p>Verification: <strong>${esc(v.approval_status)}</strong></p><p>Availability: <strong>${v.is_online?"Online":"Offline"}</strong></p>${v.approval_status==="approved"?`<button class="btn btn-red" data-vehicle-online="${v.id}" data-online="${!v.is_online}">${v.is_online?"Go offline":"Go online"}</button>`:'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>'}</article>`).join("");
   const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&approved.some(v=>v.is_online&&v.vehicle_type===x.service_type)?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
-  host.innerHTML='<h3>Your vehicles ('+vehicles.length+')</h3>'+vehicleCards+addButton+'<h3>Taxi requests</h3>'+rideCards;
+  host.innerHTML='<h3>Your vehicles ('+vehicles.length+')</h3>'+vehicleCards+addButton+'<h3 id="driverTaxiRequests">Taxi requests</h3>'+rideCards;
 }
 $("#driverDashboard").onclick=async e=>{
   const add=e.target.closest("#driverAddVehicle");
@@ -402,7 +411,10 @@ async function loadAdminDashboard(){
   const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
   const rows=vehicles||[];
-  host.innerHTML='<h3>Vehicle applications ('+rows.length+')</h3>'+rows.map(v=>`<article class="dash-card"><h3>${esc(v.driver_name)} • ${esc(v.vehicle_type)}</h3><p>Phone: ${esc(v.phone)} • Area: ${esc(v.operating_area)}</p><p>Vehicle: ${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • Registration: ${esc(v.plate_number)}</p><p>Status: <strong>${esc(v.approval_status)}</strong></p>${v.approval_status==="pending"?`<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="${v.id}">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="${v.id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
+  const {data:rides, error:ridesError}=await db.from("ride_requests").select("id,service_type,passenger_name,passenger_phone,pickup_text,destination_text,status,created_at,driver_id").order("created_at",{ascending:false}).limit(50);
+  const vehicleHtml=rows.map(v=>`<article class="dash-card"><h3>${esc(v.driver_name)} • ${esc(v.vehicle_type)}</h3><p>Phone: ${esc(v.phone)} • Area: ${esc(v.operating_area)}</p><p>Vehicle: ${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • Registration: ${esc(v.plate_number)}</p><p>Status: <strong>${esc(v.approval_status)}</strong></p>${v.approval_status==="pending"?`<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="${v.id}">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="${v.id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
+  const rideHtml=ridesError?'<p class="muted">Taxi requests could not be loaded: '+esc(ridesError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} • ${esc(x.status)}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>Request ID: ${esc(x.id)}</p></article>`).join("")||'<p class="muted">No taxi requests have been received.</p>';
+  host.innerHTML='<h3>Vehicle applications ('+rows.length+')</h3>'+vehicleHtml+'<h3>Taxi rides ('+(rides||[]).length+')</h3>'+rideHtml;
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("click",async e=>{
@@ -425,11 +437,30 @@ async function startApp(){
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
     else session=guest.data.session;
   }
-  await onSession(session);await loadMotorcycles();await loadPassengerRides();await loadDriverDashboard();
+  await onSession(session);await loadPassengerRides();
+  if(currentUser && !isGuestRider()) { await loadDriverDashboard(); await loadAdminDashboard(); }
+  startTwendeRealtime();
   db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
 }
 updateUI();startApp();
 
+
+
+// Live updates keep taxi requests and vehicle availability current without manual refresh.
+// Online state is stored on each approved vehicle and is not reset on app restart.
+let twendeRealtimeChannel=null;
+function startTwendeRealtime(){
+  if(twendeRealtimeChannel) return;
+  twendeRealtimeChannel=db.channel("twende-live-operations")
+    .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
+      if(isGuestRider()) loadPassengerRides();
+      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
+      if(currentUser&&!isGuestRider()){loadDriverDashboard();loadAdminDashboard();}
+    })
+    .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; check Supabase Realtime publication.");});
+}
 
 // Public extension hooks for TWENDE GPS/fare module (publishable Supabase client only).
 window.twendeDb = db;

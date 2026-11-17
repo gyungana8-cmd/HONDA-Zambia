@@ -16,3 +16,28 @@
 
 /* TWENDE launch screen */
 .twende-splash{position:fixed;inset:0;z-index:9999;background:#c91f2c;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;transition:opacity .35s ease,visibility .35s ease}.twende-splash img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 8px 18px #650d1480)}.twende-splash strong{font-size:32px;letter-spacing:.12em}.twende-splash span{font-size:11px;letter-spacing:.45em;font-weight:800}.twende-splash i{font-size:13px;font-style:normal;opacity:.85;margin-top:18px}.twende-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+/* Passenger-first TWENDE taxi interface */
+body.passenger-mode .hero,body.passenger-mode .search-panel,body.passenger-mode #motorcycles,body.passenger-mode .owner-banner,body.passenger-mode #dashboard,body.passenger-mode .driver-panel,body.passenger-mode #adminPanel{display:none!important}
+body.passenger-mode #ride-services{display:block!important;padding:30px 18px 60px;min-height:calc(100vh - 76px)}
+body.passenger-mode #ride-services .section-heading{display:block;margin:0 0 22px}
+body.passenger-mode #ride-services .section-heading h2{font-size:28px;margin:8px 0}
+body.passenger-mode #ride-services .service-grid{grid-template-columns:1fr;gap:16px}
+body.passenger-mode #ride-services .service-card{min-height:190px;display:grid;grid-template-columns:88px 1fr;align-items:center;gap:8px 16px;padding:18px;border-radius:18px;box-shadow:0 5px 22px #1018200b}
+body.passenger-mode #ride-services .service-icon{grid-row:1/4;font-size:62px;text-align:center}
+body.passenger-mode #ride-services .service-card h3{font-size:20px}
+body.passenger-mode #ride-services .service-card p{font-size:13px}
+body.passenger-mode #ride-services .service-card .btn{grid-column:2;justify-self:start}
+body.passenger-mode #ride-services .cash-note{margin-top:22px}
+body.passenger-mode #ride-services #passengerRides{margin-top:34px}
+body.passenger-mode .topbar{height:68px;justify-content:space-between}
+body.passenger-mode .topbar .menu-btn,body.passenger-mode .topbar #authButton,body.passenger-mode .topbar #signOutButton,body.passenger-mode .topbar #accountStatus{display:none!important}
+body.operator-mode #ride-services,body.operator-mode .hero,body.operator-mode .search-panel,body.operator-mode #motorcycles,body.operator-mode .owner-banner,body.operator-mode #dashboard{display:none!important}
+body.operator-mode #driver-panel{display:block!important}
+body.operator-mode #adminPanel{display:none}
+body.operator-mode #adminPanel:not(.hidden){display:block!important}
+body.operator-mode #driver-panel{padding-top:38px}
+body.operator-mode #driver-panel .section-heading h2{font-size:30px}
+body.operator-mode #driver-panel #driverDashboard{gap:14px}
+body.operator-mode #driver-panel .dash-card{border-radius:14px}
+@media(max-width:520px){body.passenger-mode #ride-services .service-card{grid-template-columns:70px 1fr;padding:15px}body.passenger-mode #ride-services .service-icon{font-size:48px}}
