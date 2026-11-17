@@ -135,3 +135,170 @@ select column_name, data_type
 from information_schema.columns
 where table_schema='public' and table_name='driver_vehicles'
   and column_name in ('user_id','assigned_driver_id','assigned_driver_online','is_online');
+
+
+-- Owner account verification and owner/assigned-driver operational controls.
+create table if not exists public.twende_owner_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  owner_name text not null,
+  phone text not null,
+  approval_status text not null default 'pending'
+    check (approval_status in ('pending','approved','rejected')),
+  created_at timestamptz not null default now(),
+  reviewed_at timestamptz
+);
+alter table public.twende_owner_profiles enable row level security;
+
+drop policy if exists "Owners can read own owner profile" on public.twende_owner_profiles;
+create policy "Owners can read own owner profile"
+  on public.twende_owner_profiles for select to authenticated
+  using (user_id=auth.uid());
+
+drop policy if exists "Admins can read owner applications" on public.twende_owner_profiles;
+create policy "Admins can read owner applications"
+  on public.twende_owner_profiles for select to authenticated
+  using (exists(select 1 from public.twende_admins a where a.user_id=auth.uid()));
+
+insert into public.twende_owner_profiles(user_id,owner_name,phone,approval_status)
+select v.user_id, max(v.driver_name), max(v.phone),
+       case when bool_or(v.approval_status='approved') then 'approved' else 'pending' end
+from public.driver_vehicles v
+group by v.user_id
+on conflict(user_id) do nothing;
+
+create or replace function public.twende_sync_owner_profile()
+returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  insert into public.twende_owner_profiles(user_id,owner_name,phone,approval_status)
+  values(new.user_id,new.driver_name,new.phone,'pending')
+  on conflict(user_id) do update
+    set owner_name=excluded.owner_name, phone=excluded.phone;
+  return new;
+end;
+$$;
+
+drop trigger if exists twende_create_owner_profile on public.driver_vehicles;
+create trigger twende_create_owner_profile
+  after insert on public.driver_vehicles
+  for each row execute function public.twende_sync_owner_profile();
+
+drop policy if exists "Assigned drivers can read assigned vehicles" on public.driver_vehicles;
+create policy "Assigned drivers can read assigned vehicles"
+  on public.driver_vehicles for select to authenticated
+  using (assigned_driver_id=auth.uid());
+
+create or replace function public.twende_admin_review_owner(p_owner_id uuid,p_decision text)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from public.twende_admins where user_id=auth.uid()) then
+    raise exception 'Administrator access required';
+  end if;
+  if p_decision not in ('approved','rejected') then
+    raise exception 'Decision must be approved or rejected';
+  end if;
+  update public.twende_owner_profiles
+    set approval_status=p_decision, reviewed_at=now()
+    where user_id=p_owner_id and approval_status='pending';
+  if not found then raise exception 'Pending owner application not found'; end if;
+  if p_decision='rejected' then
+    update public.driver_vehicles
+      set is_online=false, assigned_driver_online=false
+      where user_id=p_owner_id;
+  end if;
+end;
+$$;
+
+create or replace function public.twende_set_vehicle_online(p_vehicle_id uuid,p_online boolean)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists (
+    select 1 from public.driver_vehicles v
+    join public.twende_owner_profiles o on o.user_id=v.user_id
+    where v.id=p_vehicle_id and v.user_id=auth.uid()
+      and v.approval_status='approved' and o.approval_status='approved'
+      and v.assigned_driver_id is null
+  ) then
+    raise exception 'Only an approved owner with an approved unassigned vehicle can drive it';
+  end if;
+  update public.driver_vehicles set is_online=p_online where id=p_vehicle_id;
+end;
+$$;
+
+create or replace function public.twende_set_assigned_driver_online(p_vehicle_id uuid,p_online boolean)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists (
+    select 1 from public.driver_vehicles v
+    join public.driver_profiles d on d.user_id=v.assigned_driver_id
+    join public.twende_owner_profiles o on o.user_id=v.user_id
+    where v.id=p_vehicle_id and v.assigned_driver_id=auth.uid()
+      and v.approval_status='approved' and d.approval_status='approved'
+      and o.approval_status='approved'
+  ) then
+    raise exception 'The owner, vehicle and assigned driver must all be approved';
+  end if;
+  update public.driver_vehicles
+    set assigned_driver_online=p_online,is_online=p_online
+    where id=p_vehicle_id and assigned_driver_id=auth.uid();
+end;
+$$;
+
+create or replace function public.accept_twende_ride(p_ride_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+declare
+  v_ride public.ride_requests%rowtype;
+  v_vehicle public.driver_vehicles%rowtype;
+begin
+  select * into v_ride from public.ride_requests
+    where id=p_ride_id and status='pending' for update;
+  if not found then raise exception 'Ride is no longer available'; end if;
+
+  select * into v_vehicle from public.driver_vehicles v
+    join public.twende_owner_profiles o on o.user_id=v.user_id
+    where v.vehicle_type=v_ride.service_type
+      and v.approval_status='approved' and o.approval_status='approved'
+      and v.is_online=true
+      and (
+        (v.assigned_driver_id is null and v.user_id=auth.uid())
+        or (v.assigned_driver_id=auth.uid() and v.assigned_driver_online=true
+          and exists(select 1 from public.driver_profiles d
+            where d.user_id=auth.uid() and d.approval_status='approved'))
+      )
+    order by v.created_at limit 1;
+  if not found then
+    raise exception 'You must be the approved owner-driver or the approved assigned driver of an online matching vehicle';
+  end if;
+
+  update public.ride_requests set driver_id=auth.uid(),
+    driver_vehicle_id=v_vehicle.id,status='accepted',accepted_at=now()
+    where id=p_ride_id and status='pending';
+  if not found then raise exception 'Ride is no longer available'; end if;
+end;
+$$;
+
+drop policy if exists "Owners and assigned drivers can monitor rides" on public.ride_requests;
+create policy "Owners and assigned drivers can monitor rides"
+  on public.ride_requests for select to authenticated
+  using (exists(select 1 from public.driver_vehicles v
+    where v.id=ride_requests.driver_vehicle_id
+      and (v.user_id=auth.uid() or v.assigned_driver_id=auth.uid())));
+
+drop policy if exists "Assigned drivers can see matching pending rides" on public.ride_requests;
+create policy "Assigned drivers can see matching pending rides"
+  on public.ride_requests for select to authenticated
+  using (status='pending' and exists(select 1 from public.driver_vehicles v
+    join public.driver_profiles d on d.user_id=v.assigned_driver_id
+    join public.twende_owner_profiles o on o.user_id=v.user_id
+    where v.assigned_driver_id=auth.uid() and v.vehicle_type=ride_requests.service_type
+      and v.approval_status='approved' and v.is_online=true
+      and v.assigned_driver_online=true and d.approval_status='approved'
+      and o.approval_status='approved'));
+
+revoke all on function public.twende_admin_review_owner(uuid,text) from public;
+grant execute on function public.twende_admin_review_owner(uuid,text) to authenticated;
+revoke all on function public.twende_set_vehicle_online(uuid,boolean) from public;
+revoke all on function public.twende_set_assigned_driver_online(uuid,boolean) from public;
+revoke all on function public.accept_twende_ride(uuid) from public;
+grant execute on function public.twende_set_vehicle_online(uuid,boolean) to authenticated;
+grant execute on function public.twende_set_assigned_driver_online(uuid,boolean) to authenticated;
+grant execute on function public.accept_twende_ride(uuid) to authenticated;
