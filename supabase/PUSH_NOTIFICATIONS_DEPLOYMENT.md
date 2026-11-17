@@ -1,6 +1,6 @@
 # TWENDE push notification deployment
 
-The Android project now includes Firebase Messaging and the app registers its FCM token in `public.device_push_tokens`. The server function is `supabase/functions/send-twende-push/index.ts`.
+The Android project now includes Firebase Messaging and the app registers its FCM token in `public.device_push_tokens`. The server function is `supabase/functions/send-twende-push/index.ts`. The owner/assigned-driver extension is in `supabase/owner_assigned_driver_notifications.sql`.
 
 ## 1. Apply the token table
 
@@ -33,9 +33,9 @@ For every webhook add header:
 Configure events:
 1. `ride_requests`: INSERT (new taxi requests).
 2. `ride_requests`: UPDATE (driver acceptance).
-3. `bookings`: INSERT (motorcycle hire request).
+3. `bookings`: INSERT (motorcycle hire request).\n4. `driver_vehicles`: UPDATE (vehicle approval/rejection).
 
-Use the webhook's JSON payload format with `type`, `table`, and `record` fields. The function sends requests only to approved online drivers with the matching vehicle type, sends hire requests to the motorcycle owner, and sends acceptance updates to the passenger.
+Use the webhook's JSON payload format with `type`, `table`, and `record` fields. For taxi requests, the function notifies the owner and the assigned driver of approved online matching vehicles. When the owner is driving personally, the account is deduplicated and receives one notification. On acceptance, the passenger and vehicle owner/assigned driver are notified. Vehicle approval/rejection updates notify the owner and assigned driver.
 
 ## 5. Test
 
