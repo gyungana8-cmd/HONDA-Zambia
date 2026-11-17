@@ -307,7 +307,7 @@ grant execute on function public.accept_twende_ride(uuid) to authenticated;
 -- Safe directory for owners to select an approved driver without exposing
 -- licence numbers or other private driver application fields.
 create or replace function public.twende_list_approved_drivers()
-returns table(driver_id uuid, driver_name text, phone text)
+returns table(user_id uuid, driver_name text, phone text)
 language sql stable security definer set search_path=public as $$
   select d.user_id,d.driver_name,d.phone
   from public.driver_profiles d
