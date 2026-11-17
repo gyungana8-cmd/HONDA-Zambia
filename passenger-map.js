@@ -113,13 +113,33 @@
   async function searchPlaces(q){
     if(q.trim().length<3)return [];
     const center=userPoint||{lat:fallbackCenter[0],lng:fallbackCenter[1]};
-    const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Zambia")+"&lat="+center.lat+"&lon="+center.lng+"&limit=7&lang=en";
-    const r=await fetch(url);if(!r.ok)throw new Error("Place search is unavailable.");
-    const j=await r.json();
-    return (j.features||[]).filter(f=>(f.properties?.country||"").toLowerCase()==="zambia").map(f=>{
-      const p=f.properties||{},label=[p.name,p.street,p.city,p.district,p.state,p.country].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(", ");
-      return {lat:Number(f.geometry.coordinates[1]),lng:Number(f.geometry.coordinates[0]),label:label||q};
-    });
+    const found=[],seen=new Set();
+    const add=(lat,lng,label)=>{
+      lat=Number(lat);lng=Number(lng);
+      if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat < -18.5||lat > -8||lng < 21||lng > 34)return;
+      const key=lat.toFixed(4)+","+lng.toFixed(4);
+      if(seen.has(key))return;
+      seen.add(key);found.push({lat,lng,label});
+    };
+    // Photon gives fast local suggestions. Do not require an exact country label:
+    // some valid Zambia results omit or abbreviate the country field.
+    try{
+      const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Mufumbwe, Zambia")+"&lat="+center.lat+"&lon="+center.lng+"&limit=10&lang=en";
+      const r=await fetch(url);if(r.ok){
+        const j=await r.json();
+        for(const f of (j.features||[])){
+          const p=f.properties||{},label=[p.name,p.street,p.city,p.district,p.county,p.state,"Zambia"].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(", ");
+          add(f.geometry?.coordinates?.[1],f.geometry?.coordinates?.[0],label||q);
+        }
+      }
+    }catch(e){console.warn("Photon search:",e);}
+    // Nominatim fallback often contains named hospitals and other facilities missing from Photon.
+    try{
+      const params=new URLSearchParams({format:"jsonv2",q:q+", Mufumbwe, Zambia",countrycodes:"zm",limit:"8",addressdetails:"1"});
+      const r=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
+      if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,item.display_name||q);}
+    }catch(e){console.warn("Nominatim search:",e);}
+    return found.slice(0,8);
   }
   function addSearch(inputId,resultsId,onSelect){
     const input=$("#"+inputId),results=$("#"+resultsId);let timer=null;
