@@ -169,6 +169,67 @@
     estimate.textContent="GPS route and fare estimate will be calculated before sending your request.";
     const submit=rideForm.querySelector('button[type="submit"]');
     submit?.before(estimate);
+
+    // Keep a passenger fare estimate visible before submission and reuse the
+    // exact same estimate when the ride request is saved.
+    let passengerFareEstimate=null;
+    let estimateTimer=null;
+    async function calculatePassengerFare(showMessages=false) {
+      const pickupLabel=$("#ridePickup")?.value.trim()||"";
+      const destinationLabel=$("#rideDestination")?.value.trim()||"";
+      const type=$("#rideServiceType")?.value||"";
+      if(!pickupLabel||!destinationLabel||!type) {
+        passengerFareEstimate=null;
+        estimate.textContent="Enter pickup and destination to calculate your fare.";
+        return null;
+      }
+      const selectedPickup=window.twendePickupCoords;
+      let pickup=selectedPickup&&(!selectedPickup.label||selectedPickup.label===pickupLabel)
+        ?{lat:Number(selectedPickup.lat),lng:Number(selectedPickup.lng)}
+        :null;
+      if(!pickup) {
+        try {
+          const pos=await getPosition();
+          pickup={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        } catch(gpsError) {
+          pickup=await geocode(pickupLabel);
+        }
+      }
+      const selectedDestination=window.twendeDestinationCoords;
+      const destination=selectedDestination&&selectedDestination.label===destinationLabel
+        ?{lat:Number(selectedDestination.lat),lng:Number(selectedDestination.lng),label:selectedDestination.label}
+        :await geocode(destinationLabel);
+      const km=await routeDistance(pickup,destination);
+      const fare=await fareFor(type,km);
+      passengerFareEstimate={pickupLabel,destinationLabel,type,pickup,destination,km,fare};
+      estimate.textContent="Estimated road distance: "+km.toFixed(1)+" km • Estimated fare: "+money(fare)+" (cash to driver)";
+      estimate.classList.add("fare-ready");
+      return passengerFareEstimate;
+    }
+    function schedulePassengerFare() {
+      clearTimeout(estimateTimer);
+      passengerFareEstimate=null;
+      estimate.textContent="Updating your route and fare estimate…";
+      estimateTimer=setTimeout(()=>{
+        calculatePassengerFare(false).catch(err=>{
+          passengerFareEstimate=null;
+          estimate.textContent=err.message||"Fare estimate is temporarily unavailable. Check your pickup and destination.";
+          estimate.classList.remove("fare-ready");
+        });
+      },350);
+    }
+    ["input","change"].forEach(eventName=>{
+      $("#ridePickup")?.addEventListener(eventName,schedulePassengerFare);
+      $("#rideDestination")?.addEventListener(eventName,schedulePassengerFare);
+      $("#rideServiceType")?.addEventListener(eventName,schedulePassengerFare);
+    });
+    document.querySelectorAll("[data-ride-service]").forEach(button=>{
+      button.addEventListener("click",()=>setTimeout(schedulePassengerFare,450),true);
+    });
+    $("#rideDialog")?.addEventListener("close",()=>{passengerFareEstimate=null;});
+    $("#rideDialog")?.addEventListener("toggle",()=>{
+      if($("#rideDialog").open)setTimeout(schedulePassengerFare,300);
+    });
     rideForm.addEventListener("submit",async e=>{
       e.preventDefault(); e.stopImmediatePropagation();
       const b=e.submitter||submit; if(!window.currentTwendeUser){notify("Please sign in first.");return;}
@@ -188,14 +249,17 @@
           }
         }
         const destinationLabel=$("#rideDestination").value.trim();
-        const selectedDestination=window.twendeDestinationCoords;
-        const destination=selectedDestination&&selectedDestination.label===destinationLabel
-          ?{lat:selectedDestination.lat,lng:selectedDestination.lng,label:selectedDestination.label}
-          :await geocode(destinationLabel);
-        notify("Calculating road distance and fare…");
-        const km=await routeDistance(pickup,destination);
         const type=$("#rideServiceType").value;
-        const fare=await fareFor(type,km);
+        notify("Checking your route and fare estimate…");
+        let currentEstimate=passengerFareEstimate;
+        if(!currentEstimate||currentEstimate.pickupLabel!==pickupLabel||
+           currentEstimate.destinationLabel!==destinationLabel||currentEstimate.type!==type) {
+          currentEstimate=await calculatePassengerFare(true);
+        }
+        if(!currentEstimate) throw new Error("A fare estimate could not be calculated. Check your pickup and destination.");
+        const destination=currentEstimate.destination;
+        const km=currentEstimate.km;
+        const fare=currentEstimate.fare;
         estimate.textContent="Estimated road distance: "+km.toFixed(1)+" km • Estimated fare: "+money(fare)+" (cash to driver)";
         const row={
           rider_id:window.currentTwendeUser.id,
