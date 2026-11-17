@@ -428,7 +428,7 @@ async function loadDriverDashboard(){
 }
 $("#driverDashboard").onclick=async e=>{
   const driverReg=e.target.closest("#driverAccountRegister");
-  if(driverReg){ $("#driverAccountDialog").showModal(); return; }
+  if(driverReg){ $("#driverAccountName").value=currentProfile?.full_name||""; $("#driverAccountPhone").value=currentProfile?.phone||""; $("#driverAccountDialog").showModal(); return; }
   const saveAssignment=e.target.closest("[data-save-assignment]");
   if(saveAssignment){
     const select=$("#driverDashboard").querySelector('[data-assign-driver="'+saveAssignment.dataset.saveAssignment+'"]');
