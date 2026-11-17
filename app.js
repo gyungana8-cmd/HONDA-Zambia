@@ -320,14 +320,50 @@ function openRideDialog(service,skipLocationPrompt=false) {
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#rideForm").onsubmit=async e=>{
   e.preventDefault();
-  if(!currentUser){toast("Please sign in first.");return;}
-  const b=e.submitter;b.disabled=true;
-  const row={rider_id:currentUser.id,passenger_name:$("#passengerName").value.trim(),passenger_phone:$("#passengerPhone").value.trim(),service_type:$("#rideServiceType").value,pickup_text:$("#ridePickup").value.trim(),destination_text:$("#rideDestination").value.trim(),payment_method:"cash",status:"pending"};
-  const {data,error}=await db.from("ride_requests").insert(row).select("id").single();
-  b.disabled=false;
-  if(error){console.error("Taxi request:",error);toast("Taxi request could not be sent. The ride-hailing database setup may still be required.");return;}
-  closeDialog("rideDialog");e.target.reset();toast("Taxi request sent. Waiting for an approved driver.");
-  await loadPassengerRides();await loadDriverDashboard();
+  const b=e.submitter||e.target.querySelector('[type="submit"]');
+  if(b)b.disabled=true;
+  try{
+    // Recover the active passenger session before submitting. Guest riders remain
+    // anonymous-authenticated users; no passenger password/account is required.
+    let {data:sessionData,error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw sessionError;
+    let user=sessionData?.session?.user||currentUser;
+    if(!user){
+      const guest=await db.auth.signInAnonymously();
+      if(guest.error)throw new Error("Passenger session could not start. Enable Anonymous Sign-ins in Supabase Auth.");
+      user=guest.data?.user||guest.data?.session?.user;
+      if(!user)throw new Error("Passenger session is still starting. Please close the form and try again.");
+      currentUser=user;
+      await onSession(guest.data.session);
+    }
+    const passengerName=$("#passengerName").value.trim();
+    const passengerPhone=$("#passengerPhone").value.trim();
+    const pickup=$("#ridePickup").value.trim();
+    const destination=$("#rideDestination").value.trim();
+    const service=$("#rideServiceType").value;
+    if(!passengerName||!passengerPhone||!pickup||!destination){
+      throw new Error("Please complete your name, phone number, pickup and destination.");
+    }
+    const row={rider_id:user.id,passenger_name:passengerName,passenger_phone:passengerPhone,service_type:service,pickup_text:pickup,destination_text:destination,payment_method:"cash",status:"pending"};
+    const {error}=await db.from("ride_requests").insert(row);
+    if(error){
+      console.error("Taxi request insert failed:",error);
+      if(error.code==="42501")throw new Error("Booking was blocked by database permissions. The ride-booking SQL policies need updating.");
+      if(error.code==="23503")throw new Error("Passenger session was not accepted by the database. Please refresh TWENDE and try again.");
+      throw new Error("Booking failed: "+(error.message||"database error"));
+    }
+    closeDialog("rideDialog");
+    e.target.reset();
+    toast("Taxi request sent successfully. Waiting for an approved online driver.");
+    await loadPassengerRides();
+    if(typeof loadAvailableTaxiFleet==="function")await loadAvailableTaxiFleet();
+    if(typeof loadDriverDashboard==="function"&&!isGuestRider())await loadDriverDashboard();
+  }catch(error){
+    console.error("TWENDE taxi booking:",error);
+    toast(error.message||"Taxi booking failed. Please try again.");
+  }finally{
+    if(b)b.disabled=false;
+  }
 };
 async function loadAvailableTaxiFleet(){
   const motorcycleHost=$("#availableMotorcycleTaxis"),carHost=$("#availableCarTaxis");
