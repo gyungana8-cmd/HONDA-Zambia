@@ -123,7 +123,7 @@ jobs:
           PROJECT_DIR="$(dirname "$PROJECT_FILE")"
           ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
           mkdir -p "$ASSET_DIR"
-          for FILE in index.html app.js gps-fares.js styles.css manifest.webmanifest twende-logo.svg; do
+          for FILE in index.html app.js gps-fares.js passenger-map.js styles.css manifest.webmanifest twende-logo.svg; do
             if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
           done
 
