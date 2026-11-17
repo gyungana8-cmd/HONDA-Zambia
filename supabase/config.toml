@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.send-twende-push]
 verify_jwt = false
+
+[functions.send-twende-sms]
+verify_jwt = false
