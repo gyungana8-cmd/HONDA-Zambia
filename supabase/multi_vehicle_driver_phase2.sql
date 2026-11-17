@@ -31,19 +31,32 @@ begin
   if not found then raise exception 'Pending vehicle application not found'; end if;
 end; $$;
 
+drop policy if exists "Passengers and assigned drivers can read rides" on public.ride_requests;
+create policy "Passengers and assigned drivers can read rides"
+  on public.ride_requests for select to authenticated using (
+    rider_id=auth.uid() or driver_id=auth.uid() or
+    (status='pending' and exists(
+      select 1 from public.driver_vehicles v
+      where v.user_id=auth.uid() and v.approval_status='approved'
+        and v.is_online=true and v.vehicle_type=ride_requests.service_type
+    ))
+  );
+
 create or replace function public.accept_twende_ride(p_ride_id uuid)
-returns void language plpgsql security definer set search_path=public as $$
-declare v_vehicle public.driver_vehicles%rowtype;
+returns void language plpgsql security definer set search_path=public as $
+declare v_vehicle public.driver_vehicles%rowtype; v_type text;
 begin
+  select service_type into v_type from public.ride_requests where id=p_ride_id and status='pending';
+  if not found then raise exception 'Ride is no longer available'; end if;
   select * into v_vehicle from public.driver_vehicles
    where user_id=auth.uid() and approval_status='approved' and is_online=true
-   order by created_at limit 1;
-  if not found then raise exception 'An approved online vehicle is required'; end if;
+     and vehicle_type=v_type order by created_at limit 1;
+  if not found then raise exception 'An approved online matching vehicle is required'; end if;
   update public.ride_requests set driver_id=auth.uid(),driver_vehicle_id=v_vehicle.id,
     status='accepted',accepted_at=now()
-   where id=p_ride_id and status='pending' and service_type=v_vehicle.vehicle_type;
-  if not found then raise exception 'Ride is no longer available or vehicle type does not match'; end if;
-end; $$;
+   where id=p_ride_id and status='pending';
+  if not found then raise exception 'Ride is no longer available'; end if;
+end; $;
 
 revoke all on function public.twende_set_vehicle_online(uuid,boolean) from public;
 revoke all on function public.twende_admin_review_vehicle(uuid,text) from public;
