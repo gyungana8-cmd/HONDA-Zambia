@@ -2,9 +2,9 @@
 
 The Android project now includes Firebase Messaging and the app registers its FCM token in `public.device_push_tokens`. The server function is `supabase/functions/send-twende-push/index.ts`. The owner/assigned-driver extension is in `supabase/owner_assigned_driver_notifications.sql`.
 
-## 1. Apply the token table
+## 1. Apply the database migrations
 
-In Supabase Dashboard for project `obgteeruczqlebllrafr`, open **SQL Editor**, paste and run `supabase/push_notifications_setup.sql`.
+In Supabase Dashboard for project `obgteeruczqlebllrafr`, open **SQL Editor** and run these repository files in order: `supabase/ride_hailing_setup.sql` (if not already applied), `supabase/multi_vehicle_driver_phase1.sql`, `supabase/multi_vehicle_driver_phase2.sql`, `supabase/twende_admin_setup.sql` (if not already applied), `supabase/owner_assigned_driver_notifications.sql`, then `supabase/push_notifications_setup.sql`. The last migration adds owner approval, assigned-driver controls, owner monitoring and the safe approved-driver directory RPC.
 
 ## 2. Create a Firebase service account key
 
@@ -24,7 +24,7 @@ supabase functions deploy send-twende-push --no-verify-jwt
 
 ## 4. Configure Database Webhooks
 
-In Supabase Dashboard → **Database → Webhooks**, create three webhooks pointing to:
+In Supabase Dashboard → **Database → Webhooks**, create one webhook for each event below, all pointing to:
 `https://obgteeruczqlebllrafr.supabase.co/functions/v1/send-twende-push`
 
 For every webhook add header:
@@ -41,4 +41,4 @@ Use the webhook's JSON payload format with `type`, `table`, and `record` fields.
 
 Build and install the new APK. Sign in on a driver/owner phone, allow notifications, and confirm that a row appears in `device_push_tokens`. Then create a test request from a second account. Test with the receiving app in the background and screen locked.
 
-**Current limitations:** push delivery will not start until the SQL is applied, the function is deployed, Firebase service-account secret is configured, and all three database webhooks are enabled. Android 13+ users must allow notifications. The service account private key must remain secret.
+**Current limitations:** push delivery will not start until the database migrations are applied, the function is deployed, Firebase service-account secret is configured, all six event webhooks are enabled, and Android notification permission is granted. Android 13+ users must allow notifications. The service account private key must remain secret.
