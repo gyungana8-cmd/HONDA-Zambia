@@ -151,7 +151,12 @@
     const status=$("#driverGpsStatus"); if(status) status.textContent="GPS sharing stopped";
   }
 
-  // Attach GPS controls to the approved driver's dashboard.
+  // Start/stop GPS from the current multi-vehicle availability control.
+  window.addEventListener("twende-vehicle-online",event=>{
+    if(event.detail?.online) startDriverGps();
+    else stopDriverGps();
+  });
+  // Retain compatibility with the legacy single-driver control.
   const driverPanel=$("#driverDashboard");
   if(driverPanel) driverPanel.addEventListener("click",e=>{
     const b=e.target.closest("#driverOnlineBtn"); if(!b) return;
