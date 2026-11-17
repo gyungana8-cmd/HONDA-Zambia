@@ -337,23 +337,23 @@ $("#driverForm").onsubmit=async e=>{
   e.preventDefault();if(!currentUser)return;
   const b=e.submitter;b.disabled=true;
   const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:$("#driverVehicleType").value,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverLicence").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
-  const {error}=await db.from("driver_profiles").insert(row);
+  const {error}=await db.from("driver_vehicles").insert(row);
   b.disabled=false;
-  if(error){console.error("Driver registration:",error);toast(error.code==="23505"?"You already have a driver registration. Contact TWENDE support to update it.":"Driver registration could not be saved. Apply the ride-hailing database setup first.");return;}
-  closeDialog("driverDialog");e.target.reset();toast("Driver registration submitted for verification.");await loadDriverDashboard();
+  if(error){console.error("Vehicle registration:",error);toast(error.code==="23505"?"This registration number is already listed on your account.":"Vehicle registration could not be saved: "+error.message);return;}
+  closeDialog("driverDialog");e.target.reset();toast("Vehicle submitted for verification. You can add another vehicle.");await loadDriverDashboard();
 };
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
-  if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage a driver account.</p>';return;}
-  const {data:driver,error}=await db.from("driver_profiles").select("*").eq("user_id",currentUser.id).maybeSingle();
-  if(error){host.innerHTML='<p class="muted">Driver services are awaiting database setup.</p>';return;}
-  if(!driver){host.innerHTML='<p class="muted">No driver registration found. Register your motorcycle or car to get started.</p>';return;}
-  if(driver.approval_status!=="approved"){
-    host.innerHTML=`<article class="dash-card"><h3>${esc(driver.vehicle_make)} ${esc(driver.vehicle_model)} • ${esc(driver.vehicle_type)}</h3><p>Registration: ${esc(driver.plate_number)}</p><p>Verification status: <strong>${esc(driver.approval_status)}</strong></p><p class="muted">An administrator must verify your driving licence and vehicle documents before you can go online and accept rides.</p></article>`;
-    return;
-  }
-  const {data:rides}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
-  host.innerHTML=`<article class="dash-card"><h3>Driver status: Approved</h3><p>${esc(driver.vehicle_make)} ${esc(driver.vehicle_model)} • ${esc(driver.vehicle_type)} • ${esc(driver.plate_number)}</p><p>Availability: <strong>${driver.is_online?"Online":"Offline"}</strong></p><button class="btn btn-red" id="driverOnlineBtn" data-online="${!driver.is_online}">${driver.is_online?"Go offline":"Go online"}</button></article><h3>Taxi requests</h3>`+((rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&driver.is_online&&x.service_type===driver.vehicle_type?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>');
+  if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
+  const {data:vehicles,error}=await db.from("driver_vehicles").select("*").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+  if(error){host.innerHTML='<p class="muted">Multi-vehicle services need the Phase 2 database setup: '+esc(error.message)+'</p>';return;}
+  const addButton='<button class="btn btn-red" id="driverAddVehicle">Add another vehicle</button>';
+  if(!vehicles?.length){host.innerHTML='<p class="muted">No vehicle registrations found. Register your first car or motorcycle.</p>'+addButton;return;}
+  const approved=vehicles.filter(v=>v.approval_status==="approved");
+  const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
+  const vehicleCards=vehicles.map(v=>`<article class="dash-card"><h3>${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • ${esc(v.vehicle_type)}</h3><p>Registration: ${esc(v.plate_number)} • Area: ${esc(v.operating_area)}</p><p>Verification: <strong>${esc(v.approval_status)}</strong></p><p>Availability: <strong>${v.is_online?"Online":"Offline"}</strong></p>${v.approval_status==="approved"?`<button class="btn btn-red" data-vehicle-online="${v.id}" data-online="${!v.is_online}">${v.is_online?"Go offline":"Go online"}</button>`:'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>'}</article>`).join("");
+  const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&approved.some(v=>v.is_online&&v.vehicle_type===x.service_type)?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
+  host.innerHTML='<h3>Your vehicles ('+vehicles.length+')</h3>'+vehicleCards+addButton+'<h3>Taxi requests</h3>'+rideCards;
 }
 $("#driverDashboard").onclick=async e=>{
   const online=e.target.closest("#driverOnlineBtn");
