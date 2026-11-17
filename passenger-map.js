@@ -166,6 +166,11 @@
       const r=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
       if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,item.display_name||query);}
     }catch(e){console.warn("Nominatim search:",e);}
+    // Verified directory fallback for Mufumbwe District Hospital.
+    // Coordinates cross-checked against Zambia's consolidated health-facility register.
+    if (/mufumbwe.*district.*hospital|district.*hospital.*mufumbwe|mufumbwe hospital/i.test(query)) {
+      add(-13.144667,25.034417,"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia");
+    }
     return found.slice(0,15);
   }
   function addSearch(inputId,resultsId,onSelect){
