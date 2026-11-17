@@ -175,7 +175,9 @@
       b.disabled=true;
       try {
         notify("Getting your pickup location…");
-        let pickup=window.twendePickupCoords?{lat:window.twendePickupCoords.lat,lng:window.twendePickupCoords.lng}:null;
+        const pickupLabel=$("#ridePickup").value.trim();
+        let pickup=window.twendePickupCoords&&(!window.twendePickupCoords.label||window.twendePickupCoords.label===pickupLabel)
+          ?{lat:window.twendePickupCoords.lat,lng:window.twendePickupCoords.lng}:null;
         if(!pickup) {
           try {
             const pos=await getPosition();
@@ -185,7 +187,11 @@
             pickup=await geocode($("#ridePickup").value.trim());
           }
         }
-        const destination=await geocode($("#rideDestination").value.trim());
+        const destinationLabel=$("#rideDestination").value.trim();
+        const selectedDestination=window.twendeDestinationCoords;
+        const destination=selectedDestination&&selectedDestination.label===destinationLabel
+          ?{lat:selectedDestination.lat,lng:selectedDestination.lng,label:selectedDestination.label}
+          :await geocode(destinationLabel);
         notify("Calculating road distance and fare…");
         const km=await routeDistance(pickup,destination);
         const type=$("#rideServiceType").value;
