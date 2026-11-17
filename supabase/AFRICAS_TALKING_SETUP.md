@@ -31,3 +31,25 @@ After deployment and SQL setup, run the existing Android APK build workflow to p
 - Live SMS requires an active Africa's Talking production application, sufficient account balance, and an approved sender ID or permitted default sender for Zambia.
 - The app uses the Africa's Talking live SMS endpoint.
 - Do not share API keys, Supabase access tokens, or service-role keys in screenshots or chat.
+
+
+## 6. Deploy booking SMS alerts
+
+The separate Edge Function `send-twende-sms` sends SMS alerts for taxi requests and acceptance. It uses the existing `AT_API_KEY` and `AT_USERNAME` secrets; it does not replace the OTP functions.
+
+Add one more Supabase Edge Function secret:
+- `TWENDE_SMS_WEBHOOK_SECRET` — a long random value known only to the project administrator and the Supabase webhook configuration.
+
+In GitHub Actions, run **Deploy TWENDE Booking SMS** using **Run workflow**. The workflow requires the existing `SUPABASE_ACCESS_TOKEN` repository Actions secret.
+
+After deployment, create two Supabase Database Webhooks pointing to:
+`https://obgteeruczqlebllrafr.supabase.co/functions/v1/send-twende-sms`
+
+For each webhook, add the header:
+`x-twende-sms-webhook-secret: <the exact TWENDE_SMS_WEBHOOK_SECRET value>`
+
+Configure these events:
+1. `ride_requests` — INSERT (new request; sends to matching approved online vehicle phone numbers).
+2. `ride_requests` — UPDATE (driver acceptance; sends to the passenger and accepted vehicle phone number).
+
+Use the standard Supabase Database Webhook JSON payload containing `type`, `table`, and `record`. Keep the webhook secret private. The SMS sender currently uses the `TWENDE` sender name, which must be approved or permitted by Africa's Talking for Zambia.
