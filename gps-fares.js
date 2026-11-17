@@ -48,11 +48,11 @@
     const response=await fetch(url,{headers:{Accept:"application/json"}});
     if(!response.ok) throw new Error("Destination search is temporarily unavailable.");
     const data=await response.json();
-    return (data.features||[]).filter(f=>
-      (f.properties?.country||"").toLowerCase()==="zambia" &&
-      Number.isFinite(Number(f.geometry?.coordinates?.[0])) &&
-      Number.isFinite(Number(f.geometry?.coordinates?.[1]))
-    ).map(f=>{
+    return (data.features||[]).filter(f=>{
+      const lng=Number(f.geometry?.coordinates?.[0]),lat=Number(f.geometry?.coordinates?.[1]);
+      // Accept valid Zambia coordinates even when Photon omits its country label.
+      return Number.isFinite(lng)&&Number.isFinite(lat)&&lat>=-18.5&&lat<=-8&&lng>=21&&lng<=34;
+    }).map(f=>{
       const p=f.properties||{}, label=placeLabel(p)||q;
       const point={lat:Number(f.geometry.coordinates[1]),lng:Number(f.geometry.coordinates[0]),label};
       placeCache.set(label.toLowerCase(),point);
@@ -72,7 +72,7 @@
     // Fallback to Zambia-restricted Nominatim search with a Mufumbwe view bias.
     const params=new URLSearchParams({format:"jsonv2",limit:"5",countrycodes:"zm",q:q+", Zambia"});
     const response=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
-    if(!response.ok) throw new Error("Could not search Mufumbwe destinations. Check your internet connection and try again.");
+    if(!response.ok) throw new Error("Could not search destinations in Zambia. Check your internet connection and try again.");
     const rows=await response.json();
     if(!rows.length) throw new Error("Destination not found in Zambia. Try a nearby school, clinic, market, village or landmark name.");
     return {lat:Number(rows[0].lat),lng:Number(rows[0].lon),label:rows[0].display_name};
@@ -84,7 +84,7 @@
     list.id="twendeDestinationSuggestions";
     input.setAttribute("list",list.id);
     input.setAttribute("autocomplete","off");
-    input.setAttribute("placeholder","Search a place in Mufumbwe…");
+    input.setAttribute("placeholder","Search a town, hospital, school or landmark in Zambia…");
     input.insertAdjacentElement("afterend",list);
     let timer=null, lastQuery="";
     input.addEventListener("input",()=>{
