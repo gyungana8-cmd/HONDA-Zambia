@@ -52,16 +52,26 @@ Deno.serve(async (req) => {
     let body = "You have a new update in TWENDE.";
 
     if (table === "ride_requests" && type === "INSERT" && record.status === "pending") {
-      const { data, error } = await supabase.from("driver_profiles").select("user_id")
+      // Match the current multi-vehicle registry. Each approved online vehicle
+      // belongs to its registering owner/driver account (driver_vehicles.user_id).
+      const { data, error } = await supabase.from("driver_vehicles").select("user_id")
         .eq("approval_status", "approved").eq("is_online", true).eq("vehicle_type", record.service_type);
       if (error) throw error;
-      recipientIds = (data || []).map((x: any) => x.user_id);
+      recipientIds = [...new Set((data || []).map((x: any) => x.user_id).filter(Boolean))];
       title = record.service_type === "motorcycle" ? "New motorcycle taxi request" : "New car taxi request";
       body = (record.pickup_text || "New pickup") + " → " + (record.destination_text || "Destination");
     } else if (table === "ride_requests" && type === "UPDATE" && record.status === "accepted") {
+      // Notify the passenger and the owner of the actual vehicle used.
       recipientIds = record.rider_id ? [record.rider_id] : [];
-      title = "Your TWENDE driver accepted";
-      body = "Your " + (record.service_type || "taxi") + " driver has accepted your request.";
+      if (record.driver_vehicle_id) {
+        const { data: vehicle, error } = await supabase.from("driver_vehicles")
+          .select("user_id").eq("id", record.driver_vehicle_id).maybeSingle();
+        if (error) throw error;
+        if (vehicle?.user_id) recipientIds.push(vehicle.user_id);
+      }
+      recipientIds = [...new Set(recipientIds.filter(Boolean))];
+      title = "TWENDE ride accepted";
+      body = "Your " + (record.service_type || "taxi") + " ride has been accepted.";
     } else if (table === "bookings" && type === "INSERT" && record.motorcycle_id) {
       const { data: bike, error } = await supabase.from("motorcycles").select("owner_id,make,model").eq("id", record.motorcycle_id).maybeSingle();
       if (error) throw error;
