@@ -253,7 +253,7 @@ begin
     where id=p_ride_id and status='pending' for update;
   if not found then raise exception 'Ride is no longer available'; end if;
 
-  select * into v_vehicle from public.driver_vehicles v
+  select v.* into v_vehicle from public.driver_vehicles v
     join public.twende_owner_profiles o on o.user_id=v.user_id
     where v.vehicle_type=v_ride.service_type
       and v.approval_status='approved' and o.approval_status='approved'
@@ -302,3 +302,17 @@ revoke all on function public.accept_twende_ride(uuid) from public;
 grant execute on function public.twende_set_vehicle_online(uuid,boolean) to authenticated;
 grant execute on function public.twende_set_assigned_driver_online(uuid,boolean) to authenticated;
 grant execute on function public.accept_twende_ride(uuid) to authenticated;
+
+
+-- Safe directory for owners to select an approved driver without exposing
+-- licence numbers or other private driver application fields.
+create or replace function public.twende_list_approved_drivers()
+returns table(driver_id uuid, driver_name text, phone text)
+language sql stable security definer set search_path=public as $$
+  select d.user_id,d.driver_name,d.phone
+  from public.driver_profiles d
+  where d.approval_status='approved'
+  order by d.driver_name;
+$$;
+revoke all on function public.twende_list_approved_drivers() from public;
+grant execute on function public.twende_list_approved_drivers() to authenticated;
