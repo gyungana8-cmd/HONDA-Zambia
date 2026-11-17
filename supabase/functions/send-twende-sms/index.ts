@@ -12,8 +12,8 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 function normalizeZambianPhone(value: unknown): string | null {
-  const digits = String(value || "").replace(/[\s()-]/g, "");
-  if (/^\+260[0-9]{9}$/.test(digits)) return digits;
+  const digits = String(value || "").replace(/[\\s()-]/g, "");
+  if (/^\\+260[0-9]{9}$/.test(digits)) return digits;
   if (/^260[0-9]{9}$/.test(digits)) return "+" + digits;
   if (/^0[0-9]{9}$/.test(digits)) return "+260" + digits.slice(1);
   return null;
@@ -27,8 +27,18 @@ async function sendSms(phone: string, message: string, apiKey: string, username:
     body: form.toString(),
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error("Africa's Talking HTTP " + response.status + ": " + JSON.stringify(result));
   const recipients = result?.SMSMessageData?.Recipients || [];
+  // Log provider delivery codes only; never log recipient phone numbers or API credentials.
+  console.log("TWENDE Africa's Talking response", JSON.stringify({
+    httpStatus: response.status,
+    message: result?.SMSMessageData?.Message || null,
+    recipients: recipients.map((r: any) => ({
+      statusCode: r.statusCode ?? null,
+      status: r.status ?? null,
+      statusMessage: r.statusMessage ?? null,
+    })),
+  }));
+  if (!response.ok) throw new Error("Africa's Talking HTTP " + response.status + ": " + JSON.stringify(result?.SMSMessageData || result));
   const accepted = recipients.some((r: any) => [100, 101, 102].includes(Number(r.statusCode)));
   if (!accepted) throw new Error(result?.SMSMessageData?.Message || "Africa's Talking did not accept the SMS.");
   return true;
@@ -79,10 +89,20 @@ Deno.serve(async (req) => {
       message = "TWENDE: Your " + (record.service_type || "taxi")
         + " ride has been accepted. Your driver is on the way. Open the app for details.";
     } else {
+      console.log("TWENDE SMS ignored event", JSON.stringify({ table, type, status: record.status }));
       return json({ ok: true, ignored: true, reason: "No SMS rule for this event" });
     }
 
-    if (!recipients.size) return json({ ok: true, sent: 0, reason: "No valid recipient phone numbers found" });
+    console.log("TWENDE SMS event prepared", JSON.stringify({
+      table, type, status: record.status, serviceType: record.service_type,
+      validRecipientCount: recipients.size,
+    }));
+    if (!recipients.size) {
+      console.warn("TWENDE SMS has no valid recipients", JSON.stringify({
+        table, type, serviceType: record.service_type,
+      }));
+      return json({ ok: true, sent: 0, reason: "No valid recipient phone numbers found" });
+    }
     let sent = 0;
     const failures: string[] = [];
     for (const phone of recipients) {
@@ -90,9 +110,10 @@ Deno.serve(async (req) => {
         await sendSms(phone, message, apiKey, username);
         sent++;
       } catch (error) {
-        failures.push(phone + ": " + String(error));
+        failures.push(String(error));
       }
     }
+    console.log("TWENDE SMS final result", JSON.stringify({ sent, failed: failures.length, failures }));
     return json({ ok: failures.length === 0, sent, failed: failures.length, failures });
   } catch (error) {
     console.error("TWENDE booking SMS error:", error);
