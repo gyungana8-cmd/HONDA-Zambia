@@ -153,6 +153,13 @@
         }
       }
     }catch(e){console.warn("Zambia health-facility search:",e);}
+    // Verified official facility entry: Mufumbwe District Hospital.
+    // Keep this local record so the exact hospital remains searchable even when
+    // third-party geocoders omit or mislabel the facility.
+    const normalizedQuery=query.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    if(normalizedQuery.includes("mufumbwe") && (normalizedQuery.includes("hospital") || normalizedQuery.includes("district"))){
+      add(-13.144667,25.034417,"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia");
+    }
     // Nominatim fallback broadens results to named places throughout Zambia.
     try{
       const params=new URLSearchParams({format:"jsonv2",q:query+", Zambia",countrycodes:"zm",limit:"10",addressdetails:"1"});
