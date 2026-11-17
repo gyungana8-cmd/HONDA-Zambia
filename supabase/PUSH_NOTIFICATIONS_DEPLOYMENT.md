@@ -33,9 +33,9 @@ For every webhook add header:
 Configure events:
 1. `ride_requests`: INSERT (new taxi requests).
 2. `ride_requests`: UPDATE (driver acceptance).
-3. `bookings`: INSERT (motorcycle hire request).\n4. `driver_vehicles`: UPDATE (vehicle approval/rejection).
+3. `bookings`: INSERT (motorcycle hire request).\n4. `driver_vehicles`: UPDATE (vehicle approval/rejection).\n5. `twende_owner_profiles`: UPDATE (owner approval/rejection).\n6. `driver_profiles`: UPDATE (driver approval/rejection).
 
-Use the webhook's JSON payload format with `type`, `table`, and `record` fields. For taxi requests, the function notifies the owner and the assigned driver of approved online matching vehicles. When the owner is driving personally, the account is deduplicated and receives one notification. On acceptance, the passenger and vehicle owner/assigned driver are notified. Vehicle approval/rejection updates notify the owner and assigned driver.
+Use the webhook's JSON payload format with `type`, `table`, and `record` fields. For taxi requests, the function first checks for approved owner accounts, then notifies the owner and the assigned driver of approved online matching vehicles. When the owner is driving personally, the account is deduplicated and receives one notification. On acceptance, the passenger and vehicle owner/assigned driver are notified. Vehicle approval/rejection updates notify the owner and assigned driver.
 
 ## 5. Test
 
