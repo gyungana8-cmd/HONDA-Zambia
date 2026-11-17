@@ -28,6 +28,7 @@ function updateUI() {
   $("#authButton").classList.toggle("hidden", true);
   $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
   $("#dashTitle").textContent = guest ? "Passenger dashboard" : (role==="owner" ? "Owner dashboard" : "Your dashboard");
+  const driverHeading=$("#driver-panel h2"); if(driverHeading) driverHeading.textContent=role==="owner"?"Owner & driver dashboard":"Driver dashboard";
   $("#switchRole")?.classList.toggle("hidden",guest);
   if($("#switchRole")) $("#switchRole").textContent = role==="owner" ? "Use as passenger" : "Switch to owner";
   $("#menuBtn")?.classList.toggle("hidden",guest);
@@ -543,7 +544,7 @@ function startTwendeRealtime(){
   twendeRealtimeChannel=db.channel("twende-live-operations")
     .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
       if(isGuestRider()){loadPassengerRides();loadAvailableTaxiFleet();}
-      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+      else if(currentUser){loadPassengerRides();loadAvailableTaxiFleet();loadDriverDashboard();loadAdminDashboard();}
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
       if(isGuestRider())loadAvailableTaxiFleet();
