@@ -548,7 +548,13 @@ function startTwendeRealtime(){
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
       if(isGuestRider())loadAvailableTaxiFleet();
-      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+      else if(currentUser){loadDriverDashboard();loadAdminDashboard();loadAvailableTaxiFleet();}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"twende_owner_profiles"},()=>{
+      if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"driver_profiles"},()=>{
+      if(currentUser){loadDriverDashboard();loadAdminDashboard();}
     })
     .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; check Supabase Realtime publication.");});
 }
