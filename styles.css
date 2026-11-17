@@ -54,3 +54,6 @@ body.passenger-mode .fleet-vehicle-card span{font-size:12px;color:var(--muted)}
 body.passenger-mode .fleet-vehicle-card small{font-size:11px;color:var(--muted)}
 body.passenger-mode .fleet-online{display:flex;align-items:center;gap:6px;color:#16834b!important;font-weight:750}
 body.passenger-mode .fleet-online i{width:7px;height:7px;border-radius:50%;background:#1caa65;display:inline-block}
+
+/* Password visibility controls */
+.password-field{display:flex;align-items:stretch;gap:8px;width:100%}.dialog-form .password-field input{flex:1;min-width:0}.password-toggle{flex:0 0 auto;min-width:58px;padding:0 12px;border:1px solid #d9dde0;border-radius:7px;background:#f5f3ef;color:#101820;font-size:12px;font-weight:800;cursor:pointer}.password-toggle:focus-visible{outline:3px solid #d71920;outline-offset:2px}
