@@ -61,9 +61,22 @@
     if(window.L)return Promise.resolve();
     if(leafletLoading)return leafletLoading;
     leafletLoading=new Promise((resolve,reject)=>{
-      const css=document.createElement("link");css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.append(css);
-      const script=document.createElement("script");script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload=resolve;script.onerror=()=>reject(new Error("Map library could not load. Check your internet connection."));document.head.append(script);
+      const cdns=[
+        {css:"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",js:"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"},
+        {css:"https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css",js:"https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"}
+      ];
+      const tryCdn=index=>{
+        if(index>=cdns.length){reject(new Error("Map library could not load from either map provider. Check internet access and reload TWENDE."));return;}
+        const provider=cdns[index];
+        if(!document.querySelector('link[data-twende-leaflet-css="'+index+'"]')){
+          const css=document.createElement("link");css.rel="stylesheet";css.href=provider.css;css.dataset.twendeLeafletCss=String(index);document.head.append(css);
+        }
+        const script=document.createElement("script");script.src=provider.js;script.async=true;
+        script.onload=()=>window.L?resolve():tryCdn(index+1);
+        script.onerror=()=>tryCdn(index+1);
+        document.head.append(script);
+      };
+      tryCdn(0);
     });
     return leafletLoading;
   }
@@ -73,8 +86,26 @@
   async function ensureMap(){
     await loadLeaflet();
     if(map)return;
-    map=L.map("twendePassengerMap",{zoomControl:true}).setView(userPoint?[userPoint.lat,userPoint.lng]:fallbackCenter,userPoint?15:12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+    const mapElement=$("#twendePassengerMap");
+    map=L.map(mapElement,{zoomControl:true}).setView(userPoint?[userPoint.lat,userPoint.lng]:fallbackCenter,userPoint?15:12);
+    const tileProviders=[
+      {url:"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",options:{maxZoom:19,attribution:"© OpenStreetMap"}},
+      {url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",options:{maxZoom:20,subdomains:"abcd",attribution:"© OpenStreetMap © CARTO"}}
+    ];
+    let tileProviderIndex=0,tileFallbackStarted=false;
+    let tiles=L.tileLayer(tileProviders[0].url,tileProviders[0].options).addTo(map);
+    tiles.on("tileerror",()=>{
+      if(tileProviderIndex===0&&!tileFallbackStarted){
+        tileFallbackStarted=true;tileProviderIndex=1;
+        setStatus("Switching map provider…");
+        map.removeLayer(tiles);
+        tiles=L.tileLayer(tileProviders[1].url,tileProviders[1].options).addTo(map);
+        tiles.once("load",()=>setStatus(userPoint?"Map loaded. Searching for nearby online TWENDE drivers…":"Map loaded. Set your pickup location to find taxis."));
+        tiles.on("tileerror",()=>setStatus("Map tiles are blocked or unavailable. Check internet access, then reload TWENDE."));
+      }
+    });
+    setTimeout(()=>{if(map)map.invalidateSize(true);},250);
+    window.addEventListener("resize",()=>{if(map)map.invalidateSize();},{passive:true});
   }
   async function reverse(lat,lng){
     try{
