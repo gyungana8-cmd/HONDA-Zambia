@@ -372,6 +372,32 @@ $("#driverForm").onsubmit=async e=>{
   if(error){console.error("Vehicle registration:",error);toast(error.code==="23505"?"This registration number is already listed on your account.":"Vehicle registration could not be saved: "+error.message);return;}
   closeDialog("driverDialog");e.target.reset();toast("Vehicle submitted for verification. You can add another vehicle.");await loadDriverDashboard();
 };
+
+$("#driverAccountForm").onsubmit=async e=>{
+  e.preventDefault();
+  if(!currentUser||isGuestRider()){toast("Sign in with your driver account first.");return;}
+  const b=e.submitter;b.disabled=true;
+  const row={
+    user_id:currentUser.id,
+    driver_name:$("#driverAccountName").value.trim(),
+    phone:$("#driverAccountPhone").value.trim(),
+    vehicle_type:$("#driverAccountType").value,
+    vehicle_make:$("#driverAccountMake").value.trim(),
+    vehicle_model:$("#driverAccountModel").value.trim(),
+    plate_number:$("#driverAccountPlate").value.trim(),
+    licence_number:$("#driverAccountLicence").value.trim(),
+    operating_area:$("#driverAccountArea").value.trim(),
+    approval_status:"pending",
+    is_online:false
+  };
+  const {error}=await db.from("driver_profiles").insert(row);
+  b.disabled=false;
+  if(error){toast("Driver application could not be submitted: "+error.message);return;}
+  closeDialog("driverAccountDialog");e.target.reset();
+  toast("Driver application submitted for administrator review.");
+  await loadDriverDashboard();await loadAdminDashboard();
+};
+
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
@@ -381,7 +407,7 @@ async function loadDriverDashboard(){
   const {data:assignedVehicles,error:assignedError}=await db.from("driver_vehicles").select("*").eq("assigned_driver_id",currentUser.id).order("created_at",{ascending:false});
   if(assignedError) console.warn("Assigned vehicles:",assignedError.message);
   const allVehicles=[...(vehicles||[]),...(assignedVehicles||[])];
-  const {data:approvedDrivers,error:driversError}=await db.from("driver_profiles").select("user_id,driver_name,phone,approval_status").eq("approval_status","approved");
+  const {data:approvedDrivers,error:driversError}=await db.rpc("twende_list_approved_drivers");
   if(driversError) console.warn("Approved driver list:",driversError.message);
   const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(30);
   const vehicleCards=allVehicles.map(v=>{
@@ -460,10 +486,16 @@ async function loadAdminDashboard(){
   const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
   const rows=vehicles||[];
+  const {data:owners,error:ownersError}=await db.from("twende_owner_profiles").select("user_id,owner_name,phone,approval_status,created_at").order("created_at",{ascending:false});
+  const {data:drivers,error:driversError}=await db.from("driver_profiles").select("user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,licence_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   const {data:rides, error:ridesError}=await db.from("ride_requests").select("id,service_type,passenger_name,passenger_phone,pickup_text,destination_text,status,created_at,driver_id").order("created_at",{ascending:false}).limit(50);
+  const ownerRows=owners||[];
+  const driverRows=drivers||[];
+  const ownerHtml=ownersError?'<p class="muted">Owner applications unavailable: '+esc(ownersError.message)+'</p>':ownerRows.map(o=>`<article class="dash-card"><h3>${esc(o.owner_name)}</h3><p>Phone: ${esc(o.phone)} • Status: <strong>${esc(o.approval_status)}</strong></p>${o.approval_status==="pending"?`<button class="btn btn-red" data-owner-decision="approved" data-owner-id="${o.user_id}">Approve owner</button> <button class="btn btn-outline" data-owner-decision="rejected" data-owner-id="${o.user_id}">Reject owner</button>`:""}</article>`).join("")||'<p class="muted">No owner applications.</p>';
+  const driverHtml=driversError?'<p class="muted">Driver applications unavailable: '+esc(driversError.message)+'</p>':driverRows.map(d=>`<article class="dash-card"><h3>${esc(d.driver_name)}</h3><p>Phone: ${esc(d.phone)} • ${esc(d.vehicle_type)} • ${esc(d.operating_area)}</p><p>Vehicle: ${esc(d.vehicle_make)} ${esc(d.vehicle_model)} • ${esc(d.plate_number)}</p><p>Licence: ${esc(d.licence_number)} • Status: <strong>${esc(d.approval_status)}</strong></p>${d.approval_status==="pending"?`<button class="btn btn-red" data-admin-decision="approved" data-driver-id="${d.user_id}">Approve driver</button> <button class="btn btn-outline" data-admin-decision="rejected" data-driver-id="${d.user_id}">Reject driver</button>`:""}</article>`).join("")||'<p class="muted">No driver applications.</p>';
   const vehicleHtml=rows.map(v=>`<article class="dash-card"><h3>${esc(v.driver_name)} • ${esc(v.vehicle_type)}</h3><p>Phone: ${esc(v.phone)} • Area: ${esc(v.operating_area)}</p><p>Vehicle: ${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • Registration: ${esc(v.plate_number)}</p><p>Status: <strong>${esc(v.approval_status)}</strong></p>${v.approval_status==="pending"?`<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="${v.id}">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="${v.id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
   const rideHtml=ridesError?'<p class="muted">Taxi requests could not be loaded: '+esc(ridesError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} • ${esc(x.status)}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>Request ID: ${esc(x.id)}</p></article>`).join("")||'<p class="muted">No taxi requests have been received.</p>';
-  host.innerHTML='<h3>Vehicle applications ('+rows.length+')</h3>'+vehicleHtml+'<h3>Taxi rides ('+(rides||[]).length+')</h3>'+rideHtml;
+  host.innerHTML='<h3>Owner applications ('+ownerRows.length+')</h3>'+ownerHtml+'<h3>Driver applications ('+driverRows.length+')</h3>'+driverHtml+'<h3>Vehicle applications ('+rows.length+')</h3>'+vehicleHtml+'<h3>Taxi rides ('+(rides||[]).length+')</h3>'+rideHtml;
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("click",async e=>{
