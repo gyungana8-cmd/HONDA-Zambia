@@ -399,6 +399,7 @@ $("#driverDashboard").onclick=async e=>{
     const {error}=await db.rpc("twende_set_vehicle_online",{p_vehicle_id:vehicleToggle.dataset.vehicleOnline,p_online:desired});
     if(error){vehicleToggle.disabled=false;toast("Could not change vehicle availability: "+error.message);return;}
     toast(desired?"Vehicle is now online.":"Vehicle is now offline.");
+    window.dispatchEvent(new CustomEvent("twende-vehicle-online",{detail:{online:desired}}));
     await loadDriverDashboard();
     return;
   }
