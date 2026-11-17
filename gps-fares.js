@@ -257,6 +257,7 @@
           currentEstimate=await calculatePassengerFare(true);
         }
         if(!currentEstimate) throw new Error("A fare estimate could not be calculated. Check your pickup and destination.");
+        pickup=currentEstimate.pickup;
         const destination=currentEstimate.destination;
         const km=currentEstimate.km;
         const fare=currentEstimate.fare;
