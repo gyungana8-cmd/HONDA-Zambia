@@ -329,6 +329,25 @@ $("#rideForm").onsubmit=async e=>{
   closeDialog("rideDialog");e.target.reset();toast("Taxi request sent. Waiting for an approved driver.");
   await loadPassengerRides();await loadDriverDashboard();
 };
+async function loadAvailableTaxiFleet(){
+  const motorcycleHost=$("#availableMotorcycleTaxis"),carHost=$("#availableCarTaxis");
+  if(!motorcycleHost||!carHost)return;
+  const loading='<p class="muted">Checking online taxis…</p>';
+  motorcycleHost.innerHTML=loading;carHost.innerHTML=loading;
+  if(!currentUser){motorcycleHost.innerHTML='<p class="muted">Passenger connection is starting…</p>';carHost.innerHTML='<p class="muted">Passenger connection is starting…</p>';return;}
+  const {data,error}=await db.rpc("get_available_twende_vehicles");
+  if(error){
+    console.warn("Available taxi fleet:",error);
+    const message='<p class="muted">Available vehicle details will appear once fleet discovery is enabled by the administrator.</p>';
+    motorcycleHost.innerHTML=message;carHost.innerHTML=message;return;
+  }
+  const rows=data||[];
+  const card=v=>`<article class="fleet-vehicle-card"><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.driver_name||"TWENDE driver")}</strong><span>${esc([v.vehicle_make,v.vehicle_model].filter(Boolean).join(" ")||"Vehicle make not supplied")}</span><small>${esc(v.operating_area||"Operating area not listed")}</small><span class="fleet-online"><i></i> Online now</span></article>`;
+  const motorcycles=rows.filter(v=>v.vehicle_type==="motorcycle");
+  const cars=rows.filter(v=>v.vehicle_type==="car");
+  motorcycleHost.innerHTML=motorcycles.map(card).join("")||'<p class="muted">No motorcycles are online at the moment.</p>';
+  carHost.innerHTML=cars.map(card).join("")||'<p class="muted">No cars are online at the moment.</p>';
+}
 async function loadPassengerRides(){
   const host=$("#passengerRides");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to see your taxi requests.</p>';return;}
@@ -437,7 +456,7 @@ async function startApp(){
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
     else session=guest.data.session;
   }
-  await onSession(session);await loadPassengerRides();
+  await onSession(session);await loadPassengerRides();await loadAvailableTaxiFleet();
   if(currentUser && !isGuestRider()) { await loadDriverDashboard(); await loadAdminDashboard(); }
   startTwendeRealtime();
   db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
@@ -453,11 +472,12 @@ function startTwendeRealtime(){
   if(twendeRealtimeChannel) return;
   twendeRealtimeChannel=db.channel("twende-live-operations")
     .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
-      if(isGuestRider()) loadPassengerRides();
+      if(isGuestRider()){loadPassengerRides();loadAvailableTaxiFleet();}
       else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
-      if(currentUser&&!isGuestRider()){loadDriverDashboard();loadAdminDashboard();}
+      if(isGuestRider())loadAvailableTaxiFleet();
+      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
     })
     .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; check Supabase Realtime publication.");});
 }
