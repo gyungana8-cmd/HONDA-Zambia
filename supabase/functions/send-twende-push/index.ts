@@ -54,13 +54,20 @@ Deno.serve(async (req) => {
     if (table === "ride_requests" && type === "INSERT" && record.status === "pending") {
       // Notify the vehicle owner and the currently assigned driver. When the
       // owner is driving personally, user_id is both roles and is deduplicated.
-      const { data: vehicles, error } = await supabase.from("driver_vehicles")
-        .select("user_id,assigned_driver_id,vehicle_type")
-        .eq("approval_status", "approved").eq("is_online", true)
-        .eq("vehicle_type", record.service_type);
-      if (error) throw error;
-      recipientIds = [...new Set((vehicles || []).flatMap((v: any) =>
-        [v.user_id, v.assigned_driver_id].filter(Boolean)))];
+      const { data: owners, error: ownerError } = await supabase.from("twende_owner_profiles")
+        .select("user_id").eq("approval_status", "approved");
+      if (ownerError) throw ownerError;
+      const ownerIds = (owners || []).map((o: any) => o.user_id);
+      if (ownerIds.length) {
+        const { data: vehicles, error } = await supabase.from("driver_vehicles")
+          .select("user_id,assigned_driver_id,vehicle_type")
+          .in("user_id", ownerIds)
+          .eq("approval_status", "approved").eq("is_online", true)
+          .eq("vehicle_type", record.service_type);
+        if (error) throw error;
+        recipientIds = [...new Set((vehicles || []).flatMap((v: any) =>
+          [v.user_id, v.assigned_driver_id].filter(Boolean)))];
+      }
       title = record.service_type === "motorcycle" ? "New motorcycle taxi request" : "New car taxi request";
       body = (record.pickup_text || "New pickup") + " → " + (record.destination_text || "Destination");
     } else if (table === "ride_requests" && type === "UPDATE" && record.status === "accepted") {
@@ -75,6 +82,22 @@ Deno.serve(async (req) => {
       recipientIds = [...new Set(recipientIds)];
       title = "TWENDE ride accepted";
       body = "The assigned driver accepted the taxi request. The owner can monitor this booking.";
+    } else if (table === "twende_owner_profiles" && type === "UPDATE" &&
+      event.old_record?.approval_status !== record.approval_status &&
+      ["approved", "rejected"].includes(record.approval_status)) {
+      recipientIds = [record.user_id].filter(Boolean);
+      title = record.approval_status === "approved" ? "TWENDE owner account approved" : "TWENDE owner application rejected";
+      body = record.approval_status === "approved"
+        ? "Your owner account is approved. You can now manage your registered vehicles."
+        : "Your owner application was rejected. Please contact TWENDE administration for the review details.";
+    } else if (table === "driver_profiles" && type === "UPDATE" &&
+      event.old_record?.approval_status !== record.approval_status &&
+      ["approved", "rejected"].includes(record.approval_status)) {
+      recipientIds = [record.user_id].filter(Boolean);
+      title = record.approval_status === "approved" ? "TWENDE driver account approved" : "TWENDE driver application rejected";
+      body = record.approval_status === "approved"
+        ? "Your driver account is approved. You may now be assigned to an owner's vehicle."
+        : "Your driver application was rejected. Please contact TWENDE administration for the review details.";
     } else if (table === "driver_vehicles" && type === "UPDATE" &&
       event.old_record?.approval_status !== record.approval_status &&
       ["approved", "rejected"].includes(record.approval_status)) {
