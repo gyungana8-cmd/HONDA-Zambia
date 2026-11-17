@@ -121,6 +121,12 @@
       if(seen.has(key))return;
       seen.add(key);found.push({lat,lng,label});
     };
+    // Known facility fallback: Mufumbwe District Hospital is listed in Zambia's
+    // consolidated health-facility dataset. This keeps it searchable even when
+    // third-party geocoders omit the facility name.
+    if(/mufumbwe/.test(q.toLowerCase()) && /(hospital|district|mufumbwe)/.test(q.toLowerCase())){
+      add(-13.144667,25.034417,"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia");
+    }
     // Photon gives fast local suggestions. Do not require an exact country label:
     // some valid Zambia results omit or abbreviate the country field.
     try{
