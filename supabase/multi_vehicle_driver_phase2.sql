@@ -43,7 +43,7 @@ create policy "Passengers and assigned drivers can read rides"
   );
 
 create or replace function public.accept_twende_ride(p_ride_id uuid)
-returns void language plpgsql security definer set search_path=public as $
+returns void language plpgsql security definer set search_path=public as $$
 declare v_vehicle public.driver_vehicles%rowtype; v_type text;
 begin
   select service_type into v_type from public.ride_requests where id=p_ride_id and status='pending';
@@ -56,7 +56,7 @@ begin
     status='accepted',accepted_at=now()
    where id=p_ride_id and status='pending';
   if not found then raise exception 'Ride is no longer available'; end if;
-end; $;
+end; $$;
 
 revoke all on function public.twende_set_vehicle_online(uuid,boolean) from public;
 revoke all on function public.twende_admin_review_vehicle(uuid,text) from public;
