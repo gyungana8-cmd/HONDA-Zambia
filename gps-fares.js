@@ -42,8 +42,9 @@
   async function searchPlaces(query) {
     const q=query.trim();
     if(q.length<3) return [];
-    const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Mufumbwe, Zambia")+
-      "&lat="+MUFUMBWE_BIAS.lat+"&lon="+MUFUMBWE_BIAS.lon+"&limit=8&lang=en";
+    const center=window.twendePickupCoords||MUFUMBWE_BIAS;
+    const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Zambia")+
+      "&lat="+center.lat+"&lon="+(center.lng??center.lon)+"&limit=8&lang=en";
     const response=await fetch(url,{headers:{Accept:"application/json"}});
     if(!response.ok) throw new Error("Destination search is temporarily unavailable.");
     const data=await response.json();
@@ -60,7 +61,7 @@
   }
   async function geocode(address) {
     const q=address.trim();
-    if(!q) throw new Error("Enter a destination in Mufumbwe.");
+    if(!q) throw new Error("Enter a destination in Zambia.");
     const cached=placeCache.get(q.toLowerCase());
     if(cached) return cached;
     // First try the Mufumbwe-biased search service.
@@ -69,11 +70,11 @@
       if(matches.length) return matches[0];
     } catch(err) { console.warn("Photon place search:",err.message); }
     // Fallback to Zambia-restricted Nominatim search with a Mufumbwe view bias.
-    const params=new URLSearchParams({format:"jsonv2",limit:"5",countrycodes:"zm",q:q+", Mufumbwe, North-Western Province, Zambia",viewbox:"24.2,-13.0,25.5,-14.5",bounded:"0"});
+    const params=new URLSearchParams({format:"jsonv2",limit:"5",countrycodes:"zm",q:q+", Zambia"});
     const response=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
     if(!response.ok) throw new Error("Could not search Mufumbwe destinations. Check your internet connection and try again.");
     const rows=await response.json();
-    if(!rows.length) throw new Error("Destination not found in Mufumbwe. Try a nearby school, clinic, market, village or landmark name.");
+    if(!rows.length) throw new Error("Destination not found in Zambia. Try a nearby school, clinic, market, village or landmark name.");
     return {lat:Number(rows[0].lat),lng:Number(rows[0].lon),label:rows[0].display_name};
   }
   function attachDestinationSuggestions() {
