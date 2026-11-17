@@ -21,12 +21,20 @@ document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click
 function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=isGuestRider();
-  $("#accountStatus").textContent = guest ? "Passenger · no account" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
-  $("#authButton").classList.toggle("hidden", !!currentUser && !guest);
-  $("#authButton").textContent = "Driver / owner sign in";
+  const isAdmin=String(currentUser?.email||"").toLowerCase()==="gyungana8@gmail.com";
+  document.body.classList.toggle("passenger-mode",guest);
+  document.body.classList.toggle("operator-mode",!!currentUser&&!guest);
+  $("#accountStatus").textContent = guest ? "Passenger" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
+  $("#authButton").classList.toggle("hidden", true);
   $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
-  $("#dashTitle").textContent = role === "owner" ? "Owner dashboard" : "Rider dashboard";
-  $("#switchRole").textContent = role === "owner" ? "Switch to rider" : "Switch to owner";
+  $("#dashTitle").textContent = "Driver dashboard";
+  $("#switchRole")?.classList.add("hidden");
+  $("#menuBtn")?.classList.toggle("hidden",guest);
+  $("#nav")?.classList.toggle("hidden",guest);
+  $("#adminNav")?.classList.toggle("hidden",!isAdmin);
+  $("#ride-services")?.classList.toggle("hidden",!guest);
+  $("#driver-panel")?.classList.toggle("hidden",guest);
+  $("#adminPanel")?.classList.toggle("hidden",guest || !isAdmin);
 }
 async function loadProfile(user) {
   if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
@@ -37,7 +45,7 @@ async function loadProfile(user) {
     role="rider";updateUI();
     $("#dashboardIntro").textContent="You are using TWENDE as a passenger without creating an account.";
     $("#dashboardContent").innerHTML='<p class="muted">No passenger account is needed to request a taxi.</p>';
-    await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
+    await loadPassengerRides();
     return;
   }
   const {data:existing,error:readError}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
@@ -68,8 +76,8 @@ async function onSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
   if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
-  if(currentUser) { $("#authDialog").close(); await loadMotorcycles(); }
-  else { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
+  if(currentUser && !isGuestRider()) { $("#authDialog").close(); }
+  else if(!currentUser) { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
 }
 
 $("#authButton").onclick=()=>{
@@ -159,6 +167,7 @@ $("#loginForm").onsubmit=async e=>{
   const {data,error}=await db.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
   b.disabled=false;if(error){toast(error.message);return;}await onSession(data.session);toast("Signed in to TWENDE.");
 };
+$("#driverAccessButton")?.addEventListener("click",()=>{$("#loginForm").classList.remove("hidden");$("#registerForm").classList.add("hidden");$("#authDialog").showModal();});
 $("#signOutButton").onclick=async()=>{
   const {error}=await db.auth.signOut();if(error)toast(error.message);else{await onSession(null);await loadMotorcycles();toast("Signed out.");}
 };
@@ -425,11 +434,30 @@ async function startApp(){
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
     else session=guest.data.session;
   }
-  await onSession(session);await loadMotorcycles();await loadPassengerRides();await loadDriverDashboard();
+  await onSession(session);await loadPassengerRides();
+  if(currentUser && !isGuestRider()) { await loadDriverDashboard(); await loadAdminDashboard(); }
+  startTwendeRealtime();
   db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
 }
 updateUI();startApp();
 
+
+
+// Live updates keep taxi requests and vehicle availability current without manual refresh.
+// Online state is stored on each approved vehicle and is not reset on app restart.
+let twendeRealtimeChannel=null;
+function startTwendeRealtime(){
+  if(twendeRealtimeChannel) return;
+  twendeRealtimeChannel=db.channel("twende-live-operations")
+    .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
+      if(isGuestRider()) loadPassengerRides();
+      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
+      if(currentUser&&!isGuestRider()){loadDriverDashboard();loadAdminDashboard();}
+    })
+    .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; check Supabase Realtime publication.");});
+}
 
 // Public extension hooks for TWENDE GPS/fare module (publishable Supabase client only).
 window.twendeDb = db;
