@@ -36,12 +36,7 @@ create policy "Drivers can read own vehicle records"
   on public.driver_vehicles for select to authenticated
   using (user_id = auth.uid());
 
-drop policy if exists "Admins can read vehicle applications" on public.driver_vehicles;
-create policy "Admins can read vehicle applications"
-  on public.driver_vehicles for select to authenticated
-  using (exists (
-    select 1 from public.twende_admins a where a.user_id = auth.uid()
-  ));
+-- Admin access will be added after confirming the project's admin table and role model.
 
 drop policy if exists "Users can register their own vehicles" on public.driver_vehicles;
 create policy "Users can register their own vehicles"
