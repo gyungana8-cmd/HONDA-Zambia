@@ -411,7 +411,7 @@ async function loadDriverDashboard(){
   if(ownerProfileError) console.warn("Owner verification status:",ownerProfileError.message);
   const {data:approvedDrivers,error:driversError}=await db.rpc("twende_list_approved_drivers");
   if(driversError) console.warn("Approved driver list:",driversError.message);
-  const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(30);
+  const {data:rides,error:rideError}=await db.from("ride_requests").select("*").order("created_at",{ascending:false}).limit(30); // RLS returns only eligible requests for this account.
   const vehicleCards=allVehicles.map(v=>{
     const isOwner=v.user_id===currentUser.id;
     const canSelfDrive=isOwner&&!v.assigned_driver_id;
