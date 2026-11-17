@@ -198,7 +198,7 @@ begin
   end if;
   update public.twende_owner_profiles
     set approval_status=p_decision, reviewed_at=now()
-    where user_id=p_owner_id and approval_status='pending';
+    where user_id=p_owner_id and approval_status<>p_decision;
   if not found then raise exception 'Pending owner application not found'; end if;
   if p_decision='rejected' then
     update public.driver_vehicles
@@ -316,3 +316,29 @@ language sql stable security definer set search_path=public as $$
 $$;
 revoke all on function public.twende_list_approved_drivers() from public;
 grant execute on function public.twende_list_approved_drivers() to authenticated;
+
+
+-- Allow administrators to suspend/reject previously approved driver accounts
+-- when their licence, conduct or TWENDE compliance status changes.
+create or replace function public.twende_admin_review_driver(p_driver_id uuid,p_decision text)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from public.twende_admins where user_id=auth.uid()) then
+    raise exception 'Administrator access required';
+  end if;
+  if p_decision not in ('approved','rejected') then
+    raise exception 'Decision must be approved or rejected';
+  end if;
+  update public.driver_profiles
+    set approval_status=p_decision,is_online=false
+    where user_id=p_driver_id and approval_status<>p_decision;
+  if not found then raise exception 'Driver application not found or already has this decision'; end if;
+  if p_decision='rejected' then
+    update public.driver_vehicles
+      set is_online=false,assigned_driver_online=false
+      where assigned_driver_id=p_driver_id;
+  end if;
+end;
+$$;
+revoke all on function public.twende_admin_review_driver(uuid,text) from public;
+grant execute on function public.twende_admin_review_driver(uuid,text) to authenticated;
