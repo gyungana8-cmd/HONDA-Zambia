@@ -135,24 +135,48 @@
         }
       }
     }catch(e){console.warn("Photon search:",e);}
-    // Zambia-wide government/GRID3 health-facility register: hospitals, clinics,
-    // health centres and health posts that general map search may not index.
+    // Zambia GRID3/NSDI operational school point register. This is a
+    // province-wide school dataset compiled from ZamStats and Ministry of
+    // General Education sources; query North-Western Province by school name.
     try{
       const term=query.replace(/'/g,"''").toUpperCase();
-      const where="UPPER(Name) LIKE '%"+term+"%' OR UPPER(Label) LIKE '%"+term+"%' OR UPPER(District) LIKE '%"+term+"%'";
-      const params=new URLSearchParams({where,outFields:"Name,Label,Type,SubType,Province,District,LAT,LONG",returnGeometry:"false",resultRecordCount:"15",f:"json"});
-      const url="https://services3.arcgis.com/BU6Aadhn6tbBEdyk/arcgis/rest/services/GRID3_ZMB_HealthFac_v01beta/FeatureServer/0/query?"+params.toString();
+      const where="Province = 'North-Western' AND (UPPER(Name) LIKE '%"+term+"%' OR UPPER(Orig_Name) LIKE '%"+term+"%')";
+      const params=new URLSearchParams({where,outFields:"Name,Orig_Name,Type,SubType,Province,District,LAT,LONG",returnGeometry:"false",resultRecordCount:"100",f:"json"});
+      const url="https://services3.arcgis.com/BU6Aadhn6tbBEdyk/arcgis/rest/services/GRID3_ZMB_School_v01beta/FeatureServer/0/query?"+params.toString();
       const r=await fetch(url);if(r.ok){
         const j=await r.json();
         for(const feature of (j.features||[])){
           const a=feature.attributes||{};
-          const lat=Number(a.LAT),lng=Number(a.LONG);
-          const name=a.Name||a.Label||query;
-          const label=[name,a.District,a.Province,"Zambia"].filter(Boolean).join(", ");
-          add(lat,lng,label);
+          const name=a.Name||a.Orig_Name||query;
+          add(a.LAT,a.LONG,[name,a.District,a.Province,"Zambia"].filter(Boolean).join(", "));
         }
       }
-    }catch(e){console.warn("Zambia health-facility search:",e);}
+    }catch(e){console.warn("North-Western school register search:",e);}
+    // Explicitly support the Mufumbwe school names supplied for TWENDE.
+    // The official school register and geocoder provide the coordinates;
+    // these aliases improve matching when names differ slightly.
+    const mufumbweSchools=[
+      "Shukwe West","Shukwe East","Katumba Primary","Chizela Primary","Mufumbwe Secondary",
+      "Kakikasa Primary","Kalende Secondary","Kalende Bible College","Mufumbwe Boarding",
+      "Kafwebu","Kakilufya Primary","Kyamwina Primary","Kabambo Primary","Kamabuta Primary",
+      "Kamabuta Secondary","Kifuwe Primary","Kamahembe Primary","Matushi Primary",
+      "Wishimanga Secondary","Kamazovu Primary","Kashima East Primary","Kashima West Secondary",
+      "Chilemba Secondary","Lumwe Primary","Lumwe East Primary","Munyambala Primary","Kalengwa Primary"
+    ];
+    const normalizedSchoolQuery=query.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    const matchingMufumbweSchools=mufumbweSchools.filter(name=>{
+      const n=name.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+      return n.includes(normalizedSchoolQuery)||normalizedSchoolQuery.includes(n);
+    });
+    // If the government point layer does not contain a supplied school name,
+    // ask the geocoder specifically for that school in Mufumbwe, Zambia.
+    for(const schoolName of matchingMufumbweSchools){
+      try{
+        const params=new URLSearchParams({format:"jsonv2",q:schoolName+", Mufumbwe, North-Western Province, Zambia",countrycodes:"zm",limit:"3",addressdetails:"1"});
+        const r=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
+        if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,[schoolName,"Mufumbwe","North-Western Province","Zambia"].join(", "));}
+      }catch(e){console.warn("Mufumbwe school lookup:",schoolName,e);}
+    }
     // Verified official facility entry: Mufumbwe District Hospital.
     // Keep this local record so the exact hospital remains searchable even when
     // third-party geocoders omit or mislabel the facility.
