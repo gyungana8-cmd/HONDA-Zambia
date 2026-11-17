@@ -49,6 +49,8 @@
 
   const status=$("#twendeMapStatus");
   const setStatus=s=>{if(status)status.textContent=s;};
+  window.addEventListener("offline",()=>setStatus("You are offline. Connect to the internet to search places and see live taxis."));
+  window.addEventListener("online",()=>{setStatus("Connection restored. Refreshing nearby TWENDE taxis…");if(userPoint)refreshDrivers();});
   let map=null, pickupMarker=null, destinationMarker=null, routeLayer=null, userPoint=null, destinationPoint=null;
   let driverMarkers=new Map(), refreshTimer=null, leafletLoading=null;
   const cache=new Map();
