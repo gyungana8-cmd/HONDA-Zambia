@@ -342,3 +342,47 @@ end;
 $$;
 revoke all on function public.twende_admin_review_driver(uuid,text) from public;
 grant execute on function public.twende_admin_review_driver(uuid,text) to authenticated;
+
+
+create or replace function public.twende_assign_vehicle_driver(p_vehicle_id uuid,p_driver_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists (
+    select 1 from public.driver_vehicles v
+    join public.twende_owner_profiles o on o.user_id=v.user_id
+    where v.id=p_vehicle_id and v.user_id=auth.uid()
+      and v.approval_status='approved' and o.approval_status='approved'
+  ) then
+    raise exception 'Only an approved owner can assign a driver to an approved vehicle';
+  end if;
+  if p_driver_id is not null and not exists (
+    select 1 from public.driver_profiles d
+    where d.user_id=p_driver_id and d.approval_status='approved'
+  ) then
+    raise exception 'The selected driver must have an approved TWENDE driver account';
+  end if;
+  update public.driver_vehicles
+    set assigned_driver_id=p_driver_id,assigned_driver_online=false,is_online=false
+    where id=p_vehicle_id and user_id=auth.uid();
+end;
+$$;
+
+create or replace function public.twende_admin_review_vehicle(p_vehicle_id uuid,p_decision text)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from public.twende_admins where user_id=auth.uid()) then
+    raise exception 'Administrator access required';
+  end if;
+  if p_decision not in ('approved','rejected') then
+    raise exception 'Decision must be approved or rejected';
+  end if;
+  update public.driver_vehicles
+    set approval_status=p_decision,is_online=false,assigned_driver_online=false
+    where id=p_vehicle_id and approval_status<>p_decision;
+  if not found then raise exception 'Vehicle application not found or already has this decision'; end if;
+end;
+$$;
+revoke all on function public.twende_assign_vehicle_driver(uuid,uuid) from public;
+revoke all on function public.twende_admin_review_vehicle(uuid,text) from public;
+grant execute on function public.twende_assign_vehicle_driver(uuid,uuid) to authenticated;
+grant execute on function public.twende_admin_review_vehicle(uuid,text) to authenticated;
