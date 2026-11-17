@@ -114,6 +114,15 @@
     if(q.trim().length<3)return [];
     const center=userPoint||{lat:fallbackCenter[0],lng:fallbackCenter[1]};
     const found=[],seen=new Set();
+    // Prioritise Mufumbwe District Hospital for any Mufumbwe search,
+    // including the short query "Mufumbwe". Add it before remote providers
+    // so the 15-result limit cannot hide this important destination.
+    if (/mufumbwe/i.test(q)) {
+      const hospitalLat=-13.144667, hospitalLng=25.034417;
+      const hospitalKey=hospitalLat.toFixed(4)+","+hospitalLng.toFixed(4);
+      seen.add(hospitalKey);
+      found.push({lat:hospitalLat,lng:hospitalLng,label:"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia"});
+    }
     const add=(lat,lng,label)=>{
       lat=Number(lat);lng=Number(lng);
       if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat < -18.5||lat > -8||lng < 21||lng > 34)return;
