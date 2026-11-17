@@ -356,6 +356,24 @@ async function loadDriverDashboard(){
   host.innerHTML='<h3>Your vehicles ('+vehicles.length+')</h3>'+vehicleCards+addButton+'<h3>Taxi requests</h3>'+rideCards;
 }
 $("#driverDashboard").onclick=async e=>{
+  const add=e.target.closest("#driverAddVehicle");
+  if(add){
+    if(!currentUser || isGuestRider()){toast("Please sign in with your driver account first.");return;}
+    $("#driverName").value=currentProfile?.full_name||"";
+    $("#driverPhone").value=currentProfile?.phone||"";
+    $("#driverDialog").showModal();
+    return;
+  }
+  const vehicleToggle=e.target.closest("[data-vehicle-online]");
+  if(vehicleToggle){
+    const desired=vehicleToggle.dataset.online==="true";
+    vehicleToggle.disabled=true;
+    const {error}=await db.rpc("twende_set_vehicle_online",{p_vehicle_id:vehicleToggle.dataset.vehicleOnline,p_online:desired});
+    if(error){vehicleToggle.disabled=false;toast("Could not change vehicle availability: "+error.message);return;}
+    toast(desired?"Vehicle is now online.":"Vehicle is now offline.");
+    await loadDriverDashboard();
+    return;
+  }
   const online=e.target.closest("#driverOnlineBtn");
   if(online){const {error}=await db.rpc("set_twende_driver_online",{p_online:online.dataset.online==="true"});if(error){toast("Could not change availability. Check driver approval and database setup.");return;}toast("Driver availability updated.");await loadDriverDashboard();return;}
   const action=e.target.closest("[data-ride-action]");if(!action)return;
