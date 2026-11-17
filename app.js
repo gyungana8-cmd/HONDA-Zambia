@@ -27,12 +27,15 @@ function updateUI() {
   $("#accountStatus").textContent = guest ? "Passenger" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
   $("#authButton").classList.toggle("hidden", true);
   $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
-  $("#dashTitle").textContent = "Driver dashboard";
-  $("#switchRole")?.classList.add("hidden");
+  $("#dashTitle").textContent = guest ? "Passenger dashboard" : (role==="owner" ? "Owner dashboard" : "Your dashboard");
+  const driverHeading=$("#driver-panel h2"); if(driverHeading) driverHeading.textContent=role==="owner"?"Owner & driver dashboard":"Driver dashboard";
+  $("#switchRole")?.classList.toggle("hidden",guest);
+  if($("#switchRole")) $("#switchRole").textContent = role==="owner" ? "Use as passenger" : "Switch to owner";
   $("#menuBtn")?.classList.toggle("hidden",guest);
   $("#nav")?.classList.toggle("hidden",guest);
   $("#adminNav")?.classList.toggle("hidden",!isAdmin);
-  $("#ride-services")?.classList.toggle("hidden",!guest);
+  // Every signed-in account may also request a taxi; owner/driver roles do not block passenger bookings.
+  $("#ride-services")?.classList.remove("hidden");
   $("#driver-panel")?.classList.toggle("hidden",guest);
   $("#adminPanel")?.classList.toggle("hidden",guest || !isAdmin);
 }
@@ -370,20 +373,76 @@ $("#driverForm").onsubmit=async e=>{
   if(error){console.error("Vehicle registration:",error);toast(error.code==="23505"?"This registration number is already listed on your account.":"Vehicle registration could not be saved: "+error.message);return;}
   closeDialog("driverDialog");e.target.reset();toast("Vehicle submitted for verification. You can add another vehicle.");await loadDriverDashboard();
 };
+
+$("#driverAccountForm").onsubmit=async e=>{
+  e.preventDefault();
+  if(!currentUser||isGuestRider()){toast("Sign in with your driver account first.");return;}
+  const b=e.submitter;b.disabled=true;
+  const row={
+    user_id:currentUser.id,
+    driver_name:$("#driverAccountName").value.trim(),
+    phone:$("#driverAccountPhone").value.trim(),
+    vehicle_type:$("#driverAccountType").value,
+    vehicle_make:$("#driverAccountMake").value.trim(),
+    vehicle_model:$("#driverAccountModel").value.trim(),
+    plate_number:$("#driverAccountPlate").value.trim(),
+    licence_number:$("#driverAccountLicence").value.trim(),
+    operating_area:$("#driverAccountArea").value.trim(),
+    approval_status:"pending",
+    is_online:false
+  };
+  const {error}=await db.from("driver_profiles").insert(row);
+  b.disabled=false;
+  if(error){toast("Driver application could not be submitted: "+error.message);return;}
+  closeDialog("driverAccountDialog");e.target.reset();
+  toast("Driver application submitted for administrator review.");
+  await loadDriverDashboard();await loadAdminDashboard();
+};
+
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
   const {data:vehicles,error}=await db.from("driver_vehicles").select("*").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Multi-vehicle services need the Phase 2 database setup: '+esc(error.message)+'</p>';return;}
-  const addButton='<button class="btn btn-red" id="driverAddVehicle">Add another vehicle</button>';
-  if(!vehicles?.length){host.innerHTML='<p class="muted">No vehicle registrations found. Register your first car or motorcycle.</p>'+addButton;return;}
-  const approved=vehicles.filter(v=>v.approval_status==="approved");
-  const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
-  const vehicleCards=vehicles.map(v=>`<article class="dash-card"><h3>${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • ${esc(v.vehicle_type)}</h3><p>Registration: ${esc(v.plate_number)} • Area: ${esc(v.operating_area)}</p><p>Verification: <strong>${esc(v.approval_status)}</strong></p><p>Availability: <strong>${v.is_online?"Online":"Offline"}</strong></p>${v.approval_status==="approved"?`<button class="btn btn-red" data-vehicle-online="${v.id}" data-online="${!v.is_online}">${v.is_online?"Go offline":"Go online"}</button>`:'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>'}</article>`).join("");
-  const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&approved.some(v=>v.is_online&&v.vehicle_type===x.service_type)?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
-  host.innerHTML='<h3>Your vehicles ('+vehicles.length+')</h3>'+vehicleCards+addButton+'<h3 id="driverTaxiRequests">Taxi requests</h3>'+rideCards;
+  const addButton='<button class="btn btn-red" id="driverAddVehicle">Register a vehicle</button> <button class="btn btn-outline" id="driverAccountRegister">Register as a driver</button>';
+  const {data:assignedVehicles,error:assignedError}=await db.from("driver_vehicles").select("*").eq("assigned_driver_id",currentUser.id).order("created_at",{ascending:false});
+  if(assignedError) console.warn("Assigned vehicles:",assignedError.message);
+  const allVehicles=[...(vehicles||[]),...(assignedVehicles||[])];
+  const {data:ownerProfile, error:ownerProfileError}=await db.from("twende_owner_profiles").select("approval_status").eq("user_id",currentUser.id).maybeSingle();
+  if(ownerProfileError) console.warn("Owner verification status:",ownerProfileError.message);
+  const {data:approvedDrivers,error:driversError}=await db.rpc("twende_list_approved_drivers");
+  if(driversError) console.warn("Approved driver list:",driversError.message);
+  const {data:rides,error:rideError}=await db.from("ride_requests").select("*").order("created_at",{ascending:false}).limit(30); // RLS returns only eligible requests for this account.
+  const vehicleCards=allVehicles.map(v=>{
+    const isOwner=v.user_id===currentUser.id;
+    const canSelfDrive=isOwner&&!v.assigned_driver_id;
+    const isAssignedDriver=v.assigned_driver_id===currentUser.id;
+    const assignedName=isOwner?(approvedDrivers||[]).find(d=>d.user_id===v.assigned_driver_id)?.driver_name||"Not assigned": "Assigned to your account";
+    const driverChoices=(approvedDrivers||[]).map(d=>`<option value="${d.user_id}" ${v.assigned_driver_id===d.user_id?"selected":""}>${esc(d.driver_name)} • ${esc(d.phone)}</option>`).join("");
+    return `<article class="dash-card"><h3>${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • ${esc(v.vehicle_type)}</h3><p>Registration: ${esc(v.plate_number)} • Area: ${esc(v.operating_area)}</p><p>Owner/vehicle approval: <strong>${esc(v.approval_status)}</strong></p><p>Driver: <strong>${esc(assignedName)}</strong></p>${isOwner?(`<label>Assign an approved driver<select data-assign-driver="${v.id}"><option value="">Owner drives this vehicle</option>${driverChoices}</select></label><button class="btn btn-outline" data-save-assignment="${v.id}">Save driver assignment</button>`):""}<p>Availability: <strong>${v.is_online?"Online":"Offline"}</strong></p>${isOwner&&canSelfDrive&&v.approval_status==="approved"?`<button class="btn btn-red" data-vehicle-online="${v.id}" data-online="${!v.is_online}">${v.is_online?"Go offline":"Go online"}</button>`:isAssignedDriver&&v.approval_status==="approved"?`<button class="btn btn-red" data-assigned-online="${v.id}" data-online="${!v.assigned_driver_online}">${v.assigned_driver_online?"Go offline":"Go online"}</button>`:isOwner?'<p class="muted">An administrator must approve the owner and vehicle before operation.</p>':""}</article>`;
+  }).join("");
+  const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>{
+    const canAccept=allVehicles.some(v=>v.vehicle_type===x.service_type&&v.approval_status==="approved"&&v.is_online&&((v.user_id===currentUser.id&&!v.assigned_driver_id)||(v.assigned_driver_id===currentUser.id&&v.assigned_driver_online)));
+    return `<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&canAccept?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`;
+  }).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
+  host.innerHTML=(ownerProfile?'<p class="muted">Owner account verification: <strong>'+esc(ownerProfile.approval_status)+'</strong></p>':"")+'<h3>Your vehicles ('+allVehicles.length+')</h3>'+(vehicleCards||'<p class="muted">No vehicles registered or assigned to this account yet.</p>')+addButton+'<h3 id="driverTaxiRequests">Taxi requests</h3>'+rideCards;
 }
 $("#driverDashboard").onclick=async e=>{
+  const driverReg=e.target.closest("#driverAccountRegister");
+  if(driverReg){ $("#driverAccountName").value=currentProfile?.full_name||""; $("#driverAccountPhone").value=currentProfile?.phone||""; $("#driverAccountDialog").showModal(); return; }
+  const saveAssignment=e.target.closest("[data-save-assignment]");
+  if(saveAssignment){
+    const select=$("#driverDashboard").querySelector('[data-assign-driver="'+saveAssignment.dataset.saveAssignment+'"]');
+    const {error}=await db.rpc("twende_assign_vehicle_driver",{p_vehicle_id:saveAssignment.dataset.saveAssignment,p_driver_id:select?.value||null});
+    if(error){toast("Driver assignment failed: "+error.message);return;}
+    toast("Vehicle driver assignment saved.");await loadDriverDashboard();return;
+  }
+  const assignedOnline=e.target.closest("[data-assigned-online]");
+  if(assignedOnline){
+    const {error}=await db.rpc("twende_set_assigned_driver_online",{p_vehicle_id:assignedOnline.dataset.assignedOnline,p_online:assignedOnline.dataset.online==="true"});
+    if(error){toast("Could not update driver availability: "+error.message);return;}
+    toast("Assigned driver availability updated.");await loadDriverDashboard();return;
+  }
   const add=e.target.closest("#driverAddVehicle");
   if(add){
     if(!currentUser || isGuestRider()){toast("Please sign in with your driver account first.");return;}
@@ -430,13 +489,25 @@ async function loadAdminDashboard(){
   const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
   const rows=vehicles||[];
+  const {data:owners,error:ownersError}=await db.from("twende_owner_profiles").select("user_id,owner_name,phone,approval_status,created_at").order("created_at",{ascending:false});
+  const {data:drivers,error:driversError}=await db.from("driver_profiles").select("user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,licence_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   const {data:rides, error:ridesError}=await db.from("ride_requests").select("id,service_type,passenger_name,passenger_phone,pickup_text,destination_text,status,created_at,driver_id").order("created_at",{ascending:false}).limit(50);
-  const vehicleHtml=rows.map(v=>`<article class="dash-card"><h3>${esc(v.driver_name)} • ${esc(v.vehicle_type)}</h3><p>Phone: ${esc(v.phone)} • Area: ${esc(v.operating_area)}</p><p>Vehicle: ${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • Registration: ${esc(v.plate_number)}</p><p>Status: <strong>${esc(v.approval_status)}</strong></p>${v.approval_status==="pending"?`<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="${v.id}">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="${v.id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
+  const ownerRows=owners||[];
+  const driverRows=drivers||[];
+  const ownerHtml=ownersError?'<p class="muted">Owner applications unavailable: '+esc(ownersError.message)+'</p>':ownerRows.map(o=>`<article class="dash-card"><h3>${esc(o.owner_name)}</h3><p>Phone: ${esc(o.phone)} • Status: <strong>${esc(o.approval_status)}</strong></p>${o.approval_status!=="approved"?`<button class="btn btn-red" data-owner-decision="approved" data-owner-id="${o.user_id}">Approve owner</button>`:""} ${o.approval_status!=="rejected"?`<button class="btn btn-outline" data-owner-decision="rejected" data-owner-id="${o.user_id}">Reject / suspend owner</button>`:""}</article>`).join("")||'<p class="muted">No owner applications.</p>';
+  const driverHtml=driversError?'<p class="muted">Driver applications unavailable: '+esc(driversError.message)+'</p>':driverRows.map(d=>`<article class="dash-card"><h3>${esc(d.driver_name)}</h3><p>Phone: ${esc(d.phone)} • ${esc(d.vehicle_type)} • ${esc(d.operating_area)}</p><p>Vehicle: ${esc(d.vehicle_make)} ${esc(d.vehicle_model)} • ${esc(d.plate_number)}</p><p>Licence: ${esc(d.licence_number)} • Status: <strong>${esc(d.approval_status)}</strong></p>${d.approval_status!=="approved"?`<button class="btn btn-red" data-admin-decision="approved" data-driver-id="${d.user_id}">Approve driver</button>`:""} ${d.approval_status!=="rejected"?`<button class="btn btn-outline" data-admin-decision="rejected" data-driver-id="${d.user_id}">Reject / suspend driver</button>`:""}</article>`).join("")||'<p class="muted">No driver applications.</p>';
+  const vehicleHtml=rows.map(v=>`<article class="dash-card"><h3>${esc(v.driver_name)} • ${esc(v.vehicle_type)}</h3><p>Phone: ${esc(v.phone)} • Area: ${esc(v.operating_area)}</p><p>Vehicle: ${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • Registration: ${esc(v.plate_number)}</p><p>Status: <strong>${esc(v.approval_status)}</strong></p>${v.approval_status!=="approved"?`<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="${v.id}">Approve</button>`:""} ${v.approval_status!=="rejected"?`<button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="${v.id}">Reject / suspend</button>`:""}</article>`).join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
   const rideHtml=ridesError?'<p class="muted">Taxi requests could not be loaded: '+esc(ridesError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} • ${esc(x.status)}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>Request ID: ${esc(x.id)}</p></article>`).join("")||'<p class="muted">No taxi requests have been received.</p>';
-  host.innerHTML='<h3>Vehicle applications ('+rows.length+')</h3>'+vehicleHtml+'<h3>Taxi rides ('+(rides||[]).length+')</h3>'+rideHtml;
+  host.innerHTML='<h3>Owner applications ('+ownerRows.length+')</h3>'+ownerHtml+'<h3>Driver applications ('+driverRows.length+')</h3>'+driverHtml+'<h3>Vehicle applications ('+rows.length+')</h3>'+vehicleHtml+'<h3>Taxi rides ('+(rides||[]).length+')</h3>'+rideHtml;
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("click",async e=>{
+  const ownerButton=e.target.closest("[data-owner-decision]");
+  if(ownerButton){
+    const {error}=await db.rpc("twende_admin_review_owner",{p_owner_id:ownerButton.dataset.ownerId,p_decision:ownerButton.dataset.ownerDecision});
+    if(error){toast("Owner review failed: "+error.message);return;}
+    toast("Owner application "+ownerButton.dataset.ownerDecision+".");await loadAdminDashboard();return;
+  }
   const vehicleButton=e.target.closest("[data-vehicle-decision]");
   if(vehicleButton){const decision=vehicleButton.dataset.vehicleDecision;if(!window.confirm((decision==="approved"?"Approve":"Reject")+" this vehicle?"))return;vehicleButton.disabled=true;const {error}=await db.rpc("twende_admin_review_vehicle",{p_vehicle_id:vehicleButton.dataset.vehicleId,p_decision:decision});if(error){vehicleButton.disabled=false;toast("Vehicle review failed: "+error.message);return;}toast("Vehicle "+decision+".");await loadAdminDashboard();return;}
   const b=e.target.closest("[data-admin-decision]");if(!b)return;
@@ -473,11 +544,17 @@ function startTwendeRealtime(){
   twendeRealtimeChannel=db.channel("twende-live-operations")
     .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
       if(isGuestRider()){loadPassengerRides();loadAvailableTaxiFleet();}
-      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+      else if(currentUser){loadPassengerRides();loadAvailableTaxiFleet();loadDriverDashboard();loadAdminDashboard();}
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
       if(isGuestRider())loadAvailableTaxiFleet();
-      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+      else if(currentUser){loadDriverDashboard();loadAdminDashboard();loadAvailableTaxiFleet();}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"twende_owner_profiles"},()=>{
+      if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"driver_profiles"},()=>{
+      if(currentUser){loadDriverDashboard();loadAdminDashboard();}
     })
     .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; check Supabase Realtime publication.");});
 }
