@@ -258,7 +258,7 @@
     catch(e){setStatus(e.message);}
   });
   addSearch("twendeDestinationSearch","twendeDestinationResults",async p=>{
-    destinationPoint=p;$("#rideDestination").value=p.label;
+    destinationPoint=p;window.twendeDestinationCoords=p;$("#rideDestination").value=p.label;
     try{await ensureMap();showDestination();if(userPoint)await drawRoute();else setStatus("Destination selected. Set your pickup location to display the route.");}
     catch(e){setStatus(e.message);}
   });
