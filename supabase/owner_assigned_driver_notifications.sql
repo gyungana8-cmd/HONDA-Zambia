@@ -386,3 +386,27 @@ revoke all on function public.twende_assign_vehicle_driver(uuid,uuid) from publi
 revoke all on function public.twende_admin_review_vehicle(uuid,text) from public;
 grant execute on function public.twende_assign_vehicle_driver(uuid,uuid) to authenticated;
 grant execute on function public.twende_admin_review_vehicle(uuid,text) to authenticated;
+
+
+-- Security-definer helper lets RLS verify an owner's approval without
+-- granting assigned drivers read access to the owner's private profile row.
+create or replace function public.twende_owner_is_approved(p_owner_id uuid)
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(select 1 from public.twende_owner_profiles
+    where user_id=p_owner_id and approval_status='approved');
+$$;
+revoke all on function public.twende_owner_is_approved(uuid) from public;
+grant execute on function public.twende_owner_is_approved(uuid) to authenticated;
+
+drop policy if exists "Assigned drivers can see matching pending rides" on public.ride_requests;
+create policy "Assigned drivers can see matching pending rides"
+  on public.ride_requests for select to authenticated
+  using (status='pending' and exists(
+    select 1 from public.driver_vehicles v
+    join public.driver_profiles d on d.user_id=v.assigned_driver_id
+    where v.assigned_driver_id=auth.uid()
+      and v.vehicle_type=ride_requests.service_type
+      and v.approval_status='approved' and v.is_online=true
+      and v.assigned_driver_online=true and d.approval_status='approved'
+      and public.twende_owner_is_approved(v.user_id)
+  ));
