@@ -381,13 +381,15 @@ async function loadAdminDashboard(){
   const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
   if(adminError){host.innerHTML='<p class="muted">Admin menu is available, but permission verification failed: '+esc(adminError.message)+'. Sign out and sign in again, then refresh.</p>';return;}
   if(isAdmin!==true){host.innerHTML='<p class="muted">Your email is recognised, but the database has not confirmed administrator permissions. Sign out and sign in again, then refresh. If this persists, re-run the TWENDE admin SQL setup.</p>';return;}
-  const {data:drivers,error}=await db.from("driver_profiles").select("user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
-  if(error){host.innerHTML='<p class="muted">Could not load driver applications: '+esc(error.message)+'</p>';return;}
-  const rows=drivers||[];
-  host.innerHTML='<h3>Driver applications ('+rows.length+')</h3>'+rows.map(d=>`<article class="dash-card"><h3>${esc(d.driver_name)} • ${esc(d.vehicle_type)}</h3><p>Phone: ${esc(d.phone)} • Area: ${esc(d.operating_area)}</p><p>Vehicle: ${esc(d.vehicle_make)} ${esc(d.vehicle_model)} • Registration: ${esc(d.plate_number)}</p><p>Status: <strong>${esc(d.approval_status)}</strong></p>${d.approval_status==="pending"?`<button class="btn btn-red" data-admin-decision="approved" data-driver-id="${d.user_id}">Approve</button> <button class="btn btn-outline" data-admin-decision="rejected" data-driver-id="${d.user_id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No driver applications have been submitted.</p>';
+  const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
+  if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
+  const rows=vehicles||[];
+  host.innerHTML='<h3>Vehicle applications ('+rows.length+')</h3>'+rows.map(v=>`<article class="dash-card"><h3>${esc(v.driver_name)} • ${esc(v.vehicle_type)}</h3><p>Phone: ${esc(v.phone)} • Area: ${esc(v.operating_area)}</p><p>Vehicle: ${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • Registration: ${esc(v.plate_number)}</p><p>Status: <strong>${esc(v.approval_status)}</strong></p>${v.approval_status==="pending"?`<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="${v.id}">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="${v.id}">Reject</button>`:""}</article>`).join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("click",async e=>{
+  const vehicleButton=e.target.closest("[data-vehicle-decision]");
+  if(vehicleButton){const decision=vehicleButton.dataset.vehicleDecision;if(!window.confirm((decision==="approved"?"Approve":"Reject")+" this vehicle?"))return;vehicleButton.disabled=true;const {error}=await db.rpc("twende_admin_review_vehicle",{p_vehicle_id:vehicleButton.dataset.vehicleId,p_decision:decision});if(error){vehicleButton.disabled=false;toast("Vehicle review failed: "+error.message);return;}toast("Vehicle "+decision+".");await loadAdminDashboard();return;}
   const b=e.target.closest("[data-admin-decision]");if(!b)return;
   const decision=b.dataset.adminDecision;
   if(!window.confirm((decision==="approved"?"Approve":"Reject")+" this driver application?"))return;
