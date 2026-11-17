@@ -55,6 +55,7 @@
   let driverMarkers=new Map(), refreshTimer=null, leafletLoading=null;
   const cache=new Map();
   const fallbackCenter=[-13.68,24.80];
+  if(!navigator.onLine)setStatus("You are offline. Connect to the internet to search places and see live taxis.");
 
   function loadLeaflet(){
     if(window.L)return Promise.resolve();
