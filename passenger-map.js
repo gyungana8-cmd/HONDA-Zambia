@@ -121,31 +121,45 @@
       if(seen.has(key))return;
       seen.add(key);found.push({lat,lng,label});
     };
-    // Known facility fallback: Mufumbwe District Hospital is listed in Zambia's
-    // consolidated health-facility dataset. This keeps it searchable even when
-    // third-party geocoders omit the facility name.
-    if(/mufumbwe/.test(q.toLowerCase()) && /(hospital|district|mufumbwe)/.test(q.toLowerCase())){
-      add(-13.144667,25.034417,"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia");
-    }
-    // Photon gives fast local suggestions. Do not require an exact country label:
-    // some valid Zambia results omit or abbreviate the country field.
+    // Search globally across Zambia: never force results to Mufumbwe.
+    const query=q.trim();
+    // Photon provides towns, streets, landmarks, businesses and many public places.
     try{
-      const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Mufumbwe, Zambia")+"&lat="+center.lat+"&lon="+center.lng+"&limit=10&lang=en";
+      const url="https://photon.komoot.io/api/?q="+encodeURIComponent(query+", Zambia")+"&lat="+center.lat+"&lon="+center.lng+"&limit=15&lang=en";
       const r=await fetch(url);if(r.ok){
         const j=await r.json();
         for(const f of (j.features||[])){
-          const p=f.properties||{},label=[p.name,p.street,p.city,p.district,p.county,p.state,"Zambia"].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(", ");
-          add(f.geometry?.coordinates?.[1],f.geometry?.coordinates?.[0],label||q);
+          const p=f.properties||{};
+          const label=[p.name,p.street,p.city,p.district,p.county,p.state,"Zambia"].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(", ");
+          add(f.geometry?.coordinates?.[1],f.geometry?.coordinates?.[0],label||query);
         }
       }
     }catch(e){console.warn("Photon search:",e);}
-    // Nominatim fallback often contains named hospitals and other facilities missing from Photon.
+    // Zambia-wide government/GRID3 health-facility register: hospitals, clinics,
+    // health centres and health posts that general map search may not index.
     try{
-      const params=new URLSearchParams({format:"jsonv2",q:q+", Mufumbwe, Zambia",countrycodes:"zm",limit:"8",addressdetails:"1"});
+      const term=query.replace(/'/g,"''").toUpperCase();
+      const where="UPPER(Name) LIKE '%"+term+"%' OR UPPER(Label) LIKE '%"+term+"%' OR UPPER(District) LIKE '%"+term+"%'";
+      const params=new URLSearchParams({where,outFields:"Name,Label,Type,SubType,Province,District,LAT,LONG",returnGeometry:"false",resultRecordCount:"15",f:"json"});
+      const url="https://services3.arcgis.com/BU6Aadhn6tbBEdyk/arcgis/rest/services/GRID3_ZMB_HealthFac_v01beta/FeatureServer/0/query?"+params.toString();
+      const r=await fetch(url);if(r.ok){
+        const j=await r.json();
+        for(const feature of (j.features||[])){
+          const a=feature.attributes||{};
+          const lat=Number(a.LAT),lng=Number(a.LONG);
+          const name=a.Name||a.Label||query;
+          const label=[name,a.District,a.Province,"Zambia"].filter(Boolean).join(", ");
+          add(lat,lng,label);
+        }
+      }
+    }catch(e){console.warn("Zambia health-facility search:",e);}
+    // Nominatim fallback broadens results to named places throughout Zambia.
+    try{
+      const params=new URLSearchParams({format:"jsonv2",q:query+", Zambia",countrycodes:"zm",limit:"10",addressdetails:"1"});
       const r=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
-      if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,item.display_name||q);}
+      if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,item.display_name||query);}
     }catch(e){console.warn("Nominatim search:",e);}
-    return found.slice(0,8);
+    return found.slice(0,15);
   }
   function addSearch(inputId,resultsId,onSelect){
     const input=$("#"+inputId),results=$("#"+resultsId);let timer=null;
