@@ -21,8 +21,11 @@ function toast(message) {
   if(rideDialog?.open && inline){
     inline.textContent=message;
     inline.hidden=false;
+    inline.style.display="block";
+    inline.style.visibility="visible";
+    inline.setAttribute("role","alert");
     inline.classList.add("is-visible");
-    inline.scrollIntoView({block:"nearest",behavior:"smooth"});
+    requestAnimationFrame(()=>inline.scrollIntoView({block:"center",behavior:"smooth"}));
     return;
   }
   const t=$("#toast"); t.textContent=message; t.classList.add("show");
@@ -385,7 +388,8 @@ $("#rideForm").onsubmit=async e=>{
     if(typeof loadDriverDashboard==="function"&&!isGuestRider())await loadDriverDashboard();
   }catch(error){
     console.error("TWENDE taxi booking:",error);
-    toast(error.message||"Taxi booking failed. Please try again.");
+    const message=error?.message||"Taxi booking failed. Please try again.";
+    toast(message);
   }finally{
     if(b)b.disabled=false;
   }
