@@ -148,6 +148,11 @@
     // Prioritise Mufumbwe District Hospital for any Mufumbwe search,
     // including the short query "Mufumbwe". Add it before remote providers
     // so the 15-result limit cannot hide this important destination.
+    if (/^mufumbwe(?: district)?$/i.test(q.trim())) {
+      // Town-centre pin is the safe default for a broad Mufumbwe pickup query;
+      // do not use the district-wide centroid for a local taxi fare.
+      add(-13.13683,25.00296,"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia");
+    }
     if (/mufumbwe/i.test(q)) {
       const hospitalLat=-13.144667, hospitalLng=25.034417;
       const hospitalKey=hospitalLat.toFixed(4)+","+hospitalLng.toFixed(4);
