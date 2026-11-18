@@ -14,7 +14,7 @@ ACTIVITY="$MAIN/java/com/yangu/hondazambia/MainActivity.java"
 python3 - "$APP_DIR/build.gradle" "$MANIFEST" "$ACTIVITY" "$ONESIGNAL_APP_ID" <<'PY'
 from pathlib import Path
 import re, sys
-app, manifest, activity, app_id = map(Path, sys.argv[1:])[:3] + [sys.argv[4]]
+app = Path(sys.argv[1])\nmanifest = Path(sys.argv[2])\nactivity = Path(sys.argv[3])\napp_id = sys.argv[4]
 # Add the official OneSignal Android SDK to the existing app module.
 s=app.read_text()
 if "com.onesignal:OneSignal" not in s:
