@@ -23,7 +23,7 @@
   const panel=document.createElement("section");
   panel.className="twende-live-panel";
   panel.innerHTML=`
-    <div class="section-heading"><div><span class="eyebrow">LIVE TAXI MAP</span><h2>Find a nearby TWENDE taxi</h2><p class="muted">Share your pickup location to see approved drivers who are online nearby.</p></div></div>
+    <div class="section-heading"><div><span class="eyebrow">TWENDE RIDE</span><h2>Where to?</h2><p class="muted">Choose your pickup and destination.</p></div></div>
     <div class="twende-live-controls">
       <label>Pickup location
         <input id="twendePickupSearch" type="text" placeholder="Use GPS or enter a pickup place" autocomplete="off">
