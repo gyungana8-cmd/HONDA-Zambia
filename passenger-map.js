@@ -2,7 +2,7 @@
 (() => {
   const $ = s => document.querySelector(s);
   const home = $("#ride-services");
-  if (!home || !window.twendeDb) return;
+  if (!home) return;
   const style = document.createElement("style");
   style.textContent = `
     .twende-live-panel{margin:22px 0 28px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 8px 28px #1018200c}
@@ -266,7 +266,8 @@
     setStatus("Route found: "+(j.routes[0].distance/1000).toFixed(1)+" km • "+Math.round(j.routes[0].duration/60)+" min estimated driving time.");
   }
   async function refreshDrivers(){
-    if(!userPoint||!window.currentTwendeUser)return;
+    if(!userPoint)return;
+    if(!window.twendeDb||!window.currentTwendeUser){setStatus("Map is ready. Sign in or set your pickup to see available TWENDE drivers.");return;}
     try{
       const {data,error}=await window.twendeDb.rpc("get_nearby_twende_drivers",{p_latitude:userPoint.lat,p_longitude:userPoint.lng,p_radius_km:15});
       if(error)throw error;
