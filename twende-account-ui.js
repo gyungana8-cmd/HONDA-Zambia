@@ -5,7 +5,7 @@
   const saved = () => { try { return JSON.parse(localStorage.getItem(savedKey)||"[]"); } catch { return []; } };
   const store = rows => localStorage.setItem(savedKey, JSON.stringify(rows.slice(0,8)));
   const profile = () => {
-    try { return {name: window.currentProfile?.full_name || "Passenger", phone: window.currentProfile?.phone || "", email: window.currentUser?.email || "", avatar: window.currentProfile?.avatar_url || window.currentUser?.user_metadata?.avatar_url || ""}; }
+    try { return {name: currentProfile?.full_name || "Passenger", phone: currentProfile?.phone || "", email: currentUser?.email || "", avatar: currentProfile?.avatar_url || currentUser?.user_metadata?.avatar_url || ""}; }
     catch { return {name:"Passenger",phone:"",email:"",avatar:""}; }
   };
   const panel = document.createElement("section");
