@@ -34,7 +34,7 @@
   // Mufumbwe-focused place search. Photon provides live suggestions; selected
   // results retain their exact coordinates so fare routing does not geocode a label again.
   const placeCache = new Map();
-  const MUFUMBWE_BIAS = {lat:-13.68, lon:24.80};
+  const MUFUMBWE_BIAS = {lat:-13.13683, lon:25.00296};
   function placeLabel(p) {
     const parts=[p.name,p.street,p.district,p.city,p.county,p.state,p.country].filter(Boolean);
     return [...new Set(parts)].join(", ");
