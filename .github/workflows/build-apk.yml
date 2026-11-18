@@ -126,7 +126,14 @@ jobs:
           for FILE in index.html app.js gps-fares.js passenger-map.js styles.css twende-brand-overrides.css manifest.webmanifest twende-logo.svg; do
             if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
           done
-          if [ -d assets ]; then mkdir -p "$ASSET_DIR/assets"; cp -f assets/*.svg "$ASSET_DIR/assets/"; fi
+          if [ -d assets ]; then
+  mkdir -p "$ASSET_DIR/assets"
+  cp -f assets/*.svg "$ASSET_DIR/assets/"
+  cp -f assets/*.jpg "$ASSET_DIR/assets/" 2>/dev/null || true
+  cp -f assets/*.jpeg "$ASSET_DIR/assets/" 2>/dev/null || true
+  echo "Synced vehicle image assets:"
+  ls -lh "$ASSET_DIR/assets/" | grep -E 'twende-(car|motorcycle)-photo' || true
+fi
 
       - name: Build Android APK
         shell: bash
