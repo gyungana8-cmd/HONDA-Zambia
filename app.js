@@ -344,20 +344,14 @@ function openRideDialog(service,skipLocationPrompt=false) {
    loadAvailableTaxiFleet(service);
 }
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
-$("#rideForm").onsubmit=async e=>{
-  e.preventDefault();
+async function submitTwendeTaxiRequest(){
+  const form=$("#rideForm");
   const inlineMessage=$("#rideSubmitMessage");
-  if(inlineMessage){
-    inlineMessage.hidden=false;
-    inlineMessage.textContent="Sending your taxi request…";
-    inlineMessage.style.display="block";
-    inlineMessage.classList.add("is-visible");
-  }
-  const b=$("#rideRequestSubmit")||e.submitter||e.target.querySelector('[type="submit"]');
-  if(b){b.disabled=true;b.textContent="Sending request…";}
+  const b=$("#rideRequestSubmit");
+  if(!form||!b)return;
+  if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Sending your taxi request…";inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
+  b.disabled=true;b.textContent="Sending request…";
   try{
-    // Recover the active passenger session before submitting. Guest riders remain
-    // anonymous-authenticated users; no passenger password/account is required.
     let {data:sessionData,error:sessionError}=await db.auth.getSession();
     if(sessionError)throw sessionError;
     let user=sessionData?.session?.user||currentUser;
@@ -374,9 +368,7 @@ $("#rideForm").onsubmit=async e=>{
     const pickup=$("#ridePickup").value.trim();
     const destination=$("#rideDestination").value.trim();
     const service=$("#rideServiceType").value;
-    if(!passengerName||!passengerPhone||!pickup||!destination){
-      throw new Error("Please complete your name, phone number, pickup and destination.");
-    }
+    if(!passengerName||!passengerPhone||!pickup||!destination)throw new Error("Please complete your name, phone number, pickup and destination.");
     const row={rider_id:user.id,passenger_name:passengerName,passenger_phone:passengerPhone,service_type:service,pickup_text:pickup,destination_text:destination,payment_method:"cash",status:"pending"};
     const {error}=await db.from("ride_requests").insert(row);
     if(error){
@@ -385,20 +377,19 @@ $("#rideForm").onsubmit=async e=>{
       if(error.code==="23503")throw new Error("Passenger session was not accepted by the database. Please refresh TWENDE and try again.");
       throw new Error("Booking failed: "+(error.message||"database error"));
     }
-    closeDialog("rideDialog");
-    e.target.reset();
+    closeDialog("rideDialog");form.reset();
     toast("Taxi request sent successfully. Waiting for an approved online driver.");
     await loadPassengerRides();
     if(typeof loadAvailableTaxiFleet==="function")await loadAvailableTaxiFleet();
     if(typeof loadDriverDashboard==="function"&&!isGuestRider())await loadDriverDashboard();
   }catch(error){
     console.error("TWENDE taxi booking:",error);
-    const message=error?.message||"Taxi booking failed. Please try again.";
-    toast(message);
-  }finally{
-    if(b){b.disabled=false;b.textContent="Request taxi";}
-  }
-};
+    toast(error?.message||"Taxi booking failed. Please try again.");
+  }finally{b.disabled=false;b.textContent="Request taxi";}
+}
+window.submitTwendeTaxiRequest=submitTwendeTaxiRequest;
+$("#rideForm").addEventListener("submit",e=>{e.preventDefault();submitTwendeTaxiRequest();});
+
 async function loadAvailableTaxiFleet(service=selectedRideService){
    const host=$("#nearbyTaxiFleet");
    if(!host)return;
