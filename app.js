@@ -347,9 +347,14 @@ document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("
 $("#rideForm").onsubmit=async e=>{
   e.preventDefault();
   const inlineMessage=$("#rideSubmitMessage");
-  if(inlineMessage){inlineMessage.hidden=true;inlineMessage.textContent="";inlineMessage.classList.remove("is-visible");}
-  const b=e.submitter||e.target.querySelector('[type="submit"]');
-  if(b)b.disabled=true;
+  if(inlineMessage){
+    inlineMessage.hidden=false;
+    inlineMessage.textContent="Sending your taxi request…";
+    inlineMessage.style.display="block";
+    inlineMessage.classList.add("is-visible");
+  }
+  const b=$("#rideRequestSubmit")||e.submitter||e.target.querySelector('[type="submit"]');
+  if(b){b.disabled=true;b.textContent="Sending request…";}
   try{
     // Recover the active passenger session before submitting. Guest riders remain
     // anonymous-authenticated users; no passenger password/account is required.
@@ -391,9 +396,17 @@ $("#rideForm").onsubmit=async e=>{
     const message=error?.message||"Taxi booking failed. Please try again.";
     toast(message);
   }finally{
-    if(b)b.disabled=false;
+    if(b){b.disabled=false;b.textContent="Request taxi";}
   }
 };
+$("#rideRequestSubmit")?.addEventListener("click",()=>{
+  const form=$("#rideForm");
+  const button=$("#rideRequestSubmit");
+  if(!form||!button)return;
+  // Dispatch explicitly so browser-native validation bubbles cannot silently
+  // block the request while fields are inside a scrolling native dialog.
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
+});
 async function loadAvailableTaxiFleet(service=selectedRideService){
    const host=$("#nearbyTaxiFleet");
    if(!host)return;
