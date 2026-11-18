@@ -30,16 +30,16 @@ res=Path("source/app/src/main/res")
 (res/"drawable/twende_launcher_foreground.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
-    <path android:fillColor="#FFFFFFFF" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
 </vector>
 """)
 (res/"mipmap-anydpi/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
     <path android:fillColor="#FFC91F2C" android:pathData="M0,0 L108,0 L108,108 L0,108 Z"/>
-    <path android:fillColor="#FFFFFFFF" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
-    <path android:fillColor="#FFFFFFFF" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
 </vector>
 """)
 (res/"mipmap-anydpi-v26/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
