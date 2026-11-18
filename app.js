@@ -324,7 +324,7 @@ function openRideDialog(service,skipLocationPrompt=false) {
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
   $("#passengerName").value=currentProfile?.full_name||"";
   $("#passengerPhone").value=currentProfile?.phone||"";
-  $("#rideDialog").showModal();
+  $("#rideDialog").showModal();\n   loadAvailableTaxiFleet(service);
 }
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#rideForm").onsubmit=async e=>{
@@ -374,26 +374,21 @@ $("#rideForm").onsubmit=async e=>{
     if(b)b.disabled=false;
   }
 };
-async function loadAvailableTaxiFleet(){
-  const motorcycleHost=$("#availableMotorcycleTaxis"),carHost=$("#availableCarTaxis");
-  if(!motorcycleHost||!carHost)return;
-  const loading='<p class="muted">Checking online taxis…</p>';
-  motorcycleHost.innerHTML=loading;carHost.innerHTML=loading;
-  if(!currentUser){motorcycleHost.innerHTML='<p class="muted">Passenger connection is starting…</p>';carHost.innerHTML='<p class="muted">Passenger connection is starting…</p>';return;}
-  const {data,error}=await db.rpc("get_available_twende_vehicles");
-  if(error){
-    console.warn("Available taxi fleet:",error);
-    const message='<p class="muted">Available vehicle details will appear once fleet discovery is enabled by the administrator.</p>';
-    motorcycleHost.innerHTML=message;carHost.innerHTML=message;return;
-  }
-  const rows=data||[];
-  const card=v=>`<article class="fleet-vehicle-card"><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.driver_name||"TWENDE driver")}</strong><span>${esc([v.vehicle_make,v.vehicle_model].filter(Boolean).join(" ")||"Vehicle make not supplied")}</span><small>${esc(v.operating_area||"Operating area not listed")}</small><span class="fleet-online"><i></i> Online now</span></article>`;
-  const motorcycles=rows.filter(v=>v.vehicle_type==="motorcycle");
-  const cars=rows.filter(v=>v.vehicle_type==="car");
-  motorcycleHost.innerHTML=motorcycles.map(card).join("")||'<p class="muted">No motorcycles are online at the moment.</p>';
-  carHost.innerHTML=cars.map(card).join("")||'<p class="muted">No cars are online at the moment.</p>';
-}
-async function loadPassengerRides(){
+async function loadAvailableTaxiFleet(service=selectedRideService){
+   const host=$("#nearbyTaxiFleet");
+   if(!host)return;
+   host.innerHTML='<p class="muted">Checking available vehicles…</p>';
+   if(!currentUser){host.innerHTML='<p class="muted">Passenger connection is starting…</p>';return;}
+   const {data,error}=await db.rpc("get_available_twende_vehicles");
+   if(error){
+     console.warn("Available taxi fleet:",error);
+     host.innerHTML='<p class="muted">Nearby vehicles could not be loaded. Please try again.</p>';return;
+   }
+   const rows=(data||[]).filter(v=>v.vehicle_type===service);
+   const card=v=>`<article class="fleet-vehicle-card"><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")}</strong><span>${esc(v.driver_name||"TWENDE driver")}</span></article>`;
+   host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online nearby at the moment.</p>`;
+ }
+ async function loadPassengerRides(){
   const host=$("#passengerRides");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to see your taxi requests.</p>';return;}
   const {data,error}=await db.from("ride_requests").select("id,service_type,pickup_text,destination_text,payment_method,status,created_at,route_distance_km,estimated_fare").eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(8);
