@@ -111,6 +111,20 @@
     });
   }
   attachDestinationSuggestions();
+  async function resolvePickup(pickupLabel) {
+    const selected=window.twendePickupCoords;
+    if(selected && selected.label===pickupLabel &&
+       Number.isFinite(Number(selected.lat)) && Number.isFinite(Number(selected.lng))) {
+      return {lat:Number(selected.lat),lng:Number(selected.lng)};
+    }
+    // Only use device GPS when the passenger explicitly chose a current-location
+    // pickup. A manually entered address must never be silently replaced by GPS.
+    if(/^(my )?(current|present) (gps )?location$|^gps location$/i.test(pickupLabel.trim())) {
+      const pos=await getPosition();
+      return {lat:pos.coords.latitude,lng:pos.coords.longitude};
+    }
+    return geocode(pickupLabel);
+  }
   async function routeDistance(from,to) {
     const url="https://router.project-osrm.org/route/v1/driving/"+from.lng+","+from.lat+";"+to.lng+","+to.lat+"?overview=false&alternatives=false&steps=false";
     const response=await fetch(url);
@@ -188,18 +202,7 @@
         estimate.textContent="Enter pickup and destination to calculate your fare.";
         return null;
       }
-      const selectedPickup=window.twendePickupCoords;
-      let pickup=selectedPickup&&(!selectedPickup.label||selectedPickup.label===pickupLabel)
-        ?{lat:Number(selectedPickup.lat),lng:Number(selectedPickup.lng)}
-        :null;
-      if(!pickup) {
-        try {
-          const pos=await getPosition();
-          pickup={lat:pos.coords.latitude,lng:pos.coords.longitude};
-        } catch(gpsError) {
-          pickup=await geocode(pickupLabel);
-        }
-      }
+      const pickup=await resolvePickup(pickupLabel);
       const selectedDestination=window.twendeDestinationCoords;
       const destination=selectedDestination&&selectedDestination.label===destinationLabel
         ?{lat:Number(selectedDestination.lat),lng:Number(selectedDestination.lng),label:selectedDestination.label}
@@ -242,17 +245,6 @@
       try {
         notify("Getting your pickup location…");
         const pickupLabel=$("#ridePickup").value.trim();
-        let pickup=window.twendePickupCoords&&(!window.twendePickupCoords.label||window.twendePickupCoords.label===pickupLabel)
-          ?{lat:window.twendePickupCoords.lat,lng:window.twendePickupCoords.lng}:null;
-        if(!pickup) {
-          try {
-            const pos=await getPosition();
-            pickup={lat:pos.coords.latitude,lng:pos.coords.longitude};
-          } catch(gpsError) {
-            notify("GPS permission unavailable. Using the pickup address you entered…");
-            pickup=await geocode($("#ridePickup").value.trim());
-          }
-        }
         const destinationLabel=$("#rideDestination").value.trim();
         const type=$("#rideServiceType").value;
         notify("Checking your route and fare estimate…");
@@ -262,7 +254,7 @@
           currentEstimate=await calculatePassengerFare(true);
         }
         if(!currentEstimate) throw new Error("A fare estimate could not be calculated. Check your pickup and destination.");
-        pickup=currentEstimate.pickup;
+        const pickup=currentEstimate.pickup;
         const destination=currentEstimate.destination;
         const km=currentEstimate.km;
         const fare=currentEstimate.fare;
