@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+<rect width="640" height="360" rx="28" fill="#fff"/>
+<ellipse cx="320" cy="303" rx="220" ry="17" fill="#222" opacity=".12"/>
+<circle cx="170" cy="263" r="55" fill="#171717"/><circle cx="170" cy="263" r="29" fill="#ddd"/><circle cx="170" cy="263" r="10" fill="#777"/>
+<circle cx="472" cy="263" r="55" fill="#171717"/><circle cx="472" cy="263" r="29" fill="#ddd"/><circle cx="472" cy="263" r="10" fill="#777"/>
+<path d="M170 263 L259 170 L360 263 L170 263 L249 167 L355 167 L472 263 M355 167 L423 144 L472 263" fill="none" stroke="#202020" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M245 153 L380 153 L426 191 L405 232 L228 224 L210 188Z" fill="#fdfdfd" stroke="#202020" stroke-width="7"/>
+<path d="M230 196 L414 196 L396 236 L218 229Z" fill="#ffcc00" stroke="#202020" stroke-width="5"/>
+<text x="316" y="224" font-family="Arial,sans-serif" font-size="29" font-weight="900" font-style="italic" text-anchor="middle" fill="#171717">TWENDE</text>
+<path d="M364 153 L400 94 L453 96 L484 125 L435 140" fill="none" stroke="#202020" stroke-width="13" stroke-linecap="round"/>
+<path d="M247 156 L212 119 L160 119" fill="none" stroke="#202020" stroke-width="13" stroke-linecap="round"/>
+<path d="M418 94 L463 94" stroke="#ffcc00" stroke-width="14" stroke-linecap="round"/>
+<path d="M420 136 L472 141 L499 167 L466 177Z" fill="#171717" stroke="#202020" stroke-width="5"/>
+</svg>
