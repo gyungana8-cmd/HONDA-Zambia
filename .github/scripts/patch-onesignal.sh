@@ -19,9 +19,9 @@ app = Path(sys.argv[1])\nmanifest = Path(sys.argv[2])\nactivity = Path(sys.argv[
 s=app.read_text()
 if "com.onesignal:OneSignal" not in s:
     if "dependencies {" in s:
-        s=s.replace("dependencies {", "dependencies {\n    implementation 'com.onesignal:OneSignal:[5.1.6, 5.1.99]'", 1)
+        s=s.replace("dependencies {", "dependencies {\n    implementation 'com.onesignal:OneSignal:[5.6.1, 5.99.99]'", 1)
     else:
-        s += "\n\ndependencies { implementation 'com.onesignal:OneSignal:[5.1.6, 5.1.99]' }\n"
+        s += "\n\ndependencies { implementation 'com.onesignal:OneSignal:[5.6.1, 5.99.99]' }\n"
     app.write_text(s)
 
 # OneSignal owns FCM delivery. Remove the old custom Firebase service to avoid
@@ -67,6 +67,35 @@ if 'OneSignal.initWithContext' not in a:
 activity.write_text(a)
 Path("source/app/src/main/java/com/yangu/hondazambia/TwendeFirebaseMessagingService.java").unlink(missing_ok=True)
 PY
+
+# Initialize OneSignal from Application.onCreate so cold starts are covered.
+APP_CLASS="$MAIN/java/com/yangu/hondazambia/TwendeApplication.java"
+cat > "$APP_CLASS" <<JAVA
+package com.yangu.hondazambia;
+
+import android.app.Application;
+import com.onesignal.Continue;
+import com.onesignal.OneSignal;
+import com.onesignal.debug.LogLevel;
+
+public class TwendeApplication extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        OneSignal.getDebug().setLogLevel(LogLevel.VERBOSE);
+        OneSignal.initWithContext(this, "$ONESIGNAL_APP_ID");
+        OneSignal.getNotifications().requestPermission(false, Continue.none());
+    }
+}
+JAVA
+python3 - "$MANIFEST" <<'PYMAN'
+from pathlib import Path
+import re, sys
+p=Path(sys.argv[1]); s=p.read_text()
+if 'android:name=".TwendeApplication"' not in s:
+    s=re.sub(r'<application\\b', '<application android:name=".TwendeApplication"', s, count=1)
+p.write_text(s)
+PYMAN
 
 echo "OneSignal Android SDK and TWENDE identity bridge configured."
 grep -q 'com.onesignal:OneSignal' "$APP_DIR/build.gradle"
