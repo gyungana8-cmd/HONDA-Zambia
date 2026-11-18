@@ -35,3 +35,53 @@ body.passenger-mode #ride-services .cash-note{margin:16px 2px 0;color:#626262}
  body.passenger-mode #ride-services .twende-service-copy h3{font-size:14px}
  body.passenger-mode #ride-services .service-card .btn{font-size:10px;padding:9px 5px}
 }
+
+/* Full-screen TWENDE passenger home inspired by the supplied ride-hailing reference */
+@media(max-width:800px){
+ body.passenger-mode{background:#f7f7f7;padding-bottom:76px}
+ body.passenger-mode .topbar{height:82px;min-height:82px;position:sticky;top:0;padding:8px 18px;gap:10px;background:#ffcc00!important;border:0;border-radius:0 0 16px 16px;box-shadow:0 2px 9px #00000012}
+ body.passenger-mode .topbar .brand{order:2;margin:0 auto 0 0;gap:8px}
+ body.passenger-mode .topbar .twende-logo{width:58px;height:58px}
+ body.passenger-mode .topbar .brand-wordmark{font-size:23px;font-weight:950;color:#171717}
+ body.passenger-mode .topbar .brand-wordmark small{font-size:10px;letter-spacing:.42em}
+ body.passenger-mode .topbar .menu-btn{display:block;order:1;margin:0;font-size:30px;color:#171717}
+ body.passenger-mode .topbar #nav{display:none!important}
+ body.passenger-mode .topbar #accountStatus,body.passenger-mode .topbar #authButton,body.passenger-mode .topbar #signOutButton,body.passenger-mode .topbar #twendeProfileButton{display:none!important}
+ body.passenger-mode .hero,body.passenger-mode #how,body.passenger-mode #motorcycles,body.passenger-mode main>.section:not(#ride-services),body.passenger-mode footer{display:none!important}
+ body.passenger-mode #ride-services{padding:14px 14px 22px;margin:0}
+ body.passenger-mode #ride-services>.section-heading{display:none}
+ body.passenger-mode .twende-live-panel{margin:0 0 12px;padding:7px 4px 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
+ body.passenger-mode .twende-live-panel .section-heading{display:block;margin:0 12px 12px}
+ body.passenger-mode .twende-live-panel .section-heading h2{font-size:32px;line-height:1.1;margin:0 0 5px;font-weight:950;letter-spacing:-.04em;color:#111}
+ body.passenger-mode .twende-live-panel .section-heading p{font-size:15px;margin:0;color:#686868}
+ body.passenger-mode .twende-live-controls{grid-template-columns:1fr;gap:9px}
+ body.passenger-mode .twende-live-controls label{display:block;font-size:0}
+ body.passenger-mode .twende-live-controls input{height:60px;border:1px solid #dedede;border-radius:17px;background:#fff;padding:0 18px 0 54px;font-size:16px;font-weight:650;box-shadow:0 2px 8px #00000008}
+ body.passenger-mode .twende-live-controls label:first-child{position:relative}
+ body.passenger-mode .twende-live-controls label:first-child:before{content:'●';position:absolute;left:20px;top:19px;font-size:17px;color:#111;z-index:1}
+ body.passenger-mode .twende-live-controls label:nth-child(2){position:relative}
+ body.passenger-mode .twende-live-controls label:nth-child(2):before{content:'⌖';position:absolute;left:17px;top:12px;font-size:27px;color:#111;z-index:1}
+ body.passenger-mode .twende-live-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:9px 0}
+ body.passenger-mode #twendeLocateMe{height:56px;border-radius:16px;background:#171717!important;color:#fff!important;font-size:16px}
+ body.passenger-mode #twendeMapService,body.passenger-mode #twendeContinueBooking{display:none!important}
+ body.passenger-mode #twendeMapStatus,body.passenger-mode #twendePassengerMap,body.passenger-mode .twende-map-legend{display:none!important}
+ body.passenger-mode #ride-services .service-grid{grid-template-columns:1fr;gap:10px;margin:12px 0}
+ body.passenger-mode #ride-services .service-card{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(115px,.85fr);grid-template-rows:1fr;align-items:center;gap:10px;padding:10px;border:1.5px solid #d9dce0;border-radius:22px;background:#fff;box-shadow:0 3px 12px #1111110a;min-height:205px}
+ body.passenger-mode #ride-services .service-vehicle-image{width:100%;height:174px;object-fit:contain;background:#fff;border-radius:15px;padding:0}
+ body.passenger-mode #ride-services .twende-service-copy{border-left:1px solid #d8d8d8;padding:4px 0 4px 12px;gap:5px}
+ body.passenger-mode #ride-services .twende-service-kicker{font-size:8px;letter-spacing:.1em}
+ body.passenger-mode #ride-services .twende-service-copy h3{font-size:22px;font-style:italic;font-weight:950;line-height:1.05}
+ body.passenger-mode #ride-services .twende-service-copy p{font-size:17px;font-weight:750;color:#242424}
+ body.passenger-mode #ride-services .service-card .btn{height:52px;min-height:52px;border-radius:14px;font-size:14px;font-weight:900;padding:8px 6px}
+ body.passenger-mode #ride-services .available-fleet{grid-column:1/-1}
+ body.passenger-mode #ride-services .cash-note{display:none}
+ body.passenger-mode .twende-bottom-nav{position:fixed;z-index:1000;left:0;right:0;bottom:0;height:72px;display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid #e5e5e5;box-shadow:0 -4px 16px #0000000a;padding:5px 8px max(5px,env(safe-area-inset-bottom))}
+ body.passenger-mode .twende-bottom-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:0;background:transparent;color:#3b3b3b;font-size:11px}
+ body.passenger-mode .twende-bottom-nav button span{font-size:25px;line-height:1.1;font-weight:700}
+ body.passenger-mode .twende-bottom-nav button b{font-size:11px;font-weight:600}
+ body.passenger-mode .twende-bottom-nav button.active{color:#e4ae00;position:relative}
+ body.passenger-mode .twende-bottom-nav button.active:after{content:'';position:absolute;bottom:-5px;width:65%;height:4px;border-radius:4px;background:#ffcc00}
+ body.passenger-mode .twende-account-hub{padding:25px 18px 95px}
+ body.passenger-mode.twende-hub-open .twende-bottom-nav{display:grid}
+}
+@media(min-width:801px){.twende-bottom-nav{display:none}}
