@@ -324,7 +324,8 @@ function openRideDialog(service,skipLocationPrompt=false) {
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
   $("#passengerName").value=currentProfile?.full_name||"";
   $("#passengerPhone").value=currentProfile?.phone||"";
-  $("#rideDialog").showModal();\n   loadAvailableTaxiFleet(service);
+  $("#rideDialog").showModal();
+   loadAvailableTaxiFleet(service);
 }
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#rideForm").onsubmit=async e=>{
