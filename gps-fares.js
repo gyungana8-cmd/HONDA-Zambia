@@ -43,12 +43,21 @@
     const q=query.trim();
     if(q.length<3) return [];
     const center=window.twendePickupCoords||MUFUMBWE_BIAS;
+    const localResults=[];
+    // "Mufumbwe District" is a large administrative area, not a usable
+    // passenger pickup point. For this broad town-only query, offer the
+    // documented Mufumbwe Town Centre coordinates first.
+    if(/^mufumbwe(?: district)?$/i.test(q)) {
+      const town={lat:-13.13683,lng:25.00296,label:"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia"};
+      placeCache.set(town.label.toLowerCase(),town);
+      localResults.push(town);
+    }
     const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q+", Zambia")+
       "&lat="+center.lat+"&lon="+(center.lng??center.lon)+"&limit=8&lang=en";
     const response=await fetch(url,{headers:{Accept:"application/json"}});
     if(!response.ok) throw new Error("Destination search is temporarily unavailable.");
     const data=await response.json();
-    return (data.features||[]).filter(f=>{
+    const remote=(data.features||[]).filter(f=>{
       const lng=Number(f.geometry?.coordinates?.[0]),lat=Number(f.geometry?.coordinates?.[1]);
       // Accept valid Zambia coordinates even when Photon omits its country label.
       return Number.isFinite(lng)&&Number.isFinite(lat)&&lat>=-18.5&&lat<=-8&&lng>=21&&lng<=34;
@@ -58,10 +67,14 @@
       placeCache.set(label.toLowerCase(),point);
       return point;
     });
+    return [...localResults,...remote.filter(p=>!localResults.some(x=>x.label.toLowerCase()===p.label.toLowerCase()))];
   }
   async function geocode(address) {
     const q=address.trim();
     if(!q) throw new Error("Enter a destination in Zambia.");
+    if(/^mufumbwe(?: district)?$/i.test(q)) {
+      return {lat:-13.13683,lng:25.00296,label:"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia"};
+    }
     const cached=placeCache.get(q.toLowerCase());
     if(cached) return cached;
     // First try the Mufumbwe-biased search service.
