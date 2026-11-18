@@ -63,19 +63,18 @@ async function loadProfile(user) {
   await loadDashboard();
   await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
 }
-window.twendeReceivePushToken = async function(token) {
-  if (!currentUser || !token) return;
-  const { error } = await db.from("device_push_tokens").upsert(
-    { user_id: currentUser.id, token, platform: "android", updated_at: new Date().toISOString(), last_seen_at: new Date().toISOString() },
-    { onConflict: "token" }
-  );
-  if (error) console.warn("TWENDE push token registration:", error.message);
-};
+// OneSignal user identity is the Supabase Auth UUID; never expose REST credentials here.
+function syncOneSignalIdentity(user) {
+  const bridge = window.TwendeOneSignal;
+  if (!bridge) return; // Browser preview has no native Android bridge.
+  if (user?.id) bridge.identify(user.id);
+  else bridge.logout();
+}
 
 async function onSession(session) {
   currentUser=session?.user||null;
+  syncOneSignalIdentity(currentUser);
   await loadProfile(currentUser);
-  if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
   if(currentUser && !isGuestRider()) { $("#authDialog").close(); }
   else if(!currentUser) { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
 }
