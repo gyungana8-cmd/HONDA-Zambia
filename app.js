@@ -14,7 +14,20 @@ const datesOverlap = (aStart,aDays,bStart,bDays) => aStart < addDaysISO(bStart,b
 const localISODate = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 const bikeBookedOn = (bikeId,date) => liveBookings.some(x=>x.motorcycle_id===bikeId && datesOverlap(x.start_date,x.days,date,1));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function toast(message) { const t=$("#toast"); t.textContent=message; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3500); }
+function toast(message) {
+  // Native dialogs render in the browser top layer, above ordinary fixed
+  // elements such as #toast. Keep booking errors inside the open ride form.
+  const rideDialog=$("#rideDialog"), inline=$("#rideSubmitMessage");
+  if(rideDialog?.open && inline){
+    inline.textContent=message;
+    inline.hidden=false;
+    inline.classList.add("is-visible");
+    inline.scrollIntoView({block:"nearest",behavior:"smooth"});
+    return;
+  }
+  const t=$("#toast"); t.textContent=message; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),5000);
+}
 function closeDialog(id) { document.getElementById(id).close(); }
 document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click",()=>closeDialog(b.dataset.close)));
 
@@ -330,6 +343,8 @@ function openRideDialog(service,skipLocationPrompt=false) {
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#rideForm").onsubmit=async e=>{
   e.preventDefault();
+  const inlineMessage=$("#rideSubmitMessage");
+  if(inlineMessage){inlineMessage.hidden=true;inlineMessage.textContent="";inlineMessage.classList.remove("is-visible");}
   const b=e.submitter||e.target.querySelector('[type="submit"]');
   if(b)b.disabled=true;
   try{
