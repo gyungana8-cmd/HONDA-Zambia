@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#101820"><title>TWENDE | Taxi Zambia</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-account-ui.css">
 </head>
 <body>
 <div id="twendeSplash" class="twende-splash" role="status" aria-label="TWENDE is loading"><img src="twende-logo.svg" alt=""><strong>TWENDE</strong><span>ZAMBIA</span><i>Move with confidence</i></div>
@@ -68,6 +68,6 @@
 <dialog id="driverDialog"><form id="driverForm" class="dialog-form"><button class="close" type="button" data-close="driverDialog">×</button><span class="eyebrow">DRIVER PARTNER</span><h2>Register as a TWENDE driver</h2><p class="muted">Submit your details for review. You cannot receive rides until your driver account is approved.</p><label>Full name<input id="driverName" required></label><label>Phone number<input id="driverPhone" type="tel" placeholder="+260…" required></label><label>Vehicle type<select id="driverVehicleType" required><option value="motorcycle">Motorcycle taxi</option><option value="car">Car taxi</option></select></label><label>Vehicle make<input id="driverVehicleMake" placeholder="e.g. Honda, Toyota" required></label><label>Vehicle model<input id="driverVehicleModel" placeholder="e.g. CG 125, Corolla" required></label><label>Registration number<input id="driverPlate" required></label><label>Driving licence number<input id="driverLicence" required></label><label>Operating area<input id="driverArea" placeholder="e.g. Mufumbwe" required></label><button class="btn btn-red full" type="submit">Submit driver registration</button></form></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>window.addEventListener("load",function(){var splash=document.getElementById("twendeSplash");if(splash){setTimeout(function(){splash.classList.add("is-hidden");},450);}});setTimeout(function(){var splash=document.getElementById("twendeSplash");if(splash)splash.classList.add("is-hidden");},6000);</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script><script src="gps-fares.js"></script><script src="passenger-map.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script><script src="gps-fares.js"></script><script src="passenger-map.js"></script><script src="twende-account-ui.js"></script>
 <script>document.addEventListener("click",function(event){const button=event.target.closest("[data-password-toggle]");if(!button)return;const input=document.getElementById(button.dataset.passwordToggle);if(!input)return;const reveal=input.type==="password";input.type=reveal?"text":"password";button.textContent=reveal?"Hide":"Show";button.setAttribute("aria-label",reveal?"Hide password":"Show password");button.setAttribute("aria-pressed",String(reveal));});</script>
 </body></html>
