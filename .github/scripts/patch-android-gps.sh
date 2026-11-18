@@ -68,18 +68,18 @@ manifest.write_text(s)
 res=Path("source/app/src/main/res")
 (res/"values").mkdir(parents=True, exist_ok=True)
 strings=res/"values/strings.xml"
-xml=strings.read_text() if strings.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+xml=strings.read_text() if strings.exists() else '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n'
 if re.search(r'<string name="app_name">.*?</string>', xml):
     xml=re.sub(r'<string name="app_name">.*?</string>', '<string name="app_name">TWENDE</string>', xml)
 else:
-    xml=xml.replace('</resources>', '    <string name="app_name">TWENDE</string>\\n</resources>')
+    xml=xml.replace('</resources>', '    <string name="app_name">TWENDE</string>\n</resources>')
 strings.write_text(xml)
 colors=res/"values/colors.xml"
-xml=colors.read_text() if colors.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+xml=colors.read_text() if colors.exists() else '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n'
 if 'name="twende_icon_background"' in xml:
     xml=re.sub(r'<color name="twende_icon_background">.*?</color>', '<color name="twende_icon_background">#FFCC00</color>', xml)
 else:
-    xml=xml.replace('</resources>', '    <color name="twende_icon_background">#FFCC00</color>\\n</resources>')
+    xml=xml.replace('</resources>', '    <color name="twende_icon_background">#FFCC00</color>\n</resources>')
 colors.write_text(xml)
 legacy=res/"mipmap-anydpi/ic_launcher.xml"
 if legacy.exists():
