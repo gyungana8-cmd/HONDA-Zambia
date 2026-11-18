@@ -54,7 +54,7 @@
   let map=null, pickupMarker=null, destinationMarker=null, routeLayer=null, userPoint=null, destinationPoint=null;
   let driverMarkers=new Map(), refreshTimer=null, leafletLoading=null;
   const cache=new Map();
-  const fallbackCenter=[-13.68,24.80];
+  const fallbackCenter=[-13.13683,25.00296];
   if(!navigator.onLine)setStatus("You are offline. Connect to the internet to search places and see live taxis.");
 
   function loadLeaflet(){
@@ -151,7 +151,10 @@
     if (/^mufumbwe(?: district)?$/i.test(q.trim())) {
       // Town-centre pin is the safe default for a broad Mufumbwe pickup query;
       // do not use the district-wide centroid for a local taxi fare.
-      add(-13.13683,25.00296,"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia");
+      const townLat=-13.13683,townLng=25.00296;
+      const townKey=townLat.toFixed(4)+","+townLng.toFixed(4);
+      seen.add(townKey);
+      found.push({lat:townLat,lng:townLng,label:"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia"});
     }
     if (/mufumbwe/i.test(q)) {
       const hospitalLat=-13.144667, hospitalLng=25.034417;
