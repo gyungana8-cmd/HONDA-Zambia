@@ -65,11 +65,20 @@ async function loadProfile(user) {
 }
 window.twendeReceivePushToken = async function(token) {
   if (!currentUser || !token) return;
-  const { error } = await db.from("device_push_tokens").upsert(
-    { user_id: currentUser.id, token, platform: "android", updated_at: new Date().toISOString(), last_seen_at: new Date().toISOString() },
-    { onConflict: "token" }
-  );
-  if (error) console.warn("TWENDE push token registration:", error.message);
+  // Use an authenticated RPC so a device token can safely move to the
+  // account currently signed in on this physical phone. Direct upsert is
+  // blocked by the table's own-user RLS policy when the token belongs to
+  // a previous account.
+  const { error } = await db.rpc("register_twende_push_token", {
+    p_token: token,
+    p_platform: "android"
+  });
+  if (error) {
+    console.warn("TWENDE push token registration:", error.message);
+    toast("Push registration needs attention: " + error.message);
+  } else {
+    console.info("TWENDE push token registered for the signed-in account.");
+  }
 };
 
 async function onSession(session) {
