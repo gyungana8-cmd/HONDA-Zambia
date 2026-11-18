@@ -14,7 +14,10 @@ ACTIVITY="$MAIN/java/com/yangu/hondazambia/MainActivity.java"
 python3 - "$APP_DIR/build.gradle" "$MANIFEST" "$ACTIVITY" "$ONESIGNAL_APP_ID" <<'PY'
 from pathlib import Path
 import re, sys
-app = Path(sys.argv[1])\nmanifest = Path(sys.argv[2])\nactivity = Path(sys.argv[3])\napp_id = sys.argv[4]
+app = Path(sys.argv[1])
+manifest = Path(sys.argv[2])
+activity = Path(sys.argv[3])
+app_id = sys.argv[4]
 # Add the official OneSignal Android SDK to the existing app module.
 s=app.read_text()
 if "com.onesignal:OneSignal" not in s:
@@ -35,7 +38,7 @@ a=activity.read_text()
 a=a.replace('import com.google.firebase.messaging.FirebaseMessaging;\n','')
 a=a.replace('import android.content.Context;\n','')
 if 'import com.onesignal.OneSignal;' not in a:
-    a=a.replace('import android.app.Activity;', 'import android.app.Activity;\nimport com.onesignal.OneSignal;\nimport com.onesignal.Continue;\nimport com.onesignal.debug.LogLevel;')
+    a=a.replace('import android.app.Activity;', 'import android.app.Activity;\nimport com.onesignal.OneSignal;\nimport com.onesignal.debug.LogLevel;')
 a=re.sub(r'\s*webView\.addJavascriptInterface\(new PushBridge\(\), "TwendePush"\);', '', a)
 a=re.sub(r'\s*if \(Build\.VERSION\.SDK_INT >= 33 && checkSelfPermission\("android\.permission\.POST_NOTIFICATIONS"\) != PackageManager\.PERMISSION_GRANTED\) \{\s*requestPermissions\(new String\[\]\{"android\.permission\.POST_NOTIFICATIONS"\}, NOTIFICATION_PERMISSION_REQUEST\);\s*\}', '', a)
 # Remove the Firebase-only PushBridge class and its notification channel helper.
@@ -57,12 +60,9 @@ bridge='''    private class PushBridge {
 '''
 if 'private class PushBridge' not in a:
     a=a.replace('    private boolean hasLocationPermission() {', bridge+'    private boolean hasLocationPermission() {')
-init='''        OneSignal.getDebug().setLogLevel(LogLevel.VERBOSE);
-        OneSignal.initWithContext(this, "'''+str(app_id)+'''");
-        OneSignal.getNotifications().requestPermission(false, Continue.none());
-        webView.addJavascriptInterface(new PushBridge(), "TwendePush");
+init='''        webView.addJavascriptInterface(new PushBridge(), "TwendePush");
 '''
-if 'OneSignal.initWithContext' not in a:
+if 'TwendePush' not in a:
     a=a.replace('        setContentView(webView);', '        setContentView(webView);\n'+init.rstrip())
 activity.write_text(a)
 Path("source/app/src/main/java/com/yangu/hondazambia/TwendeFirebaseMessagingService.java").unlink(missing_ok=True)
@@ -93,11 +93,11 @@ from pathlib import Path
 import re, sys
 p=Path(sys.argv[1]); s=p.read_text()
 if 'android:name=".TwendeApplication"' not in s:
-    s=re.sub(r'<application\\b', '<application android:name=".TwendeApplication"', s, count=1)
+    s=re.sub(r'<application\b', '<application android:name=".TwendeApplication"', s, count=1)
 p.write_text(s)
 PYMAN
 
 echo "OneSignal Android SDK and TWENDE identity bridge configured."
 grep -q 'com.onesignal:OneSignal' "$APP_DIR/build.gradle"
-grep -q 'OneSignal.initWithContext' "$ACTIVITY"
+grep -q 'OneSignal.initWithContext' "$APP_CLASS"
 grep -q 'new PushBridge(), "TwendePush"' "$ACTIVITY"
