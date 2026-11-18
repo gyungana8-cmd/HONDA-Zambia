@@ -55,6 +55,38 @@ if 'name="twende_icon_background"' not in existing:
 colors.write_text(existing)
 PY
 
+# Set the native Android application name and yellow/black TWENDE launcher icon.
+python3 - <<'PY'
+from pathlib import Path
+import re
+manifest=Path("source/app/src/main/AndroidManifest.xml")
+s=manifest.read_text()
+s=re.sub(r'android:label="[^"]*"', 'android:label="@string/app_name"', s, count=1)
+if 'android:label=' not in s:
+    s=s.replace('<application', '<application android:label="@string/app_name"', 1)
+manifest.write_text(s)
+res=Path("source/app/src/main/res")
+(res/"values").mkdir(parents=True, exist_ok=True)
+strings=res/"values/strings.xml"
+xml=strings.read_text() if strings.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+if re.search(r'<string name="app_name">.*?</string>', xml):
+    xml=re.sub(r'<string name="app_name">.*?</string>', '<string name="app_name">TWENDE</string>', xml)
+else:
+    xml=xml.replace('</resources>', '    <string name="app_name">TWENDE</string>\\n</resources>')
+strings.write_text(xml)
+colors=res/"values/colors.xml"
+xml=colors.read_text() if colors.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+if 'name="twende_icon_background"' in xml:
+    xml=re.sub(r'<color name="twende_icon_background">.*?</color>', '<color name="twende_icon_background">#FFCC00</color>', xml)
+else:
+    xml=xml.replace('</resources>', '    <color name="twende_icon_background">#FFCC00</color>\\n</resources>')
+colors.write_text(xml)
+legacy=res/"mipmap-anydpi/ic_launcher.xml"
+if legacy.exists():
+    t=legacy.read_text().replace('#FFC91F2C','#FFFFCC00')
+    legacy.write_text(t)
+PY
+
 cat > "$ACTIVITY" <<'JAVA'
 package com.yangu.hondazambia;
 
