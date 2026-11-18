@@ -82,6 +82,12 @@ jobs:
         shell: bash
         run: bash .github/scripts/patch-fcm.sh
 
+      - name: Apply native OneSignal notifications integration
+        shell: bash
+        env:
+          ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+        run: bash .github/scripts/patch-onesignal.sh
+
       - name: Inspect Android wrapper sources for GPS support
         shell: bash
         run: |
