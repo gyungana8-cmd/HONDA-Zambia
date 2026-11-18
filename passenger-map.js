@@ -140,10 +140,20 @@
   }
   async function reverse(lat,lng){
     try{
-      const r=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lng);
-      if(r.ok){const j=await r.json();return j.display_name||"Current GPS location";}
-    }catch(e){}
-    return "Current GPS location";
+      const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng);
+      const response=await fetch(url,{headers:{Accept:"application/json"}});
+      if(response.ok){
+        const data=await response.json(),a=data.address||{};
+        // Prefer a useful local pickup label over a long administrative string.
+        const locality=a.suburb||a.neighbourhood||a.village||a.town||a.city||a.hamlet||a.county;
+        const road=[a.house_number,a.road].filter(Boolean).join(" ");
+        const parts=[road,locality,a.city_district,a.state,a.country].filter(Boolean);
+        const label=[...new Set(parts)].join(", ");
+        if(label)return label;
+        if(data.display_name)return data.display_name;
+      }
+    }catch(error){console.warn("TWENDE GPS address lookup:",error);}
+    return "GPS location ("+Number(lat).toFixed(5)+", "+Number(lng).toFixed(5)+")";
   }
   function showPickup(){
     if(!map||!userPoint)return;
