@@ -97,3 +97,8 @@ body.passenger-mode .available-fleet{padding-top:10px}
 body.passenger-mode .available-fleet h4{font-size:11px}
 body.passenger-mode #ride-services .cash-note{font-size:11px;line-height:1.5}
 @media(max-width:380px){body.passenger-mode #twendePassengerMap{height:190px}body.passenger-mode #ride-services .service-vehicle-image{height:86px}}
+
+/* Keep passenger booking errors readable inside the native ride dialog. */
+.booking-submit-message{display:none;padding:14px 16px;border:2px solid #b42318;border-radius:10px;background:#fff0ee;color:#8f1d16;font-weight:700;line-height:1.45;overflow-wrap:anywhere;white-space:normal}
+.booking-submit-message.is-visible{display:block}
+#rideDialog .booking-submit-message{font-size:16px;max-height:180px;overflow-y:auto}
