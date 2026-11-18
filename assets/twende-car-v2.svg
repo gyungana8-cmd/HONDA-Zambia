@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+<rect width="640" height="360" rx="28" fill="#fff"/>
+<ellipse cx="320" cy="303" rx="255" ry="18" fill="#222" opacity=".12"/>
+<!-- sedan body, front to the right -->
+<path d="M54 237 L75 190 Q91 166 132 157 L218 143 Q258 89 331 78 L440 83 Q484 91 516 139 L555 179 L590 195 Q611 206 611 236 L607 270 L42 270 L42 251 Q42 239 54 237Z" fill="#fdfdfd" stroke="#202020" stroke-width="7" stroke-linejoin="round"/>
+<path d="M224 145 L263 99 Q288 86 331 87 L369 89 L369 153Z" fill="#a8c5d1" stroke="#252525" stroke-width="6"/>
+<path d="M382 90 L438 95 Q472 103 496 141 L507 154 L382 154Z" fill="#a8c5d1" stroke="#252525" stroke-width="6"/>
+<path d="M55 218 Q185 206 304 218 L525 207 L579 218 L592 253 L45 253Z" fill="#ffcc00"/>
+<path d="M63 253 L600 253 L600 272 L44 272Z" fill="#252525"/>
+<path d="M75 195 L150 183 L171 204 L75 216Z" fill="#fff" stroke="#222" stroke-width="4"/>
+<path d="M521 178 L567 190 L587 214 L536 208Z" fill="#fff" stroke="#222" stroke-width="4"/>
+<path d="M170 190 L211 186" stroke="#222" stroke-width="5"/>
+<path d="M218 217 L415 217" stroke="#222" stroke-width="30" stroke-linecap="round"/>
+<text x="318" y="228" font-family="Arial,sans-serif" font-size="32" font-weight="900" font-style="italic" text-anchor="middle" fill="#ffcc00">TWENDE</text>
+<circle cx="160" cy="270" r="47" fill="#171717"/><circle cx="160" cy="270" r="25" fill="#d8d8d8"/><circle cx="160" cy="270" r="10" fill="#777"/>
+<circle cx="492" cy="270" r="47" fill="#171717"/><circle cx="492" cy="270" r="25" fill="#d8d8d8"/><circle cx="492" cy="270" r="10" fill="#777"/>
+<path d="M536 163 Q557 157 574 179 L552 186Z" fill="#ffcc00"/>
+</svg>
