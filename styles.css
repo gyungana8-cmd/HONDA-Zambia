@@ -102,3 +102,7 @@ body.passenger-mode #ride-services .cash-note{font-size:11px;line-height:1.5}
 .booking-submit-message{display:none;padding:14px 16px;border:2px solid #b42318;border-radius:10px;background:#fff0ee;color:#8f1d16;font-weight:700;line-height:1.45;overflow-wrap:anywhere;white-space:normal}
 .booking-submit-message.is-visible{display:block}
 #rideDialog .booking-submit-message{font-size:16px;max-height:180px;overflow-y:auto}
+
+/* Force booking feedback to remain visible above the native dialog content. */
+#rideDialog #rideSubmitMessage[hidden]{display:none!important}
+#rideDialog #rideSubmitMessage.is-visible:not([hidden]){display:block!important;visibility:visible!important;position:relative;z-index:5;margin:12px 0;padding:16px;border:2px solid #b42318;border-radius:10px;background:#fff0ee;color:#8f1d16;font-size:16px;font-weight:800;line-height:1.5;white-space:normal;overflow-wrap:anywhere;box-shadow:0 2px 12px rgba(0,0,0,.12)}
