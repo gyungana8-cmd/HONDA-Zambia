@@ -4,7 +4,7 @@
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#c91f2c",
+  "theme_color": "#ffcc00",
   "icons": [
     {
       "src": "twende-logo.svg",

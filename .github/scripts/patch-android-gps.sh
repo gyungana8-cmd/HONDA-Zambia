@@ -30,16 +30,16 @@ res=Path("source/app/src/main/res")
 (res/"drawable/twende_launcher_foreground.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
-    <path android:fillColor="#FFFFFFFF" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
 </vector>
 """)
 (res/"mipmap-anydpi/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
     <path android:fillColor="#FFC91F2C" android:pathData="M0,0 L108,0 L108,108 L0,108 Z"/>
-    <path android:fillColor="#FFFFFFFF" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
-    <path android:fillColor="#FFFFFFFF" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M22,25 L86,25 L86,43 L63,43 L63,83 L45,83 L45,43 L22,43 Z"/>
+    <path android:fillColor="#FF171717" android:pathData="M67,57 L85,57 L85,75 L67,75 Z"/>
 </vector>
 """)
 (res/"mipmap-anydpi-v26/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
@@ -53,6 +53,38 @@ existing=colors.read_text() if colors.exists() else '<?xml version="1.0" encodin
 if 'name="twende_icon_background"' not in existing:
     existing=existing.replace('</resources>', '    <color name="twende_icon_background">#C91F2C</color>\n</resources>')
 colors.write_text(existing)
+PY
+
+# Set the native Android application name and yellow/black TWENDE launcher icon.
+python3 - <<'PY'
+from pathlib import Path
+import re
+manifest=Path("source/app/src/main/AndroidManifest.xml")
+s=manifest.read_text()
+s=re.sub(r'android:label="[^"]*"', 'android:label="@string/app_name"', s, count=1)
+if 'android:label=' not in s:
+    s=s.replace('<application', '<application android:label="@string/app_name"', 1)
+manifest.write_text(s)
+res=Path("source/app/src/main/res")
+(res/"values").mkdir(parents=True, exist_ok=True)
+strings=res/"values/strings.xml"
+xml=strings.read_text() if strings.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+if re.search(r'<string name="app_name">.*?</string>', xml):
+    xml=re.sub(r'<string name="app_name">.*?</string>', '<string name="app_name">TWENDE</string>', xml)
+else:
+    xml=xml.replace('</resources>', '    <string name="app_name">TWENDE</string>\\n</resources>')
+strings.write_text(xml)
+colors=res/"values/colors.xml"
+xml=colors.read_text() if colors.exists() else '<?xml version="1.0" encoding="utf-8"?>\\n<resources>\\n</resources>\\n'
+if 'name="twende_icon_background"' in xml:
+    xml=re.sub(r'<color name="twende_icon_background">.*?</color>', '<color name="twende_icon_background">#FFCC00</color>', xml)
+else:
+    xml=xml.replace('</resources>', '    <color name="twende_icon_background">#FFCC00</color>\\n</resources>')
+colors.write_text(xml)
+legacy=res/"mipmap-anydpi/ic_launcher.xml"
+if legacy.exists():
+    t=legacy.read_text().replace('#FFC91F2C','#FFFFCC00')
+    legacy.write_text(t)
 PY
 
 cat > "$ACTIVITY" <<'JAVA'
