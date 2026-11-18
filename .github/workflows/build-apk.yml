@@ -126,6 +126,7 @@ jobs:
           for FILE in index.html app.js gps-fares.js passenger-map.js styles.css manifest.webmanifest twende-logo.svg; do
             if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
           done
+          if [ -d assets ]; then mkdir -p "$ASSET_DIR/assets"; cp -f assets/*.svg "$ASSET_DIR/assets/"; fi
 
       - name: Build Android APK
         shell: bash
