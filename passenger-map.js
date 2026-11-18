@@ -23,7 +23,7 @@
   const panel=document.createElement("section");
   panel.className="twende-live-panel";
   panel.innerHTML=`
-    <div class="section-heading"><div><span class="eyebrow">TWENDE RIDE</span><h2>Where to?</h2><p class="muted">Choose your pickup and destination.</p></div></div>
+    <div class="section-heading"><div><span class="eyebrow">MU FUMBWE LAUNCH AREA</span><h2>Where to?</h2><p class="muted">TWENDE prioritises local Mufumbwe journeys. Inter-district trips across Zambia are also welcome.</p></div></div>
     <div class="twende-live-controls">
       <label>Pickup location
         <input id="twendePickupSearch" type="text" placeholder="Use GPS or enter a pickup place" autocomplete="off">
@@ -284,6 +284,24 @@
       setStatus(rows.length?rows.length+" nearby TWENDE driver"+(rows.length===1?"":"s")+" online within 15 km.":"No online TWENDE taxis found within 15 km yet. Try again shortly.");
     }catch(e){console.warn("Nearby TWENDE drivers:",e);setStatus("Nearby taxis could not be loaded. Apply the passenger nearby-drivers database migration and check your connection.");}
   }
+  // If a passenger edits a previously selected place, invalidate its old
+  // coordinates immediately so the next search/fare uses the new address.
+  $("#twendePickupSearch").addEventListener("input",()=>{
+    if(userPoint && $("#twendePickupSearch").value.trim()!==userPoint.label){
+      userPoint=null;window.twendePickupCoords=null;
+      if(pickupMarker&&map){map.removeLayer(pickupMarker);pickupMarker=null;}
+      if(routeLayer&&map){map.removeLayer(routeLayer);routeLayer=null;}
+      setStatus("Pickup changed. Select a search result or continue to find the new place.");
+    }
+  });
+  $("#twendeDestinationSearch").addEventListener("input",()=>{
+    if(destinationPoint && $("#twendeDestinationSearch").value.trim()!==destinationPoint.label){
+      destinationPoint=null;window.twendeDestinationCoords=null;
+      if(destinationMarker&&map){map.removeLayer(destinationMarker);destinationMarker=null;}
+      if(routeLayer&&map){map.removeLayer(routeLayer);routeLayer=null;}
+      setStatus("Destination changed. Select a search result or continue to find the new place.");
+    }
+  });
   addSearch("twendePickupSearch","twendePickupResults",async p=>{
     userPoint=p;window.twendePickupCoords=p;$("#ridePickup").value=p.label;
     try{await ensureMap();showPickup();map.setView([p.lat,p.lng],15);await refreshDrivers();if(destinationPoint)await drawRoute();}
