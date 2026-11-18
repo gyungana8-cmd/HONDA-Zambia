@@ -300,14 +300,45 @@
     catch(e){setStatus(e.message||"Could not locate you. Check GPS permission and internet connection.");}
     finally{b.disabled=false;}
   });
-  $("#twendeContinueBooking").addEventListener("click",()=>{
-    if(!userPoint){setStatus("First set your pickup using GPS or search for a pickup place.");return;}
-    if(!destinationPoint){setStatus("Search for and select your destination first.");return;}
-    $("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;
-    window.twendePickupCoords=userPoint;
-    const service=$("#twendeMapService").value;
-    const button=document.querySelector('[data-ride-service="'+service+'"]');
-    if(button){button.click();setTimeout(()=>{$("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;},250);}
+  $("#twendeContinueBooking").addEventListener("click",async()=>{
+    const button=$("#twendeContinueBooking");
+    button.disabled=true;
+    try{
+      // Accept typed place names as well as suggestion clicks. Previously,
+      // typing a pickup without tapping a suggestion left userPoint empty.
+      if(!userPoint){
+        const typedPickup=$("#twendePickupSearch").value.trim();
+        if(!typedPickup){setStatus("Enter a pickup place or use GPS.");return;}
+        setStatus("Finding your pickup place…");
+        const matches=await searchPlaces(typedPickup);
+        if(!matches.length){setStatus("Pickup place not found. Try a nearby town, school, clinic or landmark, or use GPS.");return;}
+        userPoint=matches[0];
+        window.twendePickupCoords=userPoint;
+        $("#twendePickupSearch").value=userPoint.label;
+        await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],15);
+      }
+      if(!destinationPoint){
+        const typedDestination=$("#twendeDestinationSearch").value.trim();
+        if(!typedDestination){setStatus("Enter and select a destination before continuing.");return;}
+        setStatus("Finding your destination…");
+        const matches=await searchPlaces(typedDestination);
+        if(!matches.length){setStatus("Destination not found. Try a nearby town, school, clinic or landmark.");return;}
+        destinationPoint=matches[0];
+        window.twendeDestinationCoords=destinationPoint;
+        $("#twendeDestinationSearch").value=destinationPoint.label;
+        await ensureMap();showDestination();
+      }
+      $("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;
+      window.twendePickupCoords=userPoint;window.twendeDestinationCoords=destinationPoint;
+      await drawRoute();
+      const service=$("#twendeMapService").value;
+      const rideButton=document.querySelector('[data-ride-service="'+service+'"]');
+      if(rideButton){
+        rideButton.click();
+        setTimeout(()=>{$("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;},250);
+      }
+    }catch(e){setStatus(e.message||"Could not prepare this booking. Please try another pickup or destination.");}
+    finally{button.disabled=false;}
   });
   document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>{
     if(userPoint){window.twendePickupCoords=userPoint;setTimeout(()=>{$("#ridePickup").value=userPoint.label; if(destinationPoint)$("#rideDestination").value=destinationPoint.label;},180);}
