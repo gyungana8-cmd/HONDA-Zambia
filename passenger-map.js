@@ -36,6 +36,7 @@
     <div id="twendeDestinationResults" class="twende-place-results"></div>
     <div class="twende-live-actions">
       <button class="btn btn-red" id="twendeLocateMe" type="button">📍 Detect my pickup with GPS</button>
+      <button class="btn btn-outline" id="twendeMufumbwePickup" type="button">Choose pickup in Mufumbwe</button>
       <select id="twendeMapService" aria-label="Taxi type"><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select>
       <button class="btn btn-outline" id="twendeContinueBooking" type="button">Continue to booking</button>
     </div>
@@ -383,6 +384,25 @@
     const b=$("#twendeLocateMe");b.disabled=true;
     try{await locate();if(destinationPoint)await drawRoute();}
     catch(e){setStatus(e.message||"Could not locate you. Check GPS permission and internet connection.");}
+    finally{b.disabled=false;}
+  });
+  $("#twendeMufumbwePickup").addEventListener("click",async()=>{
+    const b=$("#twendeMufumbwePickup");b.disabled=true;
+    try{
+      userPoint=null;destinationPoint=null;
+      window.twendePickupCoords=null;window.twendeDestinationCoords=null;
+      $("#twendePickupSearch").value="";
+      $("#twendeDestinationSearch").value="";
+      $("#ridePickup").value="";
+      $("#rideDestination").value="";
+      if(pickupMarker&&map){map.removeLayer(pickupMarker);pickupMarker=null;}
+      if(destinationMarker&&map){map.removeLayer(destinationMarker);destinationMarker=null;}
+      if(routeLayer&&map){map.removeLayer(routeLayer);routeLayer=null;}
+      await ensureMap();
+      map.setView(fallbackCenter,14);
+      setStatus("Mufumbwe map ready. Tap your actual pickup point on the map, or search for a nearby landmark.");
+      $("#twendePassengerMap").scrollIntoView({block:"center",behavior:"smooth"});
+    }catch(error){setStatus(error.message||"Could not open the Mufumbwe map. Please try again.");}
     finally{b.disabled=false;}
   });
   $("#twendeContinueBooking").addEventListener("click",async()=>{
