@@ -419,15 +419,20 @@
       // GPS is the default pickup method. The passenger can still fall back
       // to typed place search if permission is denied or GPS is unavailable.
       if(!userPoint){
-        const typedPickup=$("#twendePickupSearch").value.trim();
-        if(!typedPickup || /^(choose|enter|search)/i.test(typedPickup)){
-          setStatus("Getting your current GPS position for pickup…");
-          try{await locate();}
-          catch(gpsError){
-            const fallback=$("#twendePickupSearch").value.trim();
-            if(!fallback){setStatus((gpsError.message||"GPS unavailable.")+" Enter a pickup place to continue.");return;}
-            setStatus("GPS unavailable. Finding the pickup address you entered…");
+        const typedPickupBeforeGps=$("#twendePickupSearch").value.trim();
+        const destinationBeforeGps=$("#twendeDestinationSearch").value.trim();
+        setStatus("Getting your current GPS position for pickup…");
+        try{
+          await locate();
+          if(destinationBeforeGps){
+            $("#twendeDestinationSearch").value=destinationBeforeGps;
+            $("#rideDestination").value=destinationBeforeGps;
           }
+        }catch(gpsError){
+          if(!typedPickupBeforeGps){setStatus((gpsError.message||"GPS unavailable.")+" Enter a pickup place to continue.");return;}
+          $("#twendePickupSearch").value=typedPickupBeforeGps;
+          if(destinationBeforeGps)$("#twendeDestinationSearch").value=destinationBeforeGps;
+          setStatus("GPS unavailable. Finding the pickup address you entered…");
         }
       }
       // Accept typed place names as a fallback, without requiring a suggestion tap.
