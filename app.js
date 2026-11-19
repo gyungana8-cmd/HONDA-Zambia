@@ -528,8 +528,8 @@ async function startApp(){
     else session=guest.data.session;
   }
   await onSession(session);
-  // loadProfile already fetches passenger rides; avoid repeating that query.
-  await loadAvailableTaxiFleet();
+  // Nearby vehicles are fetched when a taxi class is selected, not during startup.
+  // This keeps the first screen responsive on slower mobile connections.
   startTwendeRealtime();
   db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
 }
