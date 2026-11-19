@@ -378,6 +378,7 @@ function openRideDialog(service) {
     }
   })();
 }
+window.openTwendeRideDialog = openRideDialog;
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#twendeBellButton")?.addEventListener("click",()=>document.querySelector('[data-hub="orders"]')?.click());
 async function submitTwendeTaxiRequest(){
