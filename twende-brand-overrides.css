@@ -85,3 +85,28 @@ body.passenger-mode #ride-services .cash-note{margin:16px 2px 0;color:#626262}
  body.passenger-mode.twende-hub-open .twende-bottom-nav{display:grid}
 }
 @media(min-width:801px){.twende-bottom-nav{display:none}}
+
+
+/* TWENDE branded transport artwork across passenger, booking and owner views */
+.twende-hero-vehicle-image{position:absolute;z-index:1;width:min(92%,520px);height:270px;object-fit:contain;filter:drop-shadow(0 14px 16px #0002)}
+.hero-art .art-circle{opacity:.22}
+#ride-services .service-vehicle-image{display:block;object-fit:contain;background:#fff8dc;border:1px solid #f0e5b8}
+.ride-service-art{width:100%;display:flex;justify-content:center;margin:2px 0 8px}
+.ride-service-art .twende-vehicle-art{width:min(100%,300px);height:145px;object-fit:contain;border-radius:14px;background:#fff8dc}
+.twende-vehicle-art{display:block;width:100%;max-width:100%;height:120px;object-fit:contain;background:#fff8dc;border-radius:12px;padding:5px}
+.fleet-vehicle-card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:12px;align-items:center;padding:12px;border:1px solid #e7e2cf;border-radius:14px;background:#fff}
+.fleet-vehicle-card .twende-vehicle-art{height:92px;background:#fff8dc}
+.fleet-vehicle-details{display:grid;gap:4px;min-width:0}
+.fleet-brand-tag{display:inline-block;width:max-content;max-width:100%;font-size:9px;line-height:1.2;font-weight:950;letter-spacing:.1em;color:#171717;background:#ffcc00;border-radius:20px;padding:5px 8px}
+.twende-ride-history-card,.twende-owner-vehicle-card{display:grid;grid-template-columns:145px minmax(0,1fr);gap:14px;align-items:center}
+.twende-ride-history-card .twende-vehicle-art,.twende-owner-vehicle-card .twende-vehicle-art{height:112px}
+.twende-owner-vehicle-card>div{min-width:0}
+.twende-ride-history-card h3,.twende-owner-vehicle-card h3{margin-top:6px}
+@media(max-width:520px){
+ .twende-hero-vehicle-image{height:205px;width:100%}
+ .ride-service-art .twende-vehicle-art{height:125px}
+ .fleet-vehicle-card{grid-template-columns:96px minmax(0,1fr);gap:9px}
+ .fleet-vehicle-card .twende-vehicle-art{height:82px}
+ .twende-ride-history-card,.twende-owner-vehicle-card{grid-template-columns:105px minmax(0,1fr);gap:10px}
+ .twende-ride-history-card .twende-vehicle-art,.twende-owner-vehicle-card .twende-vehicle-art{height:88px}
+}
