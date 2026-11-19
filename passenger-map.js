@@ -5,44 +5,40 @@
   if (!home) return;
   const style = document.createElement("style");
   style.textContent = `
-    .twende-live-panel{margin:22px 0 28px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 8px 28px #1018200c}
-    .twende-live-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .twende-live-controls label{display:grid;gap:6px;font-size:12px;font-weight:750}
-    .twende-live-controls input,.twende-live-controls select{width:100%;padding:12px;border:1px solid #d9dde0;border-radius:8px;background:#fff}
-    .twende-live-actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
-    #twendePassengerMap{height:340px;min-height:280px;border-radius:10px;background:#edf0f2;overflow:hidden;z-index:1}
-    .twende-map-status{font-size:12px;color:var(--muted);margin:8px 0}
-    .twende-place-results{position:relative;z-index:4;display:grid;gap:4px}
-    .twende-place-results button{text-align:left;background:#fff;border:1px solid var(--line);border-radius:7px;padding:10px;color:var(--ink)}
+    .twende-live-panel{margin:18px 0 22px;padding:0;border:0;background:transparent}
+    .twende-gps-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 28px #1018200c}
+    .twende-gps-card h3{margin:0 0 6px;font-size:20px}
+    .twende-gps-card p{margin:0 0 14px;color:var(--muted)}
+    .twende-use-location{width:100%;min-height:58px;border:2px solid #ffca05;border-radius:14px;background:#171717;color:#fff;font-weight:800;font-size:17px;padding:14px 18px}
+    .twende-use-location:disabled{opacity:.65}
+    .twende-map-status{font-size:13px;color:var(--muted);margin:10px 2px}
+    #twendeMapDetails{margin-top:16px}
+    #twendePassengerMap{height:320px;min-height:280px;border-radius:14px;background:#edf0f2;overflow:hidden;z-index:1}
     .twende-map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
     .twende-map-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;background:#d71920}
-    .twende-map-dot.car{background:#1769aa}.twende-map-dot.bike{background:#198754}.twende-map-dot.dest{background:#7c3aed}
-    @media(max-width:600px){.twende-live-controls{grid-template-columns:1fr}#twendePassengerMap{height:300px}}
+    .twende-map-dot.car{background:#1769aa}.twende-map-dot.bike{background:#198754}
+    .service-grid.twende-services-hidden{display:none!important}
+    .twende-available-heading{margin:22px 0 10px;font-weight:800}
+    @media(max-width:600px){#twendePassengerMap{height:300px}}
   `;
   document.head.append(style);
   const panel=document.createElement("section");
   panel.className="twende-live-panel";
   panel.innerHTML=`
-    <div class="twende-location-fields">
-      <label class="twende-location-field"><span class="twende-location-symbol pickup-symbol" aria-hidden="true"></span><input id="twendePickupSearch" type="text" value="Mufumbwe, Mufumbwe District, North-Western Province" placeholder="Enter pickup location" autocomplete="off" aria-label="Pickup location"></label>
-      <div id="twendePickupResults" class="twende-place-results"></div>
-      <label class="twende-location-field"><span class="twende-location-symbol destination-symbol" aria-hidden="true">◎</span><input id="twendeDestinationSearch" type="search" value="Mufumbwe District Hospital, Mufumbwe" placeholder="Enter destination" autocomplete="off" aria-label="Destination"></label>
-      <div id="twendeDestinationResults" class="twende-place-results"></div>
-      <button class="twende-use-location" id="twendeLocateMe" type="button"><span aria-hidden="true">➤</span> Use GPS for pickup</button>
+    <div class="twende-gps-card">
+      <h3>Where to?</h3>
+      <p>Set your pickup automatically using your current location.</p>
+      <button class="twende-use-location" id="twendeLocateMe" type="button">➤ &nbsp; Use my current location</button>
     </div>
-    <div class="twende-location-extra">
-      <button class="btn btn-outline" id="twendeMufumbwePickup" type="button">Choose pickup on map</button>
-      <select id="twendeMapService" aria-label="Taxi type"><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select>
-      <button class="btn btn-outline" id="twendeContinueBooking" type="button">Continue to booking</button>
+    <p id="twendeMapStatus" class="twende-map-status" role="status">Use your current location to see the map and nearby TWENDE taxis.</p>
+    <div id="twendeMapDetails" hidden>
+      <div id="twendePassengerMap" aria-label="Map showing your GPS pickup and available TWENDE taxis"></div>
+      <div class="twende-map-legend"><span><i class="twende-map-dot"></i>Your pickup</span><span><i class="twende-map-dot car"></i>Car taxi</span><span><i class="twende-map-dot bike"></i>Motorcycle taxi</span></div>
+      <h3 class="twende-available-heading">Available TWENDE services</h3>
     </div>
-    <p id="twendeMapStatus" class="twende-map-status" role="status">Tap a taxi to set pickup automatically with GPS, then choose your destination.</p>
-    <details id="twendeMapDetails" class="twende-map-details"><summary>View map and choose a location</summary>
-      <div id="twendePassengerMap" aria-label="Map showing pickup, destination and nearby TWENDE taxis"></div>
-      <div class="twende-map-legend"><span><i class="twende-map-dot"></i>Pickup</span><span><i class="twende-map-dot dest"></i>Destination</span><span><i class="twende-map-dot car"></i>Car taxi</span><span><i class="twende-map-dot bike"></i>Motorcycle taxi</span></div>
-    </details>
   `;
   const serviceGrid=home.querySelector(".service-grid");
-  if(serviceGrid) home.insertBefore(panel,serviceGrid);
+  if(serviceGrid){serviceGrid.classList.add("twende-services-hidden");home.insertBefore(panel,serviceGrid);}
   else home.append(panel);
 
   const status=$("#twendeMapStatus");
@@ -86,36 +82,17 @@
     if(map)return;
     const mapElement=$("#twendePassengerMap");
     map=L.map(mapElement,{zoomControl:true}).setView(userPoint?[userPoint.lat,userPoint.lng]:fallbackCenter,userPoint?15:12);
-    // Let passengers choose an exact pickup or destination by tapping the map.
+    // A map tap can fine-tune the pickup after GPS has located the passenger.
     map.on("click",async event=>{
       const point={lat:event.latlng.lat,lng:event.latlng.lng};
-      try{
-        const label=await reverse(point.lat,point.lng);
-        if(!userPoint){
-          userPoint={...point,label};
-          window.twendePickupCoords=userPoint;
-          $("#twendePickupSearch").value=label;
-          $("#ridePickup").value=label;
-          showPickup();
-          setStatus("Pickup selected on map. You can now choose your destination.");
-        }else if(!destinationPoint){
-          destinationPoint={...point,label};
-          window.twendeDestinationCoords=destinationPoint;
-          $("#twendeDestinationSearch").value=label;
-          $("#rideDestination").value=label;
-          showDestination();
-          setStatus("Destination selected on map. Ready to continue to booking.");
-          await drawRoute();
-        }else{
-          destinationPoint={...point,label};
-          window.twendeDestinationCoords=destinationPoint;
-          $("#twendeDestinationSearch").value=label;
-          $("#rideDestination").value=label;
-          showDestination();
-          setStatus("Destination updated on map.");
-          await drawRoute();
-        }
-      }catch(error){setStatus("Could not read that map location. Try another point or use GPS.");}
+      const label=await reverse(point.lat,point.lng);
+      userPoint={...point,label};
+      window.twendePickupCoords=userPoint;
+      $("#ridePickup").value=label;
+      showPickup();
+      map.setView([point.lat,point.lng],16);
+      setStatus("Pickup adjusted on the map. Choose a TWENDE taxi below.");
+      refreshDrivers().catch(error=>console.warn("TWENDE nearby drivers:",error));
     });
     const tileProviders=[
       {url:"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",options:{maxZoom:19,attribution:"© OpenStreetMap"}},
@@ -187,10 +164,16 @@
     $("#twendeDestinationSearch").value="";
     $("#rideDestination").value="";
     setStatus("GPS found your pickup. Updating the address…");
-    if($("#twendeMapDetails")?.open){
-      try{await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],17);}
-      catch(error){console.warn("TWENDE map display:",error);}
-    }
+    $("#twendeMapDetails").hidden=false;
+    const serviceGrid=home.querySelector(".service-grid");
+    if(serviceGrid)serviceGrid.classList.remove("twende-services-hidden");
+    try{
+      await ensureMap();
+      showPickup();
+      map.setView([userPoint.lat,userPoint.lng],16);
+      setTimeout(()=>map&&map.invalidateSize(true),120);
+      await refreshDrivers();
+    }catch(error){console.warn("TWENDE map display:",error);setStatus("GPS found your pickup, but the map could not load. You can still book a TWENDE taxi below.");}
     // Reverse geocoding runs in the background; it must not block the booking form.
     reverse(userPoint.lat,userPoint.lng).then(address=>{
       if(address && address!=="Current GPS location"){
@@ -350,157 +333,23 @@
       setStatus(rows.length?rows.length+" nearby TWENDE driver"+(rows.length===1?"":"s")+" online within 15 km.":"No online TWENDE taxis found within 15 km yet. Try again shortly.");
     }catch(e){console.warn("Nearby TWENDE drivers:",e);setStatus("Nearby taxis could not be loaded. Apply the passenger nearby-drivers database migration and check your connection.");}
   }
-  // If a passenger edits a previously selected place, invalidate its old
-  // coordinates immediately so the next search/fare uses the new address.
-  $("#twendePickupSearch").addEventListener("input",()=>{
-    if(userPoint && $("#twendePickupSearch").value.trim()!==userPoint.label){
-      userPoint=null;window.twendePickupCoords=null;
-      if(pickupMarker&&map){map.removeLayer(pickupMarker);pickupMarker=null;}
-      if(routeLayer&&map){map.removeLayer(routeLayer);routeLayer=null;}
-      setStatus("Pickup changed. Select a search result or continue to find the new place.");
-    }
-  });
-  $("#twendeDestinationSearch").addEventListener("input",()=>{
-    if(destinationPoint && $("#twendeDestinationSearch").value.trim()!==destinationPoint.label){
-      destinationPoint=null;window.twendeDestinationCoords=null;
-      if(destinationMarker&&map){map.removeLayer(destinationMarker);destinationMarker=null;}
-      if(routeLayer&&map){map.removeLayer(routeLayer);routeLayer=null;}
-      setStatus("Destination changed. Select a search result or continue to find the new place.");
-    }
-  });
-  addSearch("twendePickupSearch","twendePickupResults",async p=>{
-    userPoint=p;window.twendePickupCoords=p;$("#ridePickup").value=p.label;
-    setStatus("Pickup selected. Choose your destination.");
-    if($("#twendeMapDetails")?.open){
-      try{await ensureMap();showPickup();map.setView([p.lat,p.lng],15);await refreshDrivers();if(destinationPoint)await drawRoute();}
-      catch(e){setStatus(e.message);}
-    }
-  });
-  addSearch("twendeDestinationSearch","twendeDestinationResults",async p=>{
-    destinationPoint=p;window.twendeDestinationCoords=p;$("#rideDestination").value=p.label;
-    setStatus("Destination selected.");
-    if($("#twendeMapDetails")?.open){
-      try{await ensureMap();showDestination();if(userPoint)await drawRoute();}
-      catch(e){setStatus(e.message);}
-    }
-  });
+  // GPS is the only initial pickup action. Once located, the map and both
+  // branded service cards are revealed; their original app.js booking handlers
+  // open the matching booking dialog directly.
   $("#twendeLocateMe").addEventListener("click",async()=>{
-    const b=$("#twendeLocateMe");b.disabled=true;
+    const button=$("#twendeLocateMe");
+    button.disabled=true;
+    button.textContent="Locating you…";
     try{
       await locate();
-      setStatus("Your pickup is set from GPS. Now choose where you want to go.");
-      $("#twendeDestinationSearch")?.focus({preventScroll:true});
-    }catch(e){setStatus((e.message||"Could not locate you.")+" You can still enter your pickup manually.");}
-    finally{b.disabled=false;}
-  });
-  $("#twendeMufumbwePickup").addEventListener("click",async()=>{
-    const b=$("#twendeMufumbwePickup");b.disabled=true;
-    try{
-      userPoint=null;destinationPoint=null;
-      window.twendePickupCoords=null;window.twendeDestinationCoords=null;
-      $("#twendePickupSearch").value="";
-      $("#twendeDestinationSearch").value="";
-      $("#ridePickup").value="";
-      $("#rideDestination").value="";
-      if(pickupMarker&&map){map.removeLayer(pickupMarker);pickupMarker=null;}
-      if(destinationMarker&&map){map.removeLayer(destinationMarker);destinationMarker=null;}
-      if(routeLayer&&map){map.removeLayer(routeLayer);routeLayer=null;}
-      await ensureMap();
-      map.setView(fallbackCenter,14);
-      setStatus("Mufumbwe map ready. Tap your actual pickup point on the map, or search for a nearby landmark.");
-      $("#twendePassengerMap").scrollIntoView({block:"center",behavior:"smooth"});
-    }catch(error){setStatus(error.message||"Could not open the Mufumbwe map. Please try again.");}
-    finally{b.disabled=false;}
-  });
-  $("#twendeContinueBooking").addEventListener("click",async()=>{
-    const button=$("#twendeContinueBooking");
-    button.disabled=true;
-    try{
-      // GPS is the default pickup method. The passenger can still fall back
-      // to typed place search if permission is denied or GPS is unavailable.
-      if(!userPoint){
-        const typedPickupBeforeGps=$("#twendePickupSearch").value.trim();
-        const destinationBeforeGps=$("#twendeDestinationSearch").value.trim();
-        setStatus("Getting your current GPS position for pickup…");
-        try{
-          await locate();
-          if(destinationBeforeGps){
-            $("#twendeDestinationSearch").value=destinationBeforeGps;
-            $("#rideDestination").value=destinationBeforeGps;
-          }
-        }catch(gpsError){
-          if(!typedPickupBeforeGps){setStatus((gpsError.message||"GPS unavailable.")+" Enter a pickup place to continue.");return;}
-          $("#twendePickupSearch").value=typedPickupBeforeGps;
-          if(destinationBeforeGps)$("#twendeDestinationSearch").value=destinationBeforeGps;
-          setStatus("GPS unavailable. Finding the pickup address you entered…");
-        }
-      }
-      // Accept typed place names as a fallback, without requiring a suggestion tap.
-      if(!userPoint){
-        const typedPickup=$("#twendePickupSearch").value.trim();
-        if(!typedPickup){setStatus("Use GPS to set your pickup, or enter a pickup place.");return;}
-        setStatus("Finding your pickup place…");
-        const matches=await searchPlaces(typedPickup);
-        if(!matches.length){setStatus("Pickup place not found. Use GPS or try a nearby landmark.");return;}
-        userPoint=matches[0];
-        window.twendePickupCoords=userPoint;
-        $("#twendePickupSearch").value=userPoint.label;
-        if($("#twendeMapDetails")?.open){await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],15);}
-      }
-      if(!destinationPoint){
-        const typedDestination=$("#twendeDestinationSearch").value.trim();
-        if(!typedDestination){setStatus("Enter and select a destination before continuing.");return;}
-        setStatus("Finding your destination…");
-        const matches=await searchPlaces(typedDestination);
-        if(!matches.length){setStatus("Destination not found. Try a nearby town, school, clinic or landmark.");return;}
-        destinationPoint=matches[0];
-        window.twendeDestinationCoords=destinationPoint;
-        $("#twendeDestinationSearch").value=destinationPoint.label;
-        if($("#twendeMapDetails")?.open){await ensureMap();showDestination();}
-      }
-      $("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;
-      window.twendePickupCoords=userPoint;window.twendeDestinationCoords=destinationPoint;
-      // Optional route preview must never delay opening the booking form.
-      if(map && $("#twendeMapDetails")?.open) drawRoute().catch(error=>console.warn("Optional route preview:",error));
-      const service=$("#twendeMapService").value;
-      const rideButton=document.querySelector('[data-ride-service="'+service+'"]');
-      if(rideButton){
-        window.twendeBookingViaLocation=true;
-        rideButton.click();
-        setTimeout(()=>{$("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;},250);
-      }
-    }catch(e){setStatus(e.message||"Could not prepare this booking. Please try another pickup or destination.");}
-    finally{button.disabled=false;}
-  });
-  document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>{
-    if(userPoint){window.twendePickupCoords=userPoint;setTimeout(()=>{$("#ridePickup").value=userPoint.label; if(destinationPoint)$("#rideDestination").value=destinationPoint.label;},180);}
-  },true));
-  // Taxi-card taps are the passenger's booking gesture: obtain GPS pickup
-  // immediately, retain the selected destination, then open the booking form.
-  document.addEventListener("click",async event=>{
-    const ride=event.target.closest("[data-ride-service]");
-    if(!ride)return;
-    if(window.twendeBookingViaLocation){window.twendeBookingViaLocation=false;return;}
-    event.preventDefault();event.stopImmediatePropagation();
-    const service=ride.dataset.rideService;
-    $("#twendeMapService").value=service;
-    const destinationText=$("#twendeDestinationSearch").value.trim();
-    if(!userPoint){
-      setStatus("Setting your pickup from GPS…");
-      try{await locate();}
-      catch(error){
-        setStatus((error.message||"GPS unavailable.")+" Please allow location access or enter your pickup.");
-        $("#twendePickupSearch")?.focus();
-        return;
-      }
-      // locate() clears destination because a new pickup may change the route.
-      if(destinationText){
-        $("#twendeDestinationSearch").value=destinationText;
-        $("#rideDestination").value=destinationText;
-      }
+      setStatus("Your pickup is set. Choose Book TWENDE Taxi or Book TWENDE Motorcycle.");
+    }catch(error){
+      setStatus(error.message||"Could not get your current location. Check device GPS permissions and try again.");
+    }finally{
+      button.disabled=false;
+      button.textContent="➤  Use my current location";
     }
-    $("#twendeContinueBooking").click();
-  },true);
+  });
   window.addEventListener("twende-session-ready",()=>{if(map&&userPoint)refreshDrivers();});
   const originalRefresh=window.refreshTwendeRideViews;
   window.refreshTwendeRideViews=async()=>{await originalRefresh?.();if(map&&userPoint)await refreshDrivers();};
