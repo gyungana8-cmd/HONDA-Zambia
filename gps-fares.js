@@ -251,48 +251,10 @@
     $("#rideDialog")?.addEventListener("toggle",()=>{
       if($("#rideDialog").open)setTimeout(schedulePassengerFare,300);
     });
-    rideForm.addEventListener("submit",async e=>{
-      e.preventDefault(); e.stopImmediatePropagation();
-      const b=e.submitter||submit; if(!window.currentTwendeUser){notify("Please sign in first.");return;}
-      b.disabled=true;
-      try {
-        notify("Getting your pickup location…");
-        const pickupLabel=$("#ridePickup").value.trim();
-        const destinationLabel=$("#rideDestination").value.trim();
-        const type=$("#rideServiceType").value;
-        notify("Checking your route and fare estimate…");
-        let currentEstimate=passengerFareEstimate;
-        if(!currentEstimate||currentEstimate.pickupLabel!==pickupLabel||
-           currentEstimate.destinationLabel!==destinationLabel||currentEstimate.type!==type) {
-          currentEstimate=await calculatePassengerFare(true);
-        }
-        if(!currentEstimate) throw new Error("A fare estimate could not be calculated. Check your pickup and destination.");
-        const pickup=currentEstimate.pickup;
-        const destination=currentEstimate.destination;
-        const km=currentEstimate.km;
-        const fare=currentEstimate.fare;
-        estimate.textContent="Estimated road distance: "+km.toFixed(1)+" km • Estimated fare: "+money(fare)+" (cash to driver)";
-        const row={
-          rider_id:window.currentTwendeUser.id,
-          passenger_name:$("#passengerName").value.trim(),
-          passenger_phone:$("#passengerPhone").value.trim(),
-          service_type:type,pickup_text:$("#ridePickup").value.trim(),
-          destination_text:$("#rideDestination").value.trim(),
-          payment_method:"cash",status:"pending",
-          pickup_lat:pickup.lat,pickup_lng:pickup.lng,
-          destination_lat:destination.lat,destination_lng:destination.lng,
-          route_distance_km:Number(km.toFixed(2)),estimated_fare:Number(fare.toFixed(2)),fare_currency:"ZMW"
-        };
-        const {error}=await window.twendeDb.from("ride_requests").insert(row);
-        if(error) throw error;
-        $("#rideDialog").close(); rideForm.reset();
-        notify("Taxi request sent. Estimate "+money(fare)+" for "+km.toFixed(1)+" km. Confirm final fare with driver.");
-        await window.refreshTwendeRideViews?.();
-      } catch(err) {
-        console.error("GPS/fare request:",err);
-        notify(err.message||"Could not calculate the route and fare.");
-      } finally {b.disabled=false;}
-    },true);
+    // Booking submission is handled by app.js. Do not intercept it here:
+    // the previous capture-phase handler blocked the canonical insert and
+    // made third-party route/fare APIs a hard requirement for every booking.
+
   }
 
   // Show the assigned driver's latest shared location on a passenger's accepted ride.
