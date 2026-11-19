@@ -146,13 +146,36 @@
     if(data.code!=="Ok"||!data.routes?.length) throw new Error("A road route could not be found for those locations.");
     return data.routes[0].distance/1000;
   }
+  // Resolve the shared Supabase client defensively. The booking screen can
+  // open in the Android WebView even when app.js has not exposed its client
+  // yet; never call .from() on an undefined global.
+  function getTwendeFareDb() {
+    if(window.twendeDb && typeof window.twendeDb.from==="function") return window.twendeDb;
+    if(window.supabase && typeof window.supabase.createClient==="function") {
+      const url="https://obgteeruczqlebllrafr.supabase.co";
+      const key="sb_publishable_PeUZGgiMW02w0jstoKhICA_cXw83_Ic";
+      window.twendeDb=window.supabase.createClient(url,key);
+      return window.twendeDb;
+    }
+    throw new Error("TWENDE could not connect to its fare service. Please check your internet connection and reopen the app.");
+  }
   async function fareFor(type,km) {
-    const {data,error}=await window.twendeDb.from("taxi_fare_settings")
+    if(!["car","motorcycle"].includes(type)) throw new Error("Please select a valid TWENDE taxi type.");
+    const db=getTwendeFareDb();
+    const {data,error}=await db.from("taxi_fare_settings")
       .select("base_fare,per_km,minimum_fare,is_active").eq("service_type",type).maybeSingle();
-    if(error) throw new Error("Fare settings are not installed yet. Apply the GPS and fares SQL migration.");
-    if(!data?.is_active) throw new Error("TWENDE has not activated the approved "+type+" fare rate yet.");
-    const calculated=Number(data.base_fare)+km*Number(data.per_km);
-    return Math.max(Number(data.minimum_fare),calculated);
+    if(error) {
+      console.error("TWENDE fare settings lookup:",error);
+      throw new Error("TWENDE could not load the "+type+" fare rate. Please try again.");
+    }
+    if(!data) throw new Error("The "+type+" fare rate has not been configured in TWENDE yet.");
+    if(!data.is_active) throw new Error("TWENDE "+type+" bookings are temporarily unavailable.");
+    const base=Number(data.base_fare), rate=Number(data.per_km), minimum=Number(data.minimum_fare);
+    if(!Number.isFinite(base)||!Number.isFinite(rate)||!Number.isFinite(minimum)) {
+      throw new Error("The "+type+" fare settings contain an invalid amount. Please contact TWENDE support.");
+    }
+    const calculated=base+km*rate;
+    return Math.max(minimum,calculated);
   }
   function startDriverGps() {
     if(driverWatchId!==null || !navigator.geolocation) return;
