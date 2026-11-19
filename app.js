@@ -335,43 +335,48 @@ $("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
    Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
 let selectedRideService = "motorcycle";
 let pendingPassengerService=null;
-async function openRideDialog(service,skipLocationPrompt=false) {
-  // Start the anonymous passenger session at the moment a passenger chooses
-  // a taxi. Previously the dialog required currentUser, while the anonymous
-  // session was only created after submitting the dialog (an unreachable flow).
-  if(!currentUser){
-    try{
-      const {data,error}=await db.auth.signInAnonymously();
-      if(error)throw error;
-      if(!data?.session?.user)throw new Error("Passenger session could not start. Please try again.");
-      await onSession(data.session);
-    }catch(error){
-      console.error("TWENDE passenger session:",error);
-      toast(error?.message||"Passenger access could not start. Please check your connection and try again.");
-      return;
-    }
-  }
-  const guest=isGuestRider();
-  // Guest passengers enter their contact details directly in the booking form.
-  // Registered users without a phone number complete the existing phone step.
-  if(!guest&&!currentProfile?.phone){
-    pendingPassengerService=service;
-    $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
-    $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
-    $("#authDialog").showModal();return;
-  }
-  if(!skipLocationPrompt && !window.twendePickupCoords){
-    pendingPassengerService=service;
-    $("#locationPermissionDialog").showModal();
-    return;
-  }
-  selectedRideService=service;$("#rideServiceType").value=service;
+function openRideDialog(service) {
+  // Always open the booking form immediately. GPS and destination selection
+  // are handled on the home screen; they must not block the service buttons.
+  selectedRideService=service;
+  $("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
-  const rideArt=$("#rideServiceArt");if(rideArt)rideArt.innerHTML=twendeVehicleImage(service,service==="car"?"TWENDE branded car taxi":"TWENDE branded motorcycle taxi");
+  const rideArt=$("#rideServiceArt");
+  if(rideArt)rideArt.innerHTML=twendeVehicleImage(service,service==="car"?"TWENDE branded car taxi":"TWENDE branded motorcycle taxi");
+  const pickup=$("#ridePickup"), destination=$("#rideDestination");
+  if(pickup&&!pickup.value){
+    pickup.value=window.twendePickupCoords?.label||$("#twendeCurrentLocation")?.textContent?.trim()||"Current GPS location";
+  }
+  if(destination&&!destination.value&&window.twendeDestinationCoords?.label){
+    destination.value=window.twendeDestinationCoords.label;
+  }
   $("#passengerName").value=currentProfile?.full_name||"";
   $("#passengerPhone").value=currentProfile?.phone||"";
-  $("#rideDialog").showModal();
-  loadAvailableTaxiFleet(service);
+  const dialog=$("#rideDialog");
+  if(!dialog.open)dialog.showModal();
+
+  // Prepare passenger session/profile after the form is visible.
+  (async()=>{
+    try{
+      let {data,error}=await db.auth.getSession();
+      if(error)throw error;
+      let session=data?.session;
+      if(!session){
+        const guest=await db.auth.signInAnonymously();
+        if(guest.error)throw guest.error;
+        session=guest.data?.session;
+      }
+      if(!session?.user)throw new Error("Passenger session could not start. Check your internet connection.");
+      if(!currentUser||currentUser.id!==session.user.id)await onSession(session);
+      if($("#passengerName")&&!$("#passengerName").value)$("#passengerName").value=currentProfile?.full_name||"";
+      if($("#passengerPhone")&&!$("#passengerPhone").value)$("#passengerPhone").value=currentProfile?.phone||"";
+      await loadAvailableTaxiFleet(service);
+    }catch(error){
+      console.error("TWENDE passenger setup:",error);
+      const msg=$("#rideSubmitMessage");
+      if(msg){msg.hidden=false;msg.textContent="Passenger setup: "+(error?.message||"Please check your connection.");msg.style.display="block";}
+    }
+  })();
 }
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#twendeBellButton")?.addEventListener("click",()=>document.querySelector('[data-hub="orders"]')?.click());
