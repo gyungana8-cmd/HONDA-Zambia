@@ -23,26 +23,23 @@
   const panel=document.createElement("section");
   panel.className="twende-live-panel";
   panel.innerHTML=`
-    <div class="section-heading"><div><span class="eyebrow">MU FUMBWE LAUNCH AREA</span><h2>Where to?</h2><p class="muted">TWENDE prioritises local Mufumbwe journeys. Inter-district trips across Zambia are also welcome.</p></div></div>
-    <div class="twende-live-controls">
-      <label>Pickup location
-        <input id="twendePickupSearch" type="text" placeholder="Tap Use GPS or select your pickup on the map" autocomplete="off">
-      </label>
-      <label>Destination
-        <input id="twendeDestinationSearch" type="search" placeholder="Search town, school, clinic or landmark" autocomplete="off">
-      </label>
+    <div class="twende-location-fields">
+      <label class="twende-location-field"><span class="twende-location-symbol pickup-symbol" aria-hidden="true"></span><input id="twendePickupSearch" type="text" value="Mufumbwe, Mufumbwe District, North-Western Province" placeholder="Enter pickup location" autocomplete="off" aria-label="Pickup location"></label>
+      <div id="twendePickupResults" class="twende-place-results"></div>
+      <label class="twende-location-field"><span class="twende-location-symbol destination-symbol" aria-hidden="true">◎</span><input id="twendeDestinationSearch" type="search" value="Mufumbwe District Hospital, Mufumbwe" placeholder="Enter destination" autocomplete="off" aria-label="Destination"></label>
+      <div id="twendeDestinationResults" class="twende-place-results"></div>
+      <button class="twende-use-location" id="twendeLocateMe" type="button"><span aria-hidden="true">➤</span> Use my current location</button>
     </div>
-    <div id="twendePickupResults" class="twende-place-results"></div>
-    <div id="twendeDestinationResults" class="twende-place-results"></div>
-    <div class="twende-live-actions">
-      <button class="btn btn-red" id="twendeLocateMe" type="button">📍 Detect my pickup with GPS</button>
-      <button class="btn btn-outline" id="twendeMufumbwePickup" type="button">Choose pickup in Mufumbwe</button>
+    <div class="twende-location-extra">
+      <button class="btn btn-outline" id="twendeMufumbwePickup" type="button">Choose pickup on map</button>
       <select id="twendeMapService" aria-label="Taxi type"><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select>
       <button class="btn btn-outline" id="twendeContinueBooking" type="button">Continue to booking</button>
     </div>
-    <p id="twendeMapStatus" class="twende-map-status" role="status">Tap Detect my pickup with GPS, or tap your pickup point on the map. Allow location access when Chrome asks.</p>
-    <div id="twendePassengerMap" aria-label="Map showing pickup, destination and nearby TWENDE taxis"></div>
-    <div class="twende-map-legend"><span><i class="twende-map-dot"></i>Pickup</span><span><i class="twende-map-dot dest"></i>Destination</span><span><i class="twende-map-dot car"></i>Car taxi</span><span><i class="twende-map-dot bike"></i>Motorcycle taxi</span></div>
+    <p id="twendeMapStatus" class="twende-map-status" role="status">Edit your pickup and destination, or use your current location.</p>
+    <details id="twendeMapDetails" class="twende-map-details"><summary>View map and choose a location</summary>
+      <div id="twendePassengerMap" aria-label="Map showing pickup, destination and nearby TWENDE taxis"></div>
+      <div class="twende-map-legend"><span><i class="twende-map-dot"></i>Pickup</span><span><i class="twende-map-dot dest"></i>Destination</span><span><i class="twende-map-dot car"></i>Car taxi</span><span><i class="twende-map-dot bike"></i>Motorcycle taxi</span></div>
+    </details>
   `;
   const serviceGrid=home.querySelector(".service-grid");
   if(serviceGrid) home.insertBefore(panel,serviceGrid);
@@ -448,10 +445,19 @@
   document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>{
     if(userPoint){window.twendePickupCoords=userPoint;setTimeout(()=>{$("#ridePickup").value=userPoint.label; if(destinationPoint)$("#rideDestination").value=destinationPoint.label;},180);}
   },true));
+  // Let the passenger-facing taxi cards use the same place validation and booking path.
+  document.addEventListener("click",event=>{
+    const ride=event.target.closest("[data-ride-service]");
+    if(!ride)return;
+    if(window.twendeBookingViaLocation){window.twendeBookingViaLocation=false;return;}
+    event.preventDefault();event.stopImmediatePropagation();
+    $("#twendeMapService").value=ride.dataset.rideService;
+    $("#twendeContinueBooking").click();
+  },true);
   window.addEventListener("twende-session-ready",()=>{if(userPoint)refreshDrivers();});
   const originalRefresh=window.refreshTwendeRideViews;
   window.refreshTwendeRideViews=async()=>{await originalRefresh?.();if(userPoint)await refreshDrivers();};
   refreshTimer=setInterval(()=>{if(userPoint&&window.currentTwendeUser)refreshDrivers();},12000);
   window.addEventListener("beforeunload",()=>clearInterval(refreshTimer));
-  ensureMap().catch(e=>setStatus(e.message));
+  $("#twendeMapDetails")?.addEventListener("toggle",()=>{if($("#twendeMapDetails").open)ensureMap().then(()=>setTimeout(()=>map?.invalidateSize(true),100)).catch(e=>setStatus(e.message));});
 })();
