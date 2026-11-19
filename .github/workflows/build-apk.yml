@@ -159,6 +159,15 @@ jobs:
           grep -q 'android:icon="@mipmap/ic_launcher"' "$MANIFEST"
           echo "TWENDE app name and launcher icon verified"
 
+      - name: Validate TWENDE JavaScript modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          for FILE in app.js gps-fares.js passenger-map.js twende-account-ui.js twende-mobile-shell.js; do
+            node --check "$FILE"
+            echo "Syntax OK: $FILE"
+          done
+
       - name: Build Android APK
         shell: bash
         run: |
