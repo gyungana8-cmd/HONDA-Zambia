@@ -21,6 +21,12 @@ if "com.onesignal:OneSignal" not in app.read_text():
 s=manifest.read_text()
 if 'android.permission.POST_NOTIFICATIONS' not in s:
     s=s.replace('<uses-permission android:name="android.permission.INTERNET" />','<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',1)
+# Set the Android launcher/app name exactly as requested.
+if 'android:label=' in s:
+    import re
+    s=re.sub(r'android:label="[^"]*"', 'android:label="TWENDE"', s, count=1)
+else:
+    s=s.replace('<application ', '<application android:label="TWENDE" ', 1)
 manifest.write_text(s)
 s=activity.read_text()
 if 'TwendeOneSignal' not in s:
