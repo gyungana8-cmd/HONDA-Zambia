@@ -25,7 +25,7 @@ function updateUI() {
   document.body.classList.toggle("passenger-mode",guest);
   document.body.classList.toggle("operator-mode",!!currentUser&&!guest);
   $("#accountStatus").textContent = guest ? "Passenger" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
-  $("#authButton").classList.toggle("hidden", true);
+  $("#authButton").classList.toggle("hidden", !!currentUser && !guest);
   $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
   $("#dashTitle").textContent = "Driver dashboard";
   $("#switchRole")?.classList.add("hidden");
@@ -240,7 +240,15 @@ $("#bookingForm").onsubmit=async e=>{
 };
 
 function openOwnerForm() {
-  if(!currentUser || isGuestRider()){toast("Create a driver / owner account to publish a motorcycle.");$("#loginForm").classList.add("hidden");$("#registerForm").classList.remove("hidden");$("#authDialog").showModal();return;}
+  if(!currentUser || isGuestRider()){
+    $("#loginForm").classList.remove("hidden");
+    $("#registerForm").classList.add("hidden");
+    $("#passengerPhoneForm").classList.add("hidden");
+    $("#passengerOtpForm").classList.add("hidden");
+    $("#passengerNameForm").classList.add("hidden");
+    $("#authDialog").showModal();
+    return;
+  }
   if(!["owner","both"].includes(currentProfile?.role)){toast("Your account is registered as a rider. Switch your account type to owner to publish a motorcycle.");return;}
   $("#ownerDialog").showModal();
 }
