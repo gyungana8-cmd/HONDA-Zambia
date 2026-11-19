@@ -64,11 +64,20 @@ async function loadProfile(user) {
   await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
 }
 // OneSignal user identity is the Supabase Auth UUID; never expose REST credentials here.
+let oneSignalPermissionRequested = false;
 function syncOneSignalIdentity(user) {
   const bridge = window.TwendeOneSignal;
   if (!bridge) return; // Browser preview has no native Android bridge.
-  if (user?.id) bridge.identify(user.id);
-  else bridge.logout();
+  if (user?.id) {
+    bridge.identify(user.id);
+    // Ask once per app session so Android can register this device for push.
+    if (!oneSignalPermissionRequested) {
+      oneSignalPermissionRequested = true;
+      bridge.requestPermission();
+    }
+  } else {
+    bridge.logout();
+  }
 }
 
 async function onSession(session) {
