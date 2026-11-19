@@ -26,8 +26,8 @@
   panel.className="twende-live-panel";
   panel.innerHTML=`
     <div class="twende-gps-card">
-      <h3>Where to?</h3>
-      <p>Set your pickup automatically using your current location.</p>
+      <h3>Pickup location</h3>
+      <p>Use GPS to set your pickup and find nearby TWENDE taxis.</p>
       <button class="twende-use-location" id="twendeLocateMe" type="button">➤ &nbsp; Use my current location</button>
     </div>
     <p id="twendeMapStatus" class="twende-map-status" role="status">Use your current location to see the map and nearby TWENDE taxis.</p>
