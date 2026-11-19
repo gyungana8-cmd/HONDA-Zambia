@@ -157,11 +157,9 @@
     // never prevent a valid GPS fix from becoming the passenger's pickup.
     userPoint={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"Current GPS location ("+pos.coords.latitude.toFixed(5)+", "+pos.coords.longitude.toFixed(5)+")"};
     window.twendePickupCoords=userPoint;
-    $("#twendePickupSearch").value=userPoint.label;
     $("#ridePickup").value=userPoint.label;
     destinationPoint=null;
     window.twendeDestinationCoords=null;
-    $("#twendeDestinationSearch").value="";
     $("#rideDestination").value="";
     setStatus("GPS found your pickup. Updating the address…");
     $("#twendeMapDetails").hidden=false;
@@ -178,7 +176,6 @@
     reverse(userPoint.lat,userPoint.lng).then(address=>{
       if(address && address!=="Current GPS location"){
         userPoint.label=address;
-        $("#twendePickupSearch").value=address;
         $("#ridePickup").value=address;
       }
       setStatus("Pickup located by GPS. Choose your destination.");
