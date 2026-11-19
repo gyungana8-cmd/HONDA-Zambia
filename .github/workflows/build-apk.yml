@@ -133,7 +133,9 @@ jobs:
             cp -f assets/*.jpeg "$ASSET_DIR/assets/" 2>/dev/null || true
             test -s "$ASSET_DIR/assets/twende-car-v2.svg"
             test -s "$ASSET_DIR/assets/twende-motorcycle-v2.svg"
-            echo "Verified TWENDE branded car and motorcycle artwork in Android assets"
+            test -s "$ASSET_DIR/assets/twende-car-photo.jpg"
+            test -s "$ASSET_DIR/assets/twende-motorcycle-photo.jpg"
+            echo "Verified TWENDE branded car and motorcycle illustrations and photo assets in Android assets"
             ls -lh "$ASSET_DIR/assets/" | grep -E 'twende-(car|motorcycle)-(v2.svg|photo)' || true
           else
             echo "ERROR: TWENDE image assets directory is missing"
@@ -184,7 +186,9 @@ jobs:
           unzip -l "$APK_FILE" | tee /tmp/twende-apk-assets.txt
           grep -q 'assets/assets/twende-car-v2.svg' /tmp/twende-apk-assets.txt
           grep -q 'assets/assets/twende-motorcycle-v2.svg' /tmp/twende-apk-assets.txt
-          echo "Both branded taxi illustrations are present in the APK"
+          grep -q 'assets/assets/twende-car-photo.jpg' /tmp/twende-apk-assets.txt
+          grep -q 'assets/assets/twende-motorcycle-photo.jpg' /tmp/twende-apk-assets.txt
+          echo "Both branded taxi images and illustrations are present in the APK"
 
       - name: Verify GPS permissions in packaged APK
         shell: bash
