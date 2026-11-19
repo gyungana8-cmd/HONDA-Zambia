@@ -204,26 +204,20 @@
     return userPoint;
   }
   async function searchPlaces(q){
-    if(q.trim().length<3)return [];
+    const query=q.trim();
+    if(query.length<3)return [];
+    const normalizedInput=query.toLowerCase();
+    // Known Mufumbwe places are resolved locally without network delay.
+    if(/^mufumbwe(?: district)?(?:,.*)?$/i.test(query)){
+      return [{lat:-13.13683,lng:25.00296,label:"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia"}];
+    }
+    if(/mufumbwe.*district.*hospital|district.*hospital.*mufumbwe|mufumbwe hospital/i.test(query)){
+      return [{lat:-13.144667,lng:25.034417,label:"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia"}];
+    }
+    const normalized=normalizedInput.replace(/\\s+/g," ");
+    if(cache.has(normalized))return cache.get(normalized);
     const center=userPoint||{lat:fallbackCenter[0],lng:fallbackCenter[1]};
     const found=[],seen=new Set();
-    // Prioritise Mufumbwe District Hospital for any Mufumbwe search,
-    // including the short query "Mufumbwe". Add it before remote providers
-    // so the 15-result limit cannot hide this important destination.
-    if (/^mufumbwe(?: district)?$/i.test(q.trim())) {
-      // Town-centre pin is the safe default for a broad Mufumbwe pickup query;
-      // do not use the district-wide centroid for a local taxi fare.
-      const townLat=-13.13683,townLng=25.00296;
-      const townKey=townLat.toFixed(4)+","+townLng.toFixed(4);
-      seen.add(townKey);
-      found.push({lat:townLat,lng:townLng,label:"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia"});
-    }
-    if (/mufumbwe/i.test(q)) {
-      const hospitalLat=-13.144667, hospitalLng=25.034417;
-      const hospitalKey=hospitalLat.toFixed(4)+","+hospitalLng.toFixed(4);
-      seen.add(hospitalKey);
-      found.push({lat:hospitalLat,lng:hospitalLng,label:"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia"});
-    }
     const add=(lat,lng,label)=>{
       lat=Number(lat);lng=Number(lng);
       if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat < -18.5||lat > -8||lng < 21||lng > 34)return;
@@ -245,6 +239,8 @@
         }
       }
     }catch(e){console.warn("Photon search:",e);}
+    // Use slower school-register and Nominatim lookups only if Photon found nothing.
+    if(found.length){const result=found.slice(0,15);cache.set(normalized,result);return result;}
     // Zambia GRID3/NSDI operational school point register. This is a
     // province-wide school dataset compiled from ZamStats and Ministry of
     // General Education sources; query North-Western Province by school name.
@@ -305,7 +301,7 @@
     if (/mufumbwe.*district.*hospital|district.*hospital.*mufumbwe|mufumbwe hospital/i.test(query)) {
       add(-13.144667,25.034417,"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia");
     }
-    return found.slice(0,15);
+    const result=found.slice(0,15);cache.set(normalized,result);return result;
   }
   function addSearch(inputId,resultsId,onSelect){
     const input=$("#"+inputId),results=$("#"+resultsId);let timer=null;
