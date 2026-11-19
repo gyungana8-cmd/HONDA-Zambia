@@ -28,14 +28,14 @@
       <div id="twendePickupResults" class="twende-place-results"></div>
       <label class="twende-location-field"><span class="twende-location-symbol destination-symbol" aria-hidden="true">◎</span><input id="twendeDestinationSearch" type="search" value="Mufumbwe District Hospital, Mufumbwe" placeholder="Enter destination" autocomplete="off" aria-label="Destination"></label>
       <div id="twendeDestinationResults" class="twende-place-results"></div>
-      <button class="twende-use-location" id="twendeLocateMe" type="button"><span aria-hidden="true">➤</span> Use my current location</button>
+      <button class="twende-use-location" id="twendeLocateMe" type="button"><span aria-hidden="true">➤</span> Use GPS for pickup</button>
     </div>
     <div class="twende-location-extra">
       <button class="btn btn-outline" id="twendeMufumbwePickup" type="button">Choose pickup on map</button>
       <select id="twendeMapService" aria-label="Taxi type"><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select>
       <button class="btn btn-outline" id="twendeContinueBooking" type="button">Continue to booking</button>
     </div>
-    <p id="twendeMapStatus" class="twende-map-status" role="status">Edit your pickup and destination, or use your current location.</p>
+    <p id="twendeMapStatus" class="twende-map-status" role="status">Tap a taxi to set pickup automatically with GPS, then choose your destination.</p>
     <details id="twendeMapDetails" class="twende-map-details"><summary>View map and choose a location</summary>
       <div id="twendePassengerMap" aria-label="Map showing pickup, destination and nearby TWENDE taxis"></div>
       <div class="twende-map-legend"><span><i class="twende-map-dot"></i>Pickup</span><span><i class="twende-map-dot dest"></i>Destination</span><span><i class="twende-map-dot car"></i>Car taxi</span><span><i class="twende-map-dot bike"></i>Motorcycle taxi</span></div>
