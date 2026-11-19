@@ -7,28 +7,24 @@
 </head>
 <body>
 <div id="twendeSplash" class="twende-splash" role="status" aria-label="TWENDE is loading"><img src="twende-logo.svg" alt=""><strong>TWENDE</strong><span>ZAMBIA</span><i>Move with confidence</i></div>
-<header class="topbar">
-<a class="brand" href="#" aria-label="TWENDE Zambia home"><img class="twende-logo" src="twende-logo.svg" alt="TWENDE Zambia"><span class="brand-wordmark">TWENDE <small>ZAMBIA</small></span></a>
+<header class="topbar twende-app-header">
 <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
-<nav id="nav"><a href="#driverTaxiRequests">Taxi rides</a><a href="#driver-panel">Dashboard</a><a href="#adminPanel" id="adminNav" class="hidden">Admin</a></nav>
-<span id="accountStatus" class="account-status">Not signed in</span>
+<a class="brand twende-app-brand" href="#" aria-label="TWENDE Zambia home"><span class="brand-speed-lines" aria-hidden="true">≋</span><span class="brand-wordmark">TWENDE <small>ZAMBIA</small></span></a>
+<nav id="nav" class="hidden"><a href="#driverTaxiRequests">Taxi rides</a><a href="#driver-panel">Dashboard</a><a href="#adminPanel" id="adminNav" class="hidden">Admin</a></nav>
+<span id="accountStatus" class="account-status">Passenger</span>
 <button class="btn btn-outline" id="authButton">Driver / owner sign in</button>
 <button class="btn btn-outline hidden" id="signOutButton">Sign out</button>
+<button class="twende-notification-button" id="twendeBellButton" type="button" aria-label="Open your orders"><span aria-hidden="true">♧</span><i></i></button>
 </header>
 <main>
-<section class="hero"><div class="hero-copy"><span class="eyebrow">MOTORCYCLE HIRE, MADE SIMPLE</span>
-<h1>Your next ride<br><em>starts here.</em></h1>
-<p>Book a car or motorcycle taxi without creating a passenger account. Drivers and motorcycle owners create accounts to earn with TWENDE.</p>
-<div class="hero-actions"><a class="btn btn-red" href="#ride-services">Request a taxi</a><button class="btn btn-light" id="ownerHero">Driver / owner access</button></div>
-<div class="trust-row"><span>✓ Local owners</span><span>✓ Clear hire rates</span><span>✓ Zambia-focused</span></div></div>
-<div class="hero-art"><div class="art-circle"></div><img class="twende-hero-vehicle-image" src="assets/twende-motorcycle-v2.svg" alt="TWENDE branded motorcycle taxi"><div class="art-label"><b>TWENDE</b><span>Move with confidence</span></div></div></section>
+
 <section class="section ride-services" id="ride-services">
-<div class="section-heading"><div><span class="eyebrow">GET THERE WITH TWENDE</span><h2>Where are you going?</h2><p class="muted">Choose your TWENDE ride and travel with confidence.</p></div></div>
+<div class="section-heading"><div><span class="eyebrow">TWENDE ZAMBIA</span><h2>Where to?</h2><p class="muted">Choose your pickup and destination.</p></div></div>
 <div class="service-grid">
-<article class="service-card"><img class="service-vehicle-image" src="assets/twende-car-v2.svg" alt="TWENDE branded yellow-and-black car taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Car Taxi</p><button class="btn btn-red full" data-ride-service="car">Book TWENDE Taxi</button></div></article>
-<article class="service-card"><img class="service-vehicle-image" src="assets/twende-motorcycle-v2.svg" alt="TWENDE branded yellow-and-black motorcycle taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Motorcycle Taxi</p><button class="btn btn-red full" data-ride-service="motorcycle">Book TWENDE Motorcycle</button></div></article>
+<article class="service-card"><img class="service-vehicle-image" src="assets/twende-car-photo.jpg" alt="TWENDE branded white and yellow car taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Car Taxi</p><button class="btn btn-red full" data-ride-service="car">Book TWENDE Taxi</button></div></article>
+<article class="service-card"><img class="service-vehicle-image" src="assets/twende-motorcycle-photo.jpg" alt="TWENDE branded yellow and black motorcycle taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Motorcycle Taxi</p><button class="btn btn-red full" data-ride-service="motorcycle">Book TWENDE Motorcycle</button></div></article>
 </div>
-<p class="muted cash-note">Cash payment • GPS pickup and route-based fare estimates are being introduced. The estimate appears once TWENDE activates its approved rates; confirm the final fare with your driver.</p>
+
 <div id="passengerRides" class="dashboard-content"></div>
 </section>
 <section class="section driver-panel" id="driver-panel"><div class="section-heading"><div><span class="eyebrow">TWENDE OPERATIONS</span><h2>Driver dashboard</h2><p class="muted">Manage your approved car or motorcycle taxi, stay online and receive requests automatically.</p></div><button class="btn btn-red" id="driverRegisterBtn">Register a vehicle</button></div><div id="driverDashboard" class="dashboard-content"><p class="muted">Sign in and register your vehicle to get started. Driver accounts require verification before going online.</p></div></section>
@@ -42,6 +38,12 @@
 <section class="section hidden" id="adminPanel"><div class="section-heading"><div><span class="eyebrow">TWENDE CONTROL CENTRE</span><h2>Administrator dashboard</h2><p class="muted">Review driver applications and verify their documents before approval.</p></div><button class="btn btn-outline" id="refreshAdmin">Refresh</button></div><div id="adminContent" class="dashboard-content"><p class="muted">Checking administrator access…</p></div></section>
 <section class="section dashboard" id="dashboard"><div class="section-heading"><div><span class="eyebrow">YOUR SPACE</span><h2 id="dashTitle">Your dashboard</h2></div><button class="btn btn-outline" id="switchRole">Switch to owner</button></div><p id="dashboardIntro" class="muted">Sign in to view your bookings and listings.</p><div id="dashboardContent" class="dashboard-content"></div></section>
 </main>
+<nav class="twende-bottom-nav" aria-label="Passenger navigation">
+<button type="button" id="twendeTabHome" class="active"><span>⌂</span><b>Home</b></button>
+<button type="button" id="twendeTabOrders"><span>▤</span><b>Orders</b></button>
+<button type="button" id="twendeTabSupport"><span>☏</span><b>Support</b></button>
+<button type="button" id="twendeTabProfile"><span>♙</span><b>My Profile</b></button>
+</nav>
 <footer><a class="brand" href="#" aria-label="TWENDE Zambia home"><img class="twende-logo" src="twende-logo.svg" alt="TWENDE Zambia"><span class="brand-wordmark">TWENDE <small>ZAMBIA</small></span></a><p>Connecting passengers with trusted car and motorcycle taxi drivers across Zambia.</p><button class="text-button" id="driverAccessButton" type="button">Driver / vehicle owner sign in</button><small>TWENDE Zambia • Cash taxi bookings</small></footer>
 <dialog id="authDialog">
 <form id="loginForm" class="dialog-form"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">WELCOME TO TWENDE</span><h2>Sign in</h2>
