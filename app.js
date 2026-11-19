@@ -345,6 +345,7 @@ function openRideDialog(service,skipLocationPrompt=false) {
   }
   selectedRideService=service;$("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
+  const rideArt=$("#rideServiceArt");if(rideArt)rideArt.innerHTML=twendeVehicleImage(service,service==="car"?"TWENDE branded car taxi":"TWENDE branded motorcycle taxi");
   $("#passengerName").value=currentProfile?.full_name||"";
   $("#passengerPhone").value=currentProfile?.phone||"";
   $("#rideDialog").showModal();
