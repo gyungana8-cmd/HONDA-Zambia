@@ -160,21 +160,29 @@
     throw new Error("TWENDE could not connect to its fare service. Please check your internet connection and reopen the app.");
   }
   async function fareFor(type,km) {
-    if(!["car","motorcycle"].includes(type)) throw new Error("Please select a valid TWENDE taxi type.");
+    const service=String(type||"").trim().toLowerCase();
+    if(!["car","motorcycle"].includes(service)) throw new Error("Please select a valid TWENDE taxi type.");
     const db=getTwendeFareDb();
-    const {data,error}=await db.from("taxi_fare_settings")
-      .select("base_fare,per_km,minimum_fare,is_active").eq("service_type",type).maybeSingle();
+    // Fetch the active public tariff rows in one request, then normalize the
+    // service key locally. This avoids a false "not configured" result caused
+    // by mismatched/cached hidden service values in older Android WebViews.
+    const {data:rows,error}=await db.from("taxi_fare_settings")
+      .select("service_type,base_fare,per_km,minimum_fare,is_active")
+      .eq("is_active",true);
     if(error) {
       console.error("TWENDE fare settings lookup:",error);
-      throw new Error("TWENDE could not load the "+type+" fare rate. Please try again.");
+      throw new Error("TWENDE could not load fare settings ("+(error.code||"database error")+"). Please check your connection and try again.");
     }
-    if(!data) throw new Error("The "+type+" fare rate has not been configured in TWENDE yet.");
-    if(!data.is_active) throw new Error("TWENDE "+type+" bookings are temporarily unavailable.");
+    const data=(rows||[]).find(row=>String(row.service_type||"").trim().toLowerCase()===service);
+    if(!data) {
+      console.error("TWENDE active fare rows did not include service:",service,rows);
+      throw new Error("TWENDE could not find an active "+service+" fare in the live fare table. Please refresh the app and try again.");
+    }
     const base=Number(data.base_fare), rate=Number(data.per_km), minimum=Number(data.minimum_fare);
     if(!Number.isFinite(base)||!Number.isFinite(rate)||!Number.isFinite(minimum)) {
-      throw new Error("The "+type+" fare settings contain an invalid amount. Please contact TWENDE support.");
+      throw new Error("The "+service+" fare settings contain an invalid amount. Please contact TWENDE support.");
     }
-    const calculated=base+km*rate;
+    const calculated=base+Number(km)*rate;
     return Math.max(minimum,calculated);
   }
   function startDriverGps() {
