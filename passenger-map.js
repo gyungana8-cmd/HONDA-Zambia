@@ -175,6 +175,8 @@
     userPoint={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"Current GPS location ("+pos.coords.latitude.toFixed(5)+", "+pos.coords.longitude.toFixed(5)+")"};
     window.twendePickupCoords=userPoint;
     $("#ridePickup").value=userPoint.label;
+    const locationLabel=$("#twendeCurrentLocation");
+    if(locationLabel)locationLabel.textContent="Finding your address…";
     destinationPoint=null;
     window.twendeDestinationCoords=null;
     $("#rideDestination").value="";
@@ -194,9 +196,18 @@
       if(address && address!=="Current GPS location"){
         userPoint.label=address;
         $("#ridePickup").value=address;
+        const locationLabel=$("#twendeCurrentLocation");
+        if(locationLabel)locationLabel.textContent=address;
+      }else{
+        const locationLabel=$("#twendeCurrentLocation");
+        if(locationLabel)locationLabel.textContent="Current GPS location";
       }
-      setStatus("Pickup located by GPS. Choose your destination.");
-    }).catch(()=>setStatus("Pickup located by GPS. Choose your destination."));
+      setStatus("Pickup located by GPS. Enter your destination under Where to?.");
+    }).catch(()=>{
+      const locationLabel=$("#twendeCurrentLocation");
+      if(locationLabel)locationLabel.textContent="Current GPS location";
+      setStatus("Pickup located by GPS. Enter your destination under Where to?.");
+    });
     if(map) refreshDrivers().catch(error=>console.warn("TWENDE nearby drivers:",error));
     return userPoint;
   }
@@ -363,6 +374,11 @@
       button.disabled=false;
       button.textContent="Use GPS";
     }
+  });
+  $("#twendeDestinationSearch").addEventListener("input",()=>{
+    const typed=$("#twendeDestinationSearch").value.trim();
+    if(typed){$("#rideDestination").value=typed;}
+    else{$("#rideDestination").value="";destinationPoint=null;window.twendeDestinationCoords=null;}
   });
   addSearch("twendeDestinationSearch","twendeDestinationResults",async place=>{
     destinationPoint=place;
