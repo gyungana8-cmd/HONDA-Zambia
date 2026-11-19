@@ -41,6 +41,7 @@
     renderProfile(); renderContent(section||"profile"); panel.scrollIntoView({behavior:"smooth",block:"start"});
   };
   const hideHub=()=>{panel.classList.remove("is-active");document.body.classList.remove("twende-hub-open");$("#ride-services")?.scrollIntoView({behavior:"smooth",block:"start"});};
+  window.twendeShowPassengerHub = showHub;
   function renderProfile(){
     const p=profile();$("#twendeProfileName").textContent=p.name;$("#twendeProfilePhone").textContent=p.phone||"Phone number not added";$("#twendeProfileEmail").textContent=p.email;
     const a=$("#twendeAvatar");a.textContent=(p.name.trim()[0]||"T").toUpperCase();if(p.avatar){a.innerHTML='<img alt="Profile photo" src="'+p.avatar.replace(/"/g,"&quot;")+'">';}
