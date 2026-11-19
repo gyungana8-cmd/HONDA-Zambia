@@ -14,6 +14,13 @@ const datesOverlap = (aStart,aDays,bStart,bDays) => aStart < addDaysISO(bStart,b
 const localISODate = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 const bikeBookedOn = (bikeId,date) => liveBookings.some(x=>x.motorcycle_id===bikeId && datesOverlap(x.start_date,x.days,date,1));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const TWENDE_VEHICLE_IMAGES = { car: "assets/twende-car-v2.svg", motorcycle: "assets/twende-motorcycle-v2.svg" };
+function twendeVehicleImage(type, altText) {
+  const kind = type === "car" ? "car" : "motorcycle";
+  const fallback = kind === "car" ? "TWENDE branded car taxi" : "TWENDE branded motorcycle taxi";
+  return `<img class="twende-vehicle-art" src="${TWENDE_VEHICLE_IMAGES[kind]}" alt="${esc(altText || fallback)}" loading="lazy">`;
+}
+
 function toast(message) {
   // Native dialogs render in the browser top layer, above ordinary fixed
   // elements such as #toast. Keep booking errors inside the open ride form.
@@ -401,7 +408,7 @@ async function loadAvailableTaxiFleet(service=selectedRideService){
      host.innerHTML='<p class="muted">Nearby vehicles could not be loaded. Please try again.</p>';return;
    }
    const rows=(data||[]).filter(v=>v.vehicle_type===service);
-   const card=v=>`<article class="fleet-vehicle-card"><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")}</strong><span>${esc(v.driver_name||"TWENDE driver")}</span></article>`;
+   const card=v=>`<article class="fleet-vehicle-card">${twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")}</strong><span>${esc(v.driver_name||"TWENDE driver")}</span></div></article>`;
    host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online nearby at the moment.</p>`;
  }
  async function loadPassengerRides(){
@@ -409,7 +416,7 @@ async function loadAvailableTaxiFleet(service=selectedRideService){
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to see your taxi requests.</p>';return;}
   const {data,error}=await db.from("ride_requests").select("id,service_type,pickup_text,destination_text,payment_method,status,created_at,route_distance_km,estimated_fare").eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(8);
   if(error){host.innerHTML='<p class="muted">Taxi request history will appear after the ride-hailing database is configured.</p>';return;}
-  host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
+  host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card twende-ride-history-card">${twendeVehicleImage(x.service_type,x.service_type==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div><h3>${x.service_type==="car"?"Car taxi":"Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></div></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
 }
 $("#driverRegisterBtn").onclick=()=>{
   if(!currentUser || isGuestRider()){toast("Create a driver account before registering your vehicle.");$("#loginForm").classList.add("hidden");$("#registerForm").classList.remove("hidden");$("#authDialog").showModal();return;}
@@ -435,7 +442,7 @@ async function loadDriverDashboard(){
   if(!vehicles?.length){host.innerHTML='<p class="muted">No vehicle registrations found. Register your first car or motorcycle.</p>'+addButton;return;}
   const approved=vehicles.filter(v=>v.approval_status==="approved");
   const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(20);
-  const vehicleCards=vehicles.map(v=>`<article class="dash-card"><h3>${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • ${esc(v.vehicle_type)}</h3><p>Registration: ${esc(v.plate_number)} • Area: ${esc(v.operating_area)}</p><p>Verification: <strong>${esc(v.approval_status)}</strong></p><p>Availability: <strong>${v.is_online?"Online":"Offline"}</strong></p>${v.approval_status==="approved"?`<button class="btn btn-red" data-vehicle-online="${v.id}" data-online="${!v.is_online}">${v.is_online?"Go offline":"Go online"}</button>`:'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>'}</article>`).join("");
+  const vehicleCards=vehicles.map(v=>`<article class="dash-card twende-owner-vehicle-card">${twendeVehicleImage(v.vehicle_type,v.vehicle_type==="car"?"TWENDE branded owner car taxi":"TWENDE branded owner motorcycle taxi")}<div><span class="fleet-brand-tag">TWENDE ${v.vehicle_type==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><h3>${esc(v.vehicle_make)} ${esc(v.vehicle_model)} • ${esc(v.vehicle_type)}</h3><p>Registration: ${esc(v.plate_number)} • Area: ${esc(v.operating_area)}</p><p>Verification: <strong>${esc(v.approval_status)}</strong></p><p>Availability: <strong>${v.is_online?"Online":"Offline"}</strong></p>${v.approval_status==="approved"?`<button class="btn btn-red" data-vehicle-online="${v.id}" data-online="${!v.is_online}">${v.is_online?"Go offline":"Go online"}</button>`:'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>'}</article>`).join("");
   const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>`<article class="dash-card"><h3>${x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi"} request</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>Passenger: ${esc(x.passenger_name)} • ${esc(x.passenger_phone)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p>${x.status==="pending"&&approved.some(v=>v.is_online&&v.vehicle_type===x.service_type)?`<button class="btn btn-red" data-ride-action="accept" data-ride-id="${x.id}">Accept ride</button>`:x.driver_id===currentUser.id&&x.status==="accepted"?`<button class="btn btn-red" data-ride-action="complete" data-ride-id="${x.id}">Complete trip</button>`:""}</article>`).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
   host.innerHTML='<h3>Your vehicles ('+vehicles.length+')</h3>'+vehicleCards+addButton+'<h3 id="driverTaxiRequests">Taxi requests</h3>'+rideCards;
 }
