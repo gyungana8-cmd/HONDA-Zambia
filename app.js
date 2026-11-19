@@ -3,8 +3,11 @@
 const SUPABASE_URL = "https://obgteeruczqlebllrafr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_PeUZGgiMW02w0jstoKhICA_cXw83_Ic";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Expose the shared publishable client immediately for GPS/fare modules.
+window.twendeDb = db;
 
 let currentUser = null, currentProfile = null, role = "rider";
+Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
 let verifiedPassengerPhone = null;
 let selectedBike = null, liveBikes = [], liveBookings = [];
 const $ = s => document.querySelector(s);
