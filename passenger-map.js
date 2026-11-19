@@ -175,7 +175,7 @@
       else if(error.code===2)reject(new Error("Your device could not determine its location. Turn on Location/GPS and try again, or tap your pickup point on the map."));
       else if(error.code===3)reject(new Error("GPS took too long. Move somewhere with a clearer sky view and try again, or tap your pickup point on the map."));
       else reject(new Error("GPS could not find your location. Check device location settings and try again."));
-    },{enableHighAccuracy:true,timeout:30000,maximumAge:0}));
+    },{enableHighAccuracy:true,timeout:15000,maximumAge:60000}));
     // Save exact coordinates immediately. Address lookup is helpful, but must
     // never prevent a valid GPS fix from becoming the passenger's pickup.
     userPoint={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"Current GPS location ("+pos.coords.latitude.toFixed(5)+", "+pos.coords.longitude.toFixed(5)+")"};
@@ -386,8 +386,11 @@
   });
   $("#twendeLocateMe").addEventListener("click",async()=>{
     const b=$("#twendeLocateMe");b.disabled=true;
-    try{await locate();if(destinationPoint)await drawRoute();}
-    catch(e){setStatus(e.message||"Could not locate you. Check GPS permission and internet connection.");}
+    try{
+      await locate();
+      setStatus("Your pickup is set from GPS. Now choose where you want to go.");
+      $("#twendeDestinationSearch")?.focus({preventScroll:true});
+    }catch(e){setStatus((e.message||"Could not locate you.")+" You can still enter your pickup manually.");}
     finally{b.disabled=false;}
   });
   $("#twendeMufumbwePickup").addEventListener("click",async()=>{
@@ -413,14 +416,27 @@
     const button=$("#twendeContinueBooking");
     button.disabled=true;
     try{
-      // Accept typed place names as well as suggestion clicks. Previously,
-      // typing a pickup without tapping a suggestion left userPoint empty.
+      // GPS is the default pickup method. The passenger can still fall back
+      // to typed place search if permission is denied or GPS is unavailable.
       if(!userPoint){
         const typedPickup=$("#twendePickupSearch").value.trim();
-        if(!typedPickup){setStatus("Enter a pickup place or use GPS.");return;}
+        if(!typedPickup || /^(choose|enter|search)/i.test(typedPickup)){
+          setStatus("Getting your current GPS position for pickup…");
+          try{await locate();}
+          catch(gpsError){
+            const fallback=$("#twendePickupSearch").value.trim();
+            if(!fallback){setStatus((gpsError.message||"GPS unavailable.")+" Enter a pickup place to continue.");return;}
+            setStatus("GPS unavailable. Finding the pickup address you entered…");
+          }
+        }
+      }
+      // Accept typed place names as a fallback, without requiring a suggestion tap.
+      if(!userPoint){
+        const typedPickup=$("#twendePickupSearch").value.trim();
+        if(!typedPickup){setStatus("Use GPS to set your pickup, or enter a pickup place.");return;}
         setStatus("Finding your pickup place…");
         const matches=await searchPlaces(typedPickup);
-        if(!matches.length){setStatus("Pickup place not found. Try a nearby town, school, clinic or landmark, or use GPS.");return;}
+        if(!matches.length){setStatus("Pickup place not found. Use GPS or try a nearby landmark.");return;}
         userPoint=matches[0];
         window.twendePickupCoords=userPoint;
         $("#twendePickupSearch").value=userPoint.label;
@@ -454,13 +470,30 @@
   document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>{
     if(userPoint){window.twendePickupCoords=userPoint;setTimeout(()=>{$("#ridePickup").value=userPoint.label; if(destinationPoint)$("#rideDestination").value=destinationPoint.label;},180);}
   },true));
-  // Let the passenger-facing taxi cards use the same place validation and booking path.
-  document.addEventListener("click",event=>{
+  // Taxi-card taps are the passenger's booking gesture: obtain GPS pickup
+  // immediately, retain the selected destination, then open the booking form.
+  document.addEventListener("click",async event=>{
     const ride=event.target.closest("[data-ride-service]");
     if(!ride)return;
     if(window.twendeBookingViaLocation){window.twendeBookingViaLocation=false;return;}
     event.preventDefault();event.stopImmediatePropagation();
-    $("#twendeMapService").value=ride.dataset.rideService;
+    const service=ride.dataset.rideService;
+    $("#twendeMapService").value=service;
+    const destinationText=$("#twendeDestinationSearch").value.trim();
+    if(!userPoint){
+      setStatus("Setting your pickup from GPS…");
+      try{await locate();}
+      catch(error){
+        setStatus((error.message||"GPS unavailable.")+" Please allow location access or enter your pickup.");
+        $("#twendePickupSearch")?.focus();
+        return;
+      }
+      // locate() clears destination because a new pickup may change the route.
+      if(destinationText){
+        $("#twendeDestinationSearch").value=destinationText;
+        $("#rideDestination").value=destinationText;
+      }
+    }
     $("#twendeContinueBooking").click();
   },true);
   window.addEventListener("twende-session-ready",()=>{if(map&&userPoint)refreshDrivers();});
