@@ -135,6 +135,20 @@ jobs:
   ls -lh "$ASSET_DIR/assets/" | grep -E 'twende-(car|motorcycle)-photo' || true
 fi
 
+      - name: Verify TWENDE Android branding
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="$(find source -name AndroidManifest.xml -print -quit)"
+          STRINGS="$(find source -path '*/app/src/main/res/values/strings.xml' -print -quit)"
+          ICON="$(find source -path '*/app/src/main/res/mipmap-anydpi/ic_launcher.xml' -print -quit)"
+          test -n "$MANIFEST" && test -n "$STRINGS" && test -n "$ICON"
+          grep -q 'android:label="@string/app_name"' "$MANIFEST"
+          grep -q '<string name="app_name">TWENDE</string>' "$STRINGS"
+          grep -q '#FFFFCC00' "$ICON"
+          grep -q 'android:icon="@mipmap/ic_launcher"' "$MANIFEST"
+          echo "TWENDE app name and launcher icon verified"
+
       - name: Build Android APK
         shell: bash
         run: |
