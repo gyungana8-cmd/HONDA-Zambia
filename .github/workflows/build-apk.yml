@@ -131,8 +131,11 @@ jobs:
   cp -f assets/*.svg "$ASSET_DIR/assets/"
   cp -f assets/*.jpg "$ASSET_DIR/assets/" 2>/dev/null || true
   cp -f assets/*.jpeg "$ASSET_DIR/assets/" 2>/dev/null || true
+  test -s "$ASSET_DIR/assets/twende-car-v2.svg"
+  test -s "$ASSET_DIR/assets/twende-motorcycle-v2.svg"
+  echo "Verified TWENDE branded car and motorcycle artwork in Android assets"
   echo "Synced vehicle image assets:"
-  ls -lh "$ASSET_DIR/assets/" | grep -E 'twende-(car|motorcycle)-photo' || true
+  ls -lh "$ASSET_DIR/assets/" | grep -E 'twende-(car|motorcycle)-(v2.svg|photo)' || true
 fi
 
       - name: Verify TWENDE Android branding
@@ -169,6 +172,17 @@ fi
           else
             gradle --no-daemon assembleDebug
           fi
+
+      - name: Verify TWENDE vehicle artwork in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_FILE="$(find source -type f -path '*/app/build/outputs/apk/debug/*.apk' -print -quit)"
+          test -n "$APK_FILE"
+          unzip -l "$APK_FILE" | tee /tmp/twende-apk-assets.txt
+          grep -q 'assets/assets/twende-car-v2.svg' /tmp/twende-apk-assets.txt
+          grep -q 'assets/assets/twende-motorcycle-v2.svg' /tmp/twende-apk-assets.txt
+          echo "Both branded taxi illustrations are present in the APK"
 
       - name: Verify GPS permissions in packaged APK
         shell: bash
