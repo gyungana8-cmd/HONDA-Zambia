@@ -250,6 +250,9 @@
       estimate.classList.add("fare-ready");
       return passengerFareEstimate;
     }
+    // Expose the exact fare calculation to the canonical booking submit handler.
+    window.calculateTwendePassengerFare=calculatePassengerFare;
+    window.getTwendePassengerFareEstimate=()=>passengerFareEstimate;
     function schedulePassengerFare() {
       clearTimeout(estimateTimer);
       passengerFareEstimate=null;
