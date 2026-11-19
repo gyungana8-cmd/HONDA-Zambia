@@ -186,16 +186,21 @@
     window.twendeDestinationCoords=null;
     $("#twendeDestinationSearch").value="";
     $("#rideDestination").value="";
-    await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],17);
-    setStatus("GPS found your pickup. Getting the street address…");
-    const address=await reverse(userPoint.lat,userPoint.lng);
-    if(address && address!=="Current GPS location"){
-      userPoint.label=address;
-      $("#twendePickupSearch").value=address;
-      $("#ridePickup").value=address;
+    setStatus("GPS found your pickup. Updating the address…");
+    if($("#twendeMapDetails")?.open){
+      try{await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],17);}
+      catch(error){console.warn("TWENDE map display:",error);}
     }
-    setStatus("Pickup located by GPS. Choose your destination on the map or search for a place.");
-    await refreshDrivers();
+    // Reverse geocoding runs in the background; it must not block the booking form.
+    reverse(userPoint.lat,userPoint.lng).then(address=>{
+      if(address && address!=="Current GPS location"){
+        userPoint.label=address;
+        $("#twendePickupSearch").value=address;
+        $("#ridePickup").value=address;
+      }
+      setStatus("Pickup located by GPS. Choose your destination.");
+    }).catch(()=>setStatus("Pickup located by GPS. Choose your destination."));
+    if(map) refreshDrivers().catch(error=>console.warn("TWENDE nearby drivers:",error));
     return userPoint;
   }
   async function searchPlaces(q){
@@ -369,13 +374,19 @@
   });
   addSearch("twendePickupSearch","twendePickupResults",async p=>{
     userPoint=p;window.twendePickupCoords=p;$("#ridePickup").value=p.label;
-    try{await ensureMap();showPickup();map.setView([p.lat,p.lng],15);await refreshDrivers();if(destinationPoint)await drawRoute();}
-    catch(e){setStatus(e.message);}
+    setStatus("Pickup selected. Choose your destination.");
+    if($("#twendeMapDetails")?.open){
+      try{await ensureMap();showPickup();map.setView([p.lat,p.lng],15);await refreshDrivers();if(destinationPoint)await drawRoute();}
+      catch(e){setStatus(e.message);}
+    }
   });
   addSearch("twendeDestinationSearch","twendeDestinationResults",async p=>{
     destinationPoint=p;window.twendeDestinationCoords=p;$("#rideDestination").value=p.label;
-    try{await ensureMap();showDestination();if(userPoint)await drawRoute();else setStatus("Destination selected. Set your pickup location to display the route.");}
-    catch(e){setStatus(e.message);}
+    setStatus("Destination selected.");
+    if($("#twendeMapDetails")?.open){
+      try{await ensureMap();showDestination();if(userPoint)await drawRoute();}
+      catch(e){setStatus(e.message);}
+    }
   });
   $("#twendeLocateMe").addEventListener("click",async()=>{
     const b=$("#twendeLocateMe");b.disabled=true;
@@ -417,7 +428,7 @@
         userPoint=matches[0];
         window.twendePickupCoords=userPoint;
         $("#twendePickupSearch").value=userPoint.label;
-        await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],15);
+        if($("#twendeMapDetails")?.open){await ensureMap();showPickup();map.setView([userPoint.lat,userPoint.lng],15);}
       }
       if(!destinationPoint){
         const typedDestination=$("#twendeDestinationSearch").value.trim();
@@ -428,11 +439,12 @@
         destinationPoint=matches[0];
         window.twendeDestinationCoords=destinationPoint;
         $("#twendeDestinationSearch").value=destinationPoint.label;
-        await ensureMap();showDestination();
+        if($("#twendeMapDetails")?.open){await ensureMap();showDestination();}
       }
       $("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;
       window.twendePickupCoords=userPoint;window.twendeDestinationCoords=destinationPoint;
-      await drawRoute();
+      // Optional route preview must never delay opening the booking form.
+      if(map && $("#twendeMapDetails")?.open) drawRoute().catch(error=>console.warn("Optional route preview:",error));
       const service=$("#twendeMapService").value;
       const rideButton=document.querySelector('[data-ride-service="'+service+'"]');
       if(rideButton){
@@ -455,10 +467,10 @@
     $("#twendeMapService").value=ride.dataset.rideService;
     $("#twendeContinueBooking").click();
   },true);
-  window.addEventListener("twende-session-ready",()=>{if(userPoint)refreshDrivers();});
+  window.addEventListener("twende-session-ready",()=>{if(map&&userPoint)refreshDrivers();});
   const originalRefresh=window.refreshTwendeRideViews;
-  window.refreshTwendeRideViews=async()=>{await originalRefresh?.();if(userPoint)await refreshDrivers();};
-  refreshTimer=setInterval(()=>{if(userPoint&&window.currentTwendeUser)refreshDrivers();},12000);
+  window.refreshTwendeRideViews=async()=>{await originalRefresh?.();if(map&&userPoint)await refreshDrivers();};
+  refreshTimer=setInterval(()=>{if(map&&userPoint&&window.currentTwendeUser)refreshDrivers();},45000);
   window.addEventListener("beforeunload",()=>clearInterval(refreshTimer));
   $("#twendeMapDetails")?.addEventListener("toggle",()=>{if($("#twendeMapDetails").open)ensureMap().then(()=>setTimeout(()=>map?.invalidateSize(true),100)).catch(e=>setStatus(e.message));});
 })();
