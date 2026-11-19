@@ -399,30 +399,7 @@
     }
     setStatus("Destination selected. Choose Book TWENDE Taxi or Book TWENDE Motorcycle.");
   });
-  // Keep the original app.js booking action, but ensure pickup and destination
-  // have been collected before opening its dialog.
-  document.addEventListener("click",async event=>{
-    const button=event.target.closest("[data-ride-service]");
-    if(!button)return;
-    if(window.twendeMapReplayClick){window.twendeMapReplayClick=false;return;}
-    event.preventDefault();event.stopImmediatePropagation();
-    const destination=$("#twendeDestinationSearch").value.trim();
-    if(!destinationPoint && !destination){
-      setStatus("Enter your destination under Where to? first.");
-      $("#twendeDestinationSearch").focus();
-      return;
-    }
-    if(!userPoint){
-      setStatus("Getting your pickup location…");
-      try{await locate();}
-      catch(error){setStatus(error.message||"Please allow GPS access to book.");return;}
-    }
-    if(destinationPoint)$("#rideDestination").value=destinationPoint.label;
-    else $("#rideDestination").value=destination;
-    $("#ridePickup").value=userPoint.label;
-    window.twendeMapReplayClick=true;
-    button.click();
-  },true);
+  // Taxi cards open the booking dialog directly from their own click action.
   window.addEventListener("twende-session-ready",()=>{if(map&&userPoint)refreshDrivers();});
   const originalRefresh=window.refreshTwendeRideViews;
   window.refreshTwendeRideViews=async()=>{await originalRefresh?.();if(map&&userPoint)await refreshDrivers();};
