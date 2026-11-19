@@ -436,6 +436,7 @@
       const service=$("#twendeMapService").value;
       const rideButton=document.querySelector('[data-ride-service="'+service+'"]');
       if(rideButton){
+        window.twendeBookingViaLocation=true;
         rideButton.click();
         setTimeout(()=>{$("#ridePickup").value=userPoint.label;$("#rideDestination").value=destinationPoint.label;},250);
       }
