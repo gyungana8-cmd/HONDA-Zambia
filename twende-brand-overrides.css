@@ -191,3 +191,28 @@ body.passenger-mode .twende-bottom-nav button.active b{color:#111}
  body.passenger-mode #ride-services .twende-service-copy h3{font-size:24px!important}
  body.passenger-mode #ride-services .twende-vehicle-type{font-size:20px!important}
 }
+
+
+/* Device-pixel-ratio tuning to preserve the reference proportions on normal Android phones */
+@media(max-width:600px){
+ body.passenger-mode .twende-app-header{height:102px;min-height:102px}
+ body.passenger-mode #ride-services>.section-heading h2{font-size:28px!important}
+ body.passenger-mode #ride-services>.section-heading p{font-size:16px!important}
+ body.passenger-mode .twende-location-field{height:48px;border-radius:24px;padding:0 16px;gap:12px}
+ body.passenger-mode .twende-location-field input{font-size:15px}
+ body.passenger-mode .pickup-symbol{width:14px;height:14px;flex-basis:14px;margin-left:3px}
+ body.passenger-mode .destination-symbol{font-size:23px}
+ body.passenger-mode .twende-use-location{height:44px;margin-top:5px;border-radius:20px;font-size:16px;gap:14px}
+ body.passenger-mode .twende-use-location span{font-size:23px}
+ body.passenger-mode #ride-services .service-grid{gap:10px!important}
+ body.passenger-mode #ride-services .service-card{min-height:180px!important;height:180px!important;grid-template-columns:minmax(0,1.7fr) minmax(125px,1fr)!important;padding:6px!important;border-radius:24px!important}
+ body.passenger-mode #ride-services .service-vehicle-image{height:160px!important}
+ body.passenger-mode #ride-services .twende-service-copy{min-height:155px;padding:4px 2px 4px 10px!important}
+ body.passenger-mode .twende-service-copy:before{font-size:28px;margin-bottom:3px}
+ body.passenger-mode #ride-services .twende-service-copy h3{font-size:20px!important;margin-bottom:4px!important}
+ body.passenger-mode #ride-services .twende-vehicle-type{font-size:18px!important;margin-bottom:12px!important}
+ body.passenger-mode #ride-services .service-card .btn{min-height:40px;font-size:14px!important;border-radius:14px!important;padding:7px 5px}
+ body.passenger-mode .twende-bottom-nav{height:68px;padding:4px 6px 3px}
+ body.passenger-mode .twende-bottom-nav button span{font-size:27px}
+ body.passenger-mode .twende-bottom-nav button b{font-size:11px}
+}
