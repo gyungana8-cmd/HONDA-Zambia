@@ -78,10 +78,6 @@ jobs:
         shell: bash
         run: bash .github/scripts/patch-android-gps.sh
 
-      - name: Apply native Firebase Messaging integration
-        shell: bash
-        run: bash .github/scripts/patch-fcm.sh
-
       - name: Apply native OneSignal notifications integration
         shell: bash
         env:
