@@ -52,7 +52,7 @@ function updateUI() {
   $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
   $("#dashTitle").textContent = "Driver dashboard";
   $("#switchRole")?.classList.add("hidden");
-  $("#menuBtn")?.classList.toggle("hidden",guest);
+  $("#menuBtn")?.classList.remove("hidden");
   $("#nav")?.classList.toggle("hidden",guest);
   $("#adminNav")?.classList.toggle("hidden",!isAdmin);
   $("#ride-services")?.classList.toggle("hidden",!guest);
@@ -352,6 +352,7 @@ function openRideDialog(service,skipLocationPrompt=false) {
    loadAvailableTaxiFleet(service);
 }
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
+$("#twendeBellButton")?.addEventListener("click",()=>document.querySelector('[data-hub="orders"]')?.click());
 async function submitTwendeTaxiRequest(){
   const form=$("#rideForm");
   const inlineMessage=$("#rideSubmitMessage");
