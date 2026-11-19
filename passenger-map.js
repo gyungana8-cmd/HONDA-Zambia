@@ -215,11 +215,16 @@
     const query=q.trim();
     if(query.length<3)return [];
     const normalizedInput=query.toLowerCase();
-    // Known Mufumbwe places are resolved locally without network delay.
+    // Known Mufumbwe destinations take priority over broad geocoder hits.
+    // This keeps the district hospital selectable even if Photon returns a
+    // generic "hospital" or a less relevant place first.
+    const localQuery=query.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    const isNearMufumbwe=!userPoint || (Math.abs(userPoint.lat+13.14)<0.35 && Math.abs(userPoint.lng-25.02)<0.45);
     if(/^mufumbwe(?: district)?(?:,.*)?$/i.test(query)){
       return [{lat:-13.13683,lng:25.00296,label:"Mufumbwe Town Centre, Mufumbwe, North-Western Province, Zambia"}];
     }
-    if(/mufumbwe.*district.*hospital|district.*hospital.*mufumbwe|mufumbwe hospital/i.test(query)){
+    if((localQuery.includes("mufumbwe") && (localQuery.includes("hospital") || localQuery.includes("district"))) ||
+       (isNearMufumbwe && (localQuery==="hospital" || localQuery==="district hospital" || localQuery==="mufumbwe hospital"))){
       return [{lat:-13.144667,lng:25.034417,label:"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia"}];
     }
     const normalized=normalizedInput.replace(/\\s+/g," ");
