@@ -409,7 +409,25 @@ async function submitTwendeTaxiRequest(){
     const destination=$("#rideDestination").value.trim();
     const service=$("#rideServiceType").value;
     if(!passengerName||!passengerPhone||!pickup||!destination)throw new Error("Please complete your name, phone number, pickup and destination.");
-    const row={rider_id:user.id,passenger_name:passengerName,passenger_phone:passengerPhone,service_type:service,pickup_text:pickup,destination_text:destination,payment_method:"cash",status:"pending"};
+    // Calculate and save the actual route-based fare with the booking. Do not
+    // create a fare-less ride request when the tariff cannot be verified.
+    let fareEstimate=window.getTwendePassengerFareEstimate?.();
+    if(!fareEstimate || fareEstimate.pickupLabel!==pickup || fareEstimate.destinationLabel!==destination || fareEstimate.type!==service){
+      if(typeof window.calculateTwendePassengerFare!=="function")throw new Error("TWENDE fare calculator is still loading. Close and reopen the booking form.");
+      fareEstimate=await window.calculateTwendePassengerFare(true);
+    }
+    if(!fareEstimate || !Number.isFinite(Number(fareEstimate.fare)) || !Number.isFinite(Number(fareEstimate.km))) {
+      throw new Error("TWENDE could not calculate a fare for this route. Please check pickup and destination, then try again.");
+    }
+    const row={
+      rider_id:user.id,passenger_name:passengerName,passenger_phone:passengerPhone,
+      service_type:service,pickup_text:pickup,destination_text:destination,
+      pickup_lat:fareEstimate.pickup.lat,pickup_lng:fareEstimate.pickup.lng,
+      destination_lat:fareEstimate.destination.lat,destination_lng:fareEstimate.destination.lng,
+      route_distance_km:Number(fareEstimate.km.toFixed(2)),
+      estimated_fare:Number(fareEstimate.fare.toFixed(2)),fare_currency:"ZMW",
+      payment_method:"cash",status:"pending"
+    };
     const {error}=await db.from("ride_requests").insert(row);
     if(error){
       console.error("Taxi request insert failed:",error);
