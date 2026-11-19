@@ -99,7 +99,7 @@ public final class TwendeOneSignal {
     public static void requestPermission(Activity activity) {
         if (!initialized || activity == null) return;
         try {
-            OneSignal.getNotifications().requestPermission(activity, true);
+            OneSignal.getNotifications().requestPermission(true);
         } catch (Exception error) {
             Log.e(TAG, "OneSignal permission request failed", error);
         }
