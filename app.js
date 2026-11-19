@@ -83,8 +83,13 @@ async function loadProfile(user) {
   }
   role=currentProfile?.role==="owner"?"owner":"rider";
   updateUI();
-  await loadDashboard();
-  await loadPassengerRides();await loadDriverDashboard();await loadAdminDashboard();
+  // Load independent dashboard panels together instead of serial network waits.
+  await Promise.allSettled([
+    loadDashboard(),
+    loadPassengerRides(),
+    loadDriverDashboard(),
+    loadAdminDashboard()
+  ]);
 }
 window.twendeReceivePushToken = async function(token) {
   if (!currentUser || !token) return;
@@ -522,8 +527,9 @@ async function startApp(){
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
     else session=guest.data.session;
   }
-  await onSession(session);await loadPassengerRides();await loadAvailableTaxiFleet();
-  if(currentUser && !isGuestRider()) { await loadDriverDashboard(); await loadAdminDashboard(); }
+  await onSession(session);
+  // loadProfile already fetches passenger rides; avoid repeating that query.
+  await loadAvailableTaxiFleet();
   startTwendeRealtime();
   db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
 }
