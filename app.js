@@ -335,9 +335,26 @@ $("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
    Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
 let selectedRideService = "motorcycle";
 let pendingPassengerService=null;
-function openRideDialog(service,skipLocationPrompt=false) {
-  if(!currentUser){toast("Passenger access is still starting. Please wait a moment and retry.");return;}
-  if(!currentProfile?.phone){
+async function openRideDialog(service,skipLocationPrompt=false) {
+  // Start the anonymous passenger session at the moment a passenger chooses
+  // a taxi. Previously the dialog required currentUser, while the anonymous
+  // session was only created after submitting the dialog (an unreachable flow).
+  if(!currentUser){
+    try{
+      const {data,error}=await db.auth.signInAnonymously();
+      if(error)throw error;
+      if(!data?.session?.user)throw new Error("Passenger session could not start. Please try again.");
+      await onSession(data.session);
+    }catch(error){
+      console.error("TWENDE passenger session:",error);
+      toast(error?.message||"Passenger access could not start. Please check your connection and try again.");
+      return;
+    }
+  }
+  const guest=isGuestRider();
+  // Guest passengers enter their contact details directly in the booking form.
+  // Registered users without a phone number complete the existing phone step.
+  if(!guest&&!currentProfile?.phone){
     pendingPassengerService=service;
     $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
     $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
@@ -354,7 +371,7 @@ function openRideDialog(service,skipLocationPrompt=false) {
   $("#passengerName").value=currentProfile?.full_name||"";
   $("#passengerPhone").value=currentProfile?.phone||"";
   $("#rideDialog").showModal();
-   loadAvailableTaxiFleet(service);
+  loadAvailableTaxiFleet(service);
 }
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 $("#twendeBellButton")?.addEventListener("click",()=>document.querySelector('[data-hub="orders"]')?.click());
