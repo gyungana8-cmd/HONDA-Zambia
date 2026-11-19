@@ -226,7 +226,7 @@
       seen.add(key);found.push({lat,lng,label});
     };
     // Search globally across Zambia: never force results to Mufumbwe.
-    const query=q.trim();
+    
     // Photon provides towns, streets, landmarks, businesses and many public places.
     try{
       const url="https://photon.komoot.io/api/?q="+encodeURIComponent(query+", Zambia")+"&lat="+center.lat+"&lon="+center.lng+"&limit=15&lang=en";
