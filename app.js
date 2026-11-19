@@ -276,7 +276,7 @@ function openOwnerForm() {
   if(!["owner","both"].includes(currentProfile?.role)){toast("Your account is registered as a rider. Switch your account type to owner to publish a motorcycle.");return;}
   $("#ownerDialog").showModal();
 }
-$("#ownerHero").onclick=openOwnerForm;$("#ownerCta").onclick=openOwnerForm;
+$("#ownerHero")?.addEventListener("click",openOwnerForm);$("#ownerCta")?.addEventListener("click",openOwnerForm);
 $("#ownerForm").onsubmit=async e=>{
   e.preventDefault();if(!currentUser)return;const b=e.submitter;b.disabled=true;
   const {error}=await db.from("motorcycles").insert({owner_id:currentUser.id,make:$("#bikeMake").value.trim(),model:$("#bikeModel").value.trim(),location:$("#bikeLocation").value.trim(),daily_rate:Number($("#bikeRate").value),description:$("#bikeDescription").value.trim(),status:"available"});
