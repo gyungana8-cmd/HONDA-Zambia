@@ -21,8 +21,8 @@
 <section class="section ride-services" id="ride-services">
 <div class="section-heading"><div><span class="eyebrow">TWENDE ZAMBIA</span><h2>Where to?</h2><p class="muted">Use your current location to find nearby TWENDE taxis.</p></div></div>
 <div class="service-grid">
-<article class="service-card"><img class="service-vehicle-image" src="assets/twende-car-v2.svg" alt="TWENDE branded white and yellow car taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Car Taxi</p><button class="btn btn-red full" type="button" data-ride-service="car" onclick="window.openTwendeRideDialog && window.openTwendeRideDialog(&quot;car&quot;)">Book TWENDE Taxi</button></div></article>
-<article class="service-card"><img class="service-vehicle-image" src="assets/twende-motorcycle-v2.svg" alt="TWENDE branded yellow and black motorcycle taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Motorcycle Taxi</p><button class="btn btn-red full" type="button" data-ride-service="motorcycle" onclick="window.openTwendeRideDialog && window.openTwendeRideDialog(&quot;motorcycle&quot;)">Book TWENDE Motorcycle</button></div></article>
+<article class="service-card"><img class="service-vehicle-image" src="assets/twende-car-v2.svg" alt="TWENDE branded white and yellow car taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Car Taxi</p><button class="btn btn-red full" type="button" onclick="window.twendeShowBookingForm(&quot;car&quot;)">Book TWENDE Taxi</button></div></article>
+<article class="service-card"><img class="service-vehicle-image" src="assets/twende-motorcycle-v2.svg" alt="TWENDE branded yellow and black motorcycle taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Motorcycle Taxi</p><button class="btn btn-red full" type="button" onclick="window.twendeShowBookingForm(&quot;motorcycle&quot;)">Book TWENDE Motorcycle</button></div></article>
 </div>
 
 <div id="passengerRides" class="dashboard-content"></div>
@@ -73,4 +73,48 @@
 <script>window.addEventListener("load",function(){var splash=document.getElementById("twendeSplash");if(splash){setTimeout(function(){splash.classList.add("is-hidden");},450);}});setTimeout(function(){var splash=document.getElementById("twendeSplash");if(splash)splash.classList.add("is-hidden");},6000);</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script><script src="gps-fares.js"></script><script src="passenger-map.js"></script><script src="twende-account-ui.js"></script><script src="twende-mobile-shell.js"></script>
 <script>document.addEventListener("click",function(event){const button=event.target.closest("[data-password-toggle]");if(!button)return;const input=document.getElementById(button.dataset.passwordToggle);if(!input)return;const reveal=input.type==="password";input.type=reveal?"text":"password";button.textContent=reveal?"Hide":"Show";button.setAttribute("aria-label",reveal?"Hide password":"Show password");button.setAttribute("aria-pressed",String(reveal));});</script>
+
+<script>
+/* Reliable passenger booking entry point for Android WebView.
+   Deliberately independent of app.js event binding and GPS/map handlers. */
+window.twendeShowBookingForm = function(service) {
+  try {
+    var dialog=document.getElementById("rideDialog");
+    var form=document.getElementById("rideForm");
+    if(!dialog || !form) { alert("TWENDE booking form is unavailable. Please refresh the app."); return; }
+    var type=document.getElementById("rideServiceType");
+    var title=document.getElementById("rideDialogTitle");
+    var art=document.getElementById("rideServiceArt");
+    var pickup=document.getElementById("ridePickup");
+    var destination=document.getElementById("rideDestination");
+    if(type) type.value=service;
+    if(title) title.textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
+    if(pickup && !pickup.value) {
+      var gps=window.twendePickupCoords;
+      var loc=document.getElementById("twendeCurrentLocation");
+      pickup.value=(gps && gps.label) || (loc && loc.textContent.trim()) || "Current GPS location";
+    }
+    if(destination && !destination.value) {
+      var dest=window.twendeDestinationCoords;
+      var search=document.getElementById("twendeDestinationSearch");
+      destination.value=(dest && dest.label) || (search && search.value.trim()) || "";
+    }
+    if(art) {
+      var img=service==="car"?"assets/twende-car-v2.svg":"assets/twende-motorcycle-v2.svg";
+      art.innerHTML='<img src="'+img+'" alt="TWENDE '+(service==="car"?"car taxi":"motorcycle taxi")+'" style="width:100%;max-height:120px;object-fit:contain">';
+    }
+    if(typeof dialog.showModal==="function") {
+      if(!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute("open","open");
+      dialog.style.display="block";
+    }
+    return false;
+  } catch(error) {
+    console.error("TWENDE booking form open error:",error);
+    alert("Could not open the booking form: "+(error.message||error));
+    return false;
+  }
+};
+</script>
 </body></html>
