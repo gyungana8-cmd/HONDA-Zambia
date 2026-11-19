@@ -99,7 +99,18 @@ public final class TwendeOneSignal {
     public static void requestPermission(Activity activity) {
         if (!initialized || activity == null) return;
         try {
-            OneSignal.getNotifications().requestPermission(true);
+            OneSignal.getNotifications().requestPermission(true,
+                new kotlin.coroutines.Continuation<Boolean>() {
+                    @Override
+                    public kotlin.coroutines.CoroutineContext getContext() {
+                        return kotlin.coroutines.EmptyCoroutineContext.INSTANCE;
+                    }
+
+                    @Override
+                    public void resumeWith(Object result) {
+                        Log.i(TAG, "OneSignal permission request completed: " + result);
+                    }
+                });
         } catch (Exception error) {
             Log.e(TAG, "OneSignal permission request failed", error);
         }
