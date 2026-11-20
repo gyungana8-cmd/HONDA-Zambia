@@ -39,7 +39,9 @@ res=Path("source/app/src/main/res")
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
     <path android:fillColor="#FFFFCC00" android:pathData="M0,0 L108,0 L108,108 L0,108 Z"/>
-    <path android:fillColor="@android:color/transparent" android:strokeColor="#FF171717" android:strokeWidth="3.2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4,40 L14,40 M9,40 L9,68 M17,40 L21,68 L27,48 L33,68 L37,40 M50,40 L40,40 L40,68 L50,68 M40,54 L48,54 M54,68 L54,40 L70,68 L70,40 M74,40 L74,68 L80,68 Q91,68 91,54 Q91,40 80,40 Z M104,40 L94,40 L94,68 L104,68 M94,54 L102,54"/>
+    <group android:scaleX="0.68" android:scaleY="0.68" android:pivotX="54" android:pivotY="54">
+    <path android:fillColor="@android:color/transparent" android:strokeColor="#FF171717" android:strokeWidth="2.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4,40 L14,40 M9,40 L9,68 M17,40 L21,68 L27,48 L33,68 L37,40 M50,40 L40,40 L40,68 L50,68 M40,54 L48,54 M54,68 L54,40 L70,68 L70,40 M74,40 L74,68 L80,68 Q91,68 91,54 Q91,40 80,40 Z M104,40 L94,40 L94,68 L104,68 M94,54 L102,54"/>
+    </group>
 </vector>
 """)
 (res/"mipmap-anydpi-v26/ic_launcher.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
