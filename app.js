@@ -222,23 +222,69 @@ function showRegistrationError(message,success=false){
   box.style.cssText="display:block!important;visibility:visible!important;opacity:1!important;margin:12px 0;padding:14px 16px;border-radius:12px;border:1px solid "+(success?"#16834a":"#c62828")+";background:"+(success?"#eaf7ef":"#fff0f0")+";color:"+(success?"#145c35":"#8f1717")+";font-size:14px;font-weight:700;line-height:1.45;white-space:normal;overflow-wrap:anywhere;position:relative;z-index:5";
 }
 $("#registerForm").onsubmit=async e=>{
-  e.preventDefault(); const b=e.submitter||$("#registerForm button[type='submit']");
-  let box=$("#registerError");if(box)box.remove();
+  e.preventDefault();
+  const b=e.submitter||$("#registerForm button[type='submit']");
+  $("#registerError")?.remove();
   b.disabled=true;
   try{
-    const credentials={email:$("#registerEmail").value.trim(),password:$("#registerPassword").value,
-      options:{data:{full_name:$("#registerName").value.trim(),phone:$("#registerPhone").value.trim(),role:$("#registerRole").value}}};
-    const result=isGuestRider()
-      ? await db.auth.updateUser({email:credentials.email,password:credentials.password,data:credentials.options.data})
-      : await db.auth.signUp(credentials);
-    const data=result.data,error=result.error;
-    if(error){showRegistrationError("Account creation failed: "+error.message);return;}
-    if(data.session){await onSession(data.session);showRegistrationError("TWENDE account created successfully.",true);}
-    else {showRegistrationError("Account created. Check your email to confirm, then sign in.",true);$("#registerForm").reset();}
+    const email=$("#registerEmail").value.trim().toLowerCase();
+    const password=$("#registerPassword").value;
+    const profileData={
+      full_name:$("#registerName").value.trim(),
+      phone:$("#registerPhone").value.trim(),
+      role:$("#registerRole").value
+    };
+    const {data:sessionData,error:sessionError}=await db.auth.getSession();
+    if(sessionError) throw sessionError;
+    const activeUser=sessionData.session?.user||null;
+    currentUser=activeUser;
+
+    // Convert a passenger's anonymous session in two safe stages:
+    // first link and verify the email, then set the password after verification.
+    if(activeUser?.is_anonymous){
+      const {data,error}=await db.auth.updateUser(
+        {email,data:profileData},
+        {emailRedirectTo:window.location.origin+window.location.pathname}
+      );
+      if(error) throw error;
+      showRegistrationError(
+        "Email verification requested for "+email+". Open the verification email and confirm it. Keep this browser session open. After confirmation, return to this form and submit the same email and your chosen password to finish account setup.",
+        true
+      );
+      return;
+    }
+
+    // Once the email is verified, finish the existing account instead of creating a duplicate.
+    if(activeUser?.email && activeUser.email.toLowerCase()===email){
+      const {data,error}=await db.auth.updateUser({password,data:profileData});
+      if(error) throw error;
+      const {data:latest}=await db.auth.getSession();
+      await onSession(data.session||latest.session);
+      showRegistrationError("Your TWENDE account is now linked and your password has been set. You can sign in normally next time.",true);
+      return;
+    }
+
+    // No anonymous session: create a normal email/password account.
+    const {data,error}=await db.auth.signUp({
+      email,password,
+      options:{
+        data:profileData,
+        emailRedirectTo:window.location.origin+window.location.pathname
+      }
+    });
+    if(error) throw error;
+    if(data.session){
+      await onSession(data.session);
+      showRegistrationError("TWENDE account created successfully.",true);
+    }else{
+      showRegistrationError("Account created. Check your email to confirm the address, then sign in.",true);
+    }
   }catch(error){
     console.error("TWENDE registration failed:",error);
-    showRegistrationError("Account creation could not be completed: "+(error?.message||"Unexpected network or application error. Please try again."));
-  }finally{b.disabled=false;}
+    showRegistrationError("Account setup failed: "+(error?.message||"Unexpected network or application error. Please try again."));
+  }finally{
+    b.disabled=false;
+  }
 };
 function showLoginError(message){
   const form=$("#loginForm");let box=$("#loginError");
