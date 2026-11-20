@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffcc00"><meta name="mobile-web-app-capable" content="yes"><title>Twende | Taxi Zambia</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css?v=20261120-visual-quality3"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css?v=20261120-menu7">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css?v=20261120-passenger-hero1"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css?v=20261120-menu7">
 </head>
 <body class="passenger-mode">
 <div id="twendeSplash" class="twende-splash" role="status" aria-label="TWENDE is loading"><img src="twende-logo.svg" alt=""><strong>Twende</strong><span>ZAMBIA</span><i>Move with confidence</i></div>
@@ -20,8 +20,8 @@
 <section class="twende-passenger-hero" aria-label="TWENDE taxi services">
  <div class="twende-passenger-hero-copy"><strong>Book a Taxi<br>Anytime, Anywhere</strong><span>Safe • Reliable • Affordable</span></div>
  <div class="twende-passenger-hero-vehicles" aria-hidden="true">
-  <img class="twende-hero-car" src="assets/twende-car-photo.svg" alt="">
-  <img class="twende-hero-motorcycle" src="assets/twende-motorcycle-v2.svg" alt="">
+  <img class="twende-hero-car" src="assets/twende-car-photo.jpg" alt="">
+  <img class="twende-hero-motorcycle" src="assets/twende-motorcycle-photo.jpg" alt="">
  </div>
 </section>
 <section class="twende-notifications-panel hidden" id="twendeNotificationsPanel" aria-label="Booking notifications">
@@ -47,13 +47,9 @@
 
 <section class="section ride-services" id="ride-services">
 <div class="section-heading"><div><span class="eyebrow">TWENDE ZAMBIA</span><h2>Where to?</h2><p class="muted">Use your current location to find nearby TWENDE taxis.</p></div></div>
-<div class="twende-choose-ride-heading"><h2>Choose your ride</h2></div>
 <div class="service-grid">
-<article class="service-card twende-ride-choice"><img class="service-vehicle-image" src="assets/twende-car-photo.svg" alt="TWENDE branded white and yellow car taxi" loading="eager"><div class="twende-service-copy"><h3>TWENDE Car Taxi</h3><p class="twende-vehicle-type">Comfortable • Secure • Reliable</p><button class="twende-ride-arrow" type="button" aria-label="Request TWENDE car taxi" onclick="window.twendeShowBookingForm(&quot;car&quot;)">›</button></div></article>
-<article class="service-card twende-ride-choice"><img class="service-vehicle-image" src="assets/twende-motorcycle-v2.svg" alt="TWENDE branded yellow and black motorcycle taxi" loading="eager"><div class="twende-service-copy"><h3>TWENDE Motorcycle Taxi</h3><p class="twende-vehicle-type">Fast • Affordable • Convenient</p><button class="twende-ride-arrow" type="button" aria-label="Request TWENDE motorcycle taxi" onclick="window.twendeShowBookingForm(&quot;motorcycle&quot;)">›</button></div></article>
-</div>
-<div class="twende-benefits-row" aria-label="TWENDE service benefits">
-<div><span aria-hidden="true">♧</span><b>Safe &amp; Trusted<br>Drivers</b></div><div><span aria-hidden="true">▤</span><b>Fair &amp;<br>Transparent Fares</b></div><div><span aria-hidden="true">⌖</span><b>Track Your Ride<br>in Real Time</b></div><div><span aria-hidden="true">♧</span><b>Reliable<br>Customer Support</b></div>
+<article class="service-card"><img class="service-vehicle-image" src="assets/twende-car-photo.jpg" alt="TWENDE branded white and yellow car taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Car Taxi</p><button class="btn btn-red full" type="button" onclick="window.twendeShowBookingForm(&quot;car&quot;)">Book TWENDE Taxi</button></div></article>
+<article class="service-card"><img class="service-vehicle-image" src="assets/twende-motorcycle-photo.jpg" alt="TWENDE branded yellow and black motorcycle taxi" loading="eager"><div class="twende-service-copy"><span class="twende-service-kicker">TWENDE SERVICE</span><h3>TWENDE</h3><p class="twende-vehicle-type">Motorcycle Taxi</p><button class="btn btn-red full" type="button" onclick="window.twendeShowBookingForm(&quot;motorcycle&quot;)">Book TWENDE Motorcycle</button></div></article>
 </div>
 
 <div id="passengerRides" class="dashboard-content"></div>
