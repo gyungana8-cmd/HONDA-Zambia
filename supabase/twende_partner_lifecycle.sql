@@ -96,7 +96,11 @@ begin
  where id=p_application_id
    and (p_decision in ('suspended','activated') or application_status='pending');
  if not found then raise exception 'Application not found or cannot be changed from its current status'; end if;
-end; $$;
+ if p_decision='suspended' then
+   update public.driver_vehicles set is_online=false
+   where user_id=(select user_id from public.twende_partner_applications where id=p_application_id);
+ end if;
+end; $;
 
 revoke all on function public.twende_submit_partner_application(text,text[]) from public;
 revoke all on function public.twende_get_partner_access() from public;
@@ -139,5 +143,30 @@ begin
 end; $;
 revoke all on function public.twende_set_vehicle_online(uuid,boolean) from public;
 grant execute on function public.twende_set_vehicle_online(uuid,boolean) to authenticated;
+
+
+-- Only active, approved driver partners can accept new taxi requests.
+create or replace function public.accept_twende_ride(p_ride_id uuid)
+returns void language plpgsql security definer set search_path=public as $
+declare v_vehicle public.driver_vehicles%rowtype; v_type text;
+begin
+ if not exists(select 1 from public.twende_partner_applications a
+   where a.user_id=auth.uid() and a.partner_type='driver'
+     and a.application_status='approved' and a.account_status='active') then
+   raise exception 'Driver partner account is not active. Contact TWENDE support.';
+ end if;
+ select service_type into v_type from public.ride_requests where id=p_ride_id and status='pending';
+ if not found then raise exception 'Ride is no longer available'; end if;
+ select * into v_vehicle from public.driver_vehicles
+  where user_id=auth.uid() and approval_status='approved' and is_online=true
+    and vehicle_type=v_type order by created_at limit 1;
+ if not found then raise exception 'An approved online matching vehicle is required'; end if;
+ update public.ride_requests set driver_id=auth.uid(),driver_vehicle_id=v_vehicle.id,
+  status='accepted',accepted_at=now()
+ where id=p_ride_id and status='pending';
+ if not found then raise exception 'Ride is no longer available'; end if;
+end; $;
+revoke all on function public.accept_twende_ride(uuid) from public;
+grant execute on function public.accept_twende_ride(uuid) to authenticated;
 
 select 'partner lifecycle migration ready' as status;
