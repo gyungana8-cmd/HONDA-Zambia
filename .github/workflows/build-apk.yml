@@ -154,7 +154,7 @@ jobs:
           ICON="$(find source -path '*/app/src/main/res/mipmap-anydpi/ic_launcher.xml' -print -quit)"
           test -n "$MANIFEST" && test -n "$STRINGS" && test -n "$ICON"
           grep -q 'android:label="@string/app_name"' "$MANIFEST"
-          grep -q '<string name="app_name">TWENDE</string>' "$STRINGS"
+          grep -q '<string name="app_name">Twende</string>' "$STRINGS"
           grep -q '#FFFFCC00' "$ICON"
           grep -q 'android:icon="@mipmap/ic_launcher"' "$MANIFEST"
           echo "TWENDE app name and launcher icon verified"
