@@ -68,7 +68,7 @@ function updateUI() {
   $("#driver-panel")?.classList.toggle("hidden",guest||(!isDriver&&!isAdmin));
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
   $("#dashboard")?.classList.toggle("hidden",!isOwner);
-  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration};
+  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
