@@ -23,8 +23,8 @@
  }
  function refresh(){
   if(!options)return;options.replaceChildren();
-  const user=window.currentTwendeUser, snap=window.twendeRoleSnapshot||{role:"rider"};
-  const guest=!user||user.is_anonymous;
+  const snap=window.twendeRoleSnapshot||{role:"rider",guest:true,signedIn:false};
+  const guest=!!snap.guest;
   const intro=$("#twendeRoleMenuIntro");
   if(guest){
    intro.textContent="Passenger access is ready. Partner portals require a separate approved account.";
@@ -33,7 +33,7 @@
    add("Administrator portal","Restricted to designated TWENDE administrators","admin","🛡️");
    $("#twendeRoleSignOut").classList.add("hidden");
   }else{
-   intro.textContent="Signed in as "+(user.email||"a TWENDE partner")+". Only portals assigned to this account are available.";
+   intro.textContent="You are signed in. Only portals assigned to this account are available.";
    if(snap.admin)add("Administrator portal","Manage applications, bookings and support","admin","🛡️");
    if(snap.role==="driver"||snap.hasDriverRegistration)add("Driver portal","Your vehicle approval, availability and ride requests","driver","🚗");
    if(snap.role==="owner")add("Vehicle owner portal","Your vehicles, drivers, bookings and income","owner","🔑");
