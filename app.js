@@ -131,6 +131,14 @@ window.twendeReceivePushToken = async function(token) {
 async function onSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
+  const requested=window.twendeRequestedPortal;
+  if(requested && currentUser && !isGuestRider()){
+    const allowed=requested==="admin" ? verifiedAdmin :
+      requested==="driver" ? currentProfile?.role==="driver" :
+      requested==="owner" ? currentProfile?.role==="owner" : false;
+    if(!allowed) toast("This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
+    window.twendeRequestedPortal=null;
+  }
   if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
   if(currentUser && !isGuestRider()) { $("#authDialog").close(); }
   else if(!currentUser) { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
