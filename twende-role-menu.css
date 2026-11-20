@@ -8,5 +8,22 @@
  body.passenger-mode .topbar{display:flex!important;align-items:center!important;gap:10px!important;padding:8px 16px!important;min-height:82px!important}
  body.passenger-mode .topbar .menu-btn{display:block!important;flex:0 0 42px!important;margin:0!important}
  body.passenger-mode .topbar .twende-app-brand{flex:1 1 auto!important;min-width:0!important}
- body.passenger-mode .topbar #twendeBellButton{position:relative!important;inset:auto!important;transform:none!important;flex:0 0 48px!important;width:48px!important;height:48px!important;margin-left:auto!important;border:0!important;background:transparent!important}
+ body.passenger-mode .topbar #twendeNotificationsButton{position:relative!important;inset:auto!important;transform:none!important;flex:0 0 48px!important;width:48px!important;height:48px!important;margin-left:auto!important;border:0!important;background:transparent!important}
 }
+
+/* Header controls: hamburger opens role access; top-right bell opens booking notifications. */
+.topbar .menu-btn{display:grid!important;place-items:center!important;position:relative!important;z-index:10030!important;min-width:46px!important;min-height:46px!important;touch-action:manipulation!important}
+.twende-notification-button{font-size:27px!important;color:#171717!important;position:relative!important}
+.twende-notification-button>span{font-size:29px!important;line-height:1!important}
+.twende-notification-badge{position:absolute!important;right:0!important;top:0!important;min-width:18px;height:18px;border-radius:99px;background:#d71920;color:#fff;font-size:10px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 4px;border:2px solid #ffcc00}
+.twende-notification-badge.hidden{display:none!important}
+.twende-notifications-panel{position:fixed;z-index:2147482500;top:94px;right:12px;width:min(420px,calc(100vw - 24px));max-height:75vh;overflow:auto;background:#fff;border:1px solid #e5e5e5;border-radius:18px;box-shadow:0 16px 48px #0003;padding:18px;color:#171717}
+.twende-notifications-panel.hidden{display:none!important}
+.twende-notifications-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.twende-notifications-head h2{margin:4px 0 0;font-size:21px}
+.twende-notifications-head button{border:0;background:transparent;font-size:28px;line-height:1;padding:0 6px}
+.twende-notification-item{display:grid;grid-template-columns:10px 1fr;gap:10px;padding:13px 2px;border-bottom:1px solid #eee}
+.twende-notification-item p{margin:4px 0;color:#59636b;font-size:13px;line-height:1.4}
+.twende-notification-item small{color:#879099;font-size:11px}
+.twende-notification-dot{width:9px;height:9px;border-radius:50%;background:#aab1b7;margin-top:6px}
+.twende-notification-dot.is-new{background:#d71920}
