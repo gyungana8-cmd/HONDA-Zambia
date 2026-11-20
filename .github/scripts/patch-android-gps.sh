@@ -91,92 +91,111 @@ PY
 
 cat > "$ACTIVITY" <<'JAVA'
 package com.yangu.hondazambia;
-
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.GeolocationPermissions;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import org.json.JSONObject;
 
 public class MainActivity extends Activity {
-    private static final int LOCATION_PERMISSION_REQUEST = 701;
-    private WebView webView;
-    private GeolocationPermissions.Callback pendingGeoCallback;
-    private String pendingGeoOrigin;
+  private static final int REQ=701;
+  private WebView web;
+  private LocationManager lm;
+  private LocationListener listener;
+  private final Handler handler=new Handler(Looper.getMainLooper());
+  private boolean sent=false, pending=false;
+  private GeolocationPermissions.Callback geoCallback;
+  private String geoOrigin;
 
-    private boolean hasLocationPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
-        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+  private boolean allowed() {
+    return Build.VERSION.SDK_INT<23 ||
+      checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED ||
+      checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED;
+  }
+  @Override public void onCreate(Bundle b) {
+    super.onCreate(b);
+    web=new WebView(this); setContentView(web);
+    WebSettings w=web.getSettings(); w.setJavaScriptEnabled(true); w.setDomStorageEnabled(true);
+    w.setAllowFileAccess(true); w.setGeolocationEnabled(true);
+    web.addJavascriptInterface(new Bridge(),"TwendeAndroid");
+    web.setWebViewClient(new WebViewClient());
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) {
+        if(allowed()) cb.invoke(origin,true,false);
+        else { geoOrigin=origin; geoCallback=cb; askPermission(); }
+      }
+    });
+    if(b==null) web.loadUrl("file:///android_asset/index.html"); else web.restoreState(b);
+  }
+  private void askPermission() {
+    if(Build.VERSION.SDK_INT>=23) requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},REQ);
+  }
+  private class Bridge {
+    @JavascriptInterface public void requestCurrentLocation() {
+      runOnUiThread(() -> { if(!allowed()){pending=true;askPermission();} else locateNative(); });
     }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        webView = new WebView(this);
-        setContentView(webView);
-
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setGeolocationEnabled(true);
-
-        webView.setWebViewClient(new WebViewClient());
-        webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                if (hasLocationPermission()) {
-                    callback.invoke(origin, true, false);
-                    return;
-                }
-                pendingGeoOrigin = origin;
-                pendingGeoCallback = callback;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    requestPermissions(new String[] {
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    }, LOCATION_PERMISSION_REQUEST);
-                } else {
-                    callback.invoke(origin, true, false);
-                }
-            }
-        });
-
-        if (savedInstanceState == null) {
-            webView.loadUrl("file:///android_asset/index.html");
-        } else {
-            webView.restoreState(savedInstanceState);
-        }
+  }
+  private void locateNative() {
+    try {
+      lm=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
+      if(lm==null || (!lm.isProviderEnabled("gps") && !lm.isProviderEnabled("network"))) { fail("Turn on Location/GPS in your phone settings."); return; }
+      Location last=null;
+      if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED) last=lm.getLastKnownLocation("gps");
+      if(last==null && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED) last=lm.getLastKnownLocation("network");
+      if(last!=null && System.currentTimeMillis()-last.getTime()<30000) { success(last); return; }
+      sent=false;
+      listener=new LocationListener() {
+        @Override public void onLocationChanged(Location l) { success(l); }
+        @Override public void onProviderEnabled(String p) {}
+        @Override public void onProviderDisabled(String p) {}
+        @Override public void onStatusChanged(String p,int status,Bundle extras) {}
+      };
+      if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED && lm.isProviderEnabled("gps"))
+        lm.requestLocationUpdates("gps",1000,0,listener,Looper.getMainLooper());
+      if(checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED && lm.isProviderEnabled("network"))
+        lm.requestLocationUpdates("network",1000,0,listener,Looper.getMainLooper());
+      handler.postDelayed(() -> { if(!sent) fail("GPS is taking too long. Check that Location is on and try again outdoors."); },25000);
+    } catch(SecurityException e) { fail("Allow precise location for Twende in Android settings."); }
+      catch(Exception e) { fail("Could not read phone location: "+e.getMessage()); }
+  }
+  private void stopUpdates() {
+    if(lm!=null && listener!=null) try { lm.removeUpdates(listener); } catch(SecurityException ignored) {}
+    listener=null;
+  }
+  private void success(Location l) {
+    if(l==null || sent) return; sent=true; stopUpdates(); handler.removeCallbacksAndMessages(null);
+    String js="window.onTwendeNativeLocation && window.onTwendeNativeLocation("+l.getLatitude()+","+l.getLongitude()+","+l.getAccuracy()+",null);";
+    runOnUiThread(() -> { if(web!=null) web.evaluateJavascript(js,null); });
+  }
+  private void fail(String message) {
+    if(sent) return; sent=true; stopUpdates(); handler.removeCallbacksAndMessages(null);
+    String js="window.onTwendeNativeLocation && window.onTwendeNativeLocation(null,null,null,"+JSONObject.quote(message)+");";
+    runOnUiThread(() -> { if(web!=null) web.evaluateJavascript(js,null); });
+  }
+  @Override public void onRequestPermissionsResult(int code,String[] p,int[] r) {
+    super.onRequestPermissionsResult(code,p,r);
+    if(code==REQ) {
+      boolean ok=allowed();
+      if(geoCallback!=null){geoCallback.invoke(geoOrigin,ok,false);geoCallback=null;geoOrigin=null;}
+      if(pending){pending=false;if(ok)locateNative();else fail("Location permission was denied. Enable precise location for Twende.");}
     }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST && pendingGeoCallback != null) {
-            boolean granted = hasLocationPermission();
-            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
-            pendingGeoCallback = null;
-            pendingGeoOrigin = null;
-        }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        if (webView != null) webView.saveState(outState);
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
-    }
+  }
+  @Override protected void onSaveInstanceState(Bundle b){if(web!=null)web.saveState(b);super.onSaveInstanceState(b);}
+  @Override protected void onDestroy(){stopUpdates();handler.removeCallbacksAndMessages(null);if(web!=null)web.destroy();super.onDestroy();}
+  @Override public void onBackPressed(){if(web!=null&&web.canGoBack())web.goBack();else super.onBackPressed();}
 }
 JAVA
-echo "GPS Android permission patch applied"
+echo "GPS Android native location bridge applied"
