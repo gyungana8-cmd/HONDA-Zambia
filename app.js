@@ -65,9 +65,9 @@ function updateUI() {
   $("#nav")?.classList.toggle("hidden",guest);
   $("#adminNav")?.classList.toggle("hidden",!isAdmin);
   $("#ride-services")?.classList.toggle("hidden",!guest);
-  $("#driver-panel")?.classList.toggle("hidden",guest||(!isDriver&&!isAdmin));
+  $("#driver-panel")?.classList.toggle("hidden",guest||isAdmin||!isDriver);
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
-  $("#dashboard")?.classList.toggle("hidden",!isOwner);
+  $("#dashboard")?.classList.toggle("hidden",!isOwner||isAdmin);
   window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
   window.twendeRefreshRoleMenu?.();
 }
