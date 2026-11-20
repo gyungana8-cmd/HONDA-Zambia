@@ -473,3 +473,5 @@ body.passenger-mode{background:#fff!important}
  body.passenger-mode #ride-services .service-card:first-child .service-vehicle-image{transform:scaleX(-1)!important;object-position:center!important}
  body.passenger-mode #ride-services .service-card:nth-child(2) .service-vehicle-image{transform:none!important}
 }
+
+@media(max-width:800px){body.passenger-mode .twende-passenger-hero-vehicles img{mix-blend-mode:multiply!important}}
