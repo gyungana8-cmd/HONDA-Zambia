@@ -811,3 +811,24 @@ body.passenger-mode .twende-bottom-nav button b{font-size:13px!important}
  body.passenger-mode #ride-services .service-card .btn{width:42px!important;min-width:42px!important;height:42px!important;min-height:42px!important}
  body.passenger-mode #ride-services .service-grid:before{font-size:25px!important}
 }
+
+
+/* Keep header notification and profile hit targets separate on every screen size. */
+body.passenger-mode .twende-app-header{position:relative!important}
+body.passenger-mode .twende-app-header #twendeNotificationsButton{
+ position:absolute!important;right:13%!important;left:auto!important;top:50%!important;
+ transform:translateY(-50%)!important;z-index:1205!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:42px!important;height:46px!important;padding:0!important;
+ pointer-events:auto!important;cursor:pointer!important;
+}
+body.passenger-mode .twende-app-header #twendeHeaderProfileButton{
+ position:absolute!important;right:3%!important;left:auto!important;top:50%!important;
+ transform:translateY(-50%)!important;z-index:1206!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:38px!important;height:46px!important;padding:0!important;
+ pointer-events:auto!important;cursor:pointer!important;
+}
+body.passenger-mode .twende-app-header #twendeNotificationsButton .twende-notification-badge{
+ position:absolute!important;right:0!important;top:0!important;
+}
