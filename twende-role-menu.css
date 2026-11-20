@@ -27,3 +27,15 @@
 .twende-notification-item small{color:#879099;font-size:11px}
 .twende-notification-dot{width:9px;height:9px;border-radius:50%;background:#aab1b7;margin-top:6px}
 .twende-notification-dot.is-new{background:#d71920}
+
+/* Role isolation: an administrator sees the control centre, not owner/driver or passenger marketplace panels. */
+body.admin-mode .twende-passenger-hero,
+body.admin-mode #ride-services,
+body.admin-mode #driver-panel,
+body.admin-mode .search-panel,
+body.admin-mode #motorcycle-marketplace,
+body.admin-mode #how,
+body.admin-mode #dashboard,
+body.admin-mode .twende-bottom-nav,
+body.admin-mode .twende-footer{display:none!important}
+body.admin-mode #adminPanel{display:block!important}
