@@ -107,4 +107,37 @@ grant execute on function public.twende_get_partner_access() to authenticated;
 grant execute on function public.twende_admin_list_partner_applications() to authenticated;
 grant execute on function public.twende_admin_review_partner_application(uuid,text,text) to authenticated;
 
+
+-- Preserve existing approved driver accounts and vehicles during rollout.
+insert into public.twende_partner_applications(
+ user_id,partner_type,vehicle_types,application_status,account_status,applicant_name,phone,email,reviewed_at
+)
+select distinct v.user_id,'driver','{}','approved','active',
+ coalesce(nullif(trim(v.driver_name),''),u.email),
+ coalesce(nullif(trim(v.phone),''),u.phone),
+ lower(u.email),now()
+from public.driver_vehicles v join auth.users u on u.id=v.user_id
+where v.approval_status='approved' and u.email is not null
+on conflict(user_id,partner_type) do nothing;
+
+-- Account suspension takes approved vehicles offline and prevents future online activation.
+create or replace function public.twende_set_vehicle_online(p_vehicle_id uuid,p_online boolean)
+returns void language plpgsql security definer set search_path=public as $
+begin
+ if not exists(
+   select 1 from public.twende_partner_applications a
+   where a.user_id=auth.uid() and a.partner_type='driver'
+     and a.application_status='approved' and a.account_status='active'
+ ) then
+   raise exception 'Driver partner account is not active. Contact TWENDE support.';
+ end if;
+ if not exists(select 1 from public.driver_vehicles
+   where id=p_vehicle_id and user_id=auth.uid() and approval_status='approved') then
+   raise exception 'Only your approved vehicle can be set online';
+ end if;
+ update public.driver_vehicles set is_online=p_online where id=p_vehicle_id and user_id=auth.uid();
+end; $;
+revoke all on function public.twende_set_vehicle_online(uuid,boolean) from public;
+grant execute on function public.twende_set_vehicle_online(uuid,boolean) to authenticated;
+
 select 'partner lifecycle migration ready' as status;
