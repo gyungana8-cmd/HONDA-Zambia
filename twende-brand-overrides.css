@@ -1010,3 +1010,86 @@ body.passenger-mode .twende-passenger-hero{
  body.passenger-mode .twende-passenger-hero{min-height:280px!important}
  body.passenger-mode #ride-services{max-width:1180px!important;margin:-26px auto 0!important;padding:28px 34px 100px!important;border-radius:30px 30px 0 0!important}
 }
+
+
+/* Final mobile passenger-home polish: match the approved TWENDE reference. */
+@media(max-width:800px){
+ body.passenger-mode #ride-services{
+   display:flex!important;flex-direction:column!important;
+   padding:16px 14px calc(104px + env(safe-area-inset-bottom))!important;
+   margin-top:-18px!important;border-radius:26px 26px 0 0!important;
+ }
+ body.passenger-mode #ride-services>.section-heading{order:1!important;margin:0 10px 12px!important}
+ body.passenger-mode #ride-services>.twende-live-panel{order:2!important;display:block!important;
+   margin:0 2px 16px!important;padding:8px!important;border:1px solid #e1e2e4!important;
+   border-radius:18px!important;background:#fff!important;box-shadow:0 3px 12px #1018200c!important}
+ body.passenger-mode #ride-services>.twende-choose-ride-heading{order:3!important;margin:2px 2px 10px!important}
+ body.passenger-mode #ride-services>.service-grid{order:4!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ body.passenger-mode #ride-services>.twende-benefits-row{order:5!important;margin:16px -2px 8px!important;padding:12px 0 10px!important}
+ body.passenger-mode #ride-services>#passengerRides{order:6!important}
+ body.passenger-mode .twende-location-row{
+   min-height:68px!important;display:flex!important;flex-wrap:nowrap!important;gap:12px!important;
+   padding:8px 8px 10px 12px!important;border:0!important;border-radius:0!important;background:#fff!important
+ }
+ body.passenger-mode .twende-location-symbol{flex:0 0 24px!important;font-size:24px!important;color:#e31b23!important}
+ body.passenger-mode .twende-location-copy{min-width:0!important;gap:2px!important}
+ body.passenger-mode .twende-location-copy strong{font-size:15px!important;font-weight:850!important;color:#171717!important}
+ body.passenger-mode .twende-location-copy span{font-size:12px!important;line-height:1.25!important;color:#68717a!important}
+ body.passenger-mode .twende-location-action{
+   flex:0 0 auto!important;min-height:42px!important;margin-left:auto!important;padding:8px 12px!important;
+   border:0!important;border-radius:11px!important;background:#ffcc00!important;color:#171717!important;
+   font-size:13px!important;font-weight:900!important
+ }
+ body.passenger-mode .twende-destination-wrap{
+   position:relative!important;margin:0!important;padding:0!important;border-top:1px solid #e3e4e6!important
+ }
+ body.passenger-mode .twende-destination-wrap label{display:none!important}
+ body.passenger-mode .twende-destination-input{
+   height:56px!important;min-height:56px!important;width:100%!important;margin:0!important;
+   padding:0 12px 0 48px!important;border:0!important;border-radius:0!important;
+   background:#fff!important;box-shadow:none!important;font-size:15px!important;font-weight:600!important;
+   color:#171717!important
+ }
+ body.passenger-mode .twende-destination-wrap:before{
+   content:"";position:absolute;left:14px;top:19px;width:17px;height:17px;border-radius:50% 50% 50% 0;
+   transform:rotate(-45deg);background:#171c29;z-index:1
+ }
+ body.passenger-mode .twende-destination-wrap:after{
+   content:"";position:absolute;left:19px;top:24px;width:7px;height:7px;border-radius:50%;background:#fff;z-index:2
+ }
+ body.passenger-mode #twendeMapStatus{margin:2px 12px 0!important;font-size:11px!important;color:#707780!important}
+ body.passenger-mode #ride-services .service-card.twende-ride-choice{
+   min-height:158px!important;height:auto!important;padding:6px!important;border:1.5px solid #ffcc00!important;
+   border-radius:16px!important;background:#fff!important;display:flex!important;flex-direction:column!important;
+   align-items:stretch!important;gap:0!important;box-shadow:none!important
+ }
+ body.passenger-mode #ride-services .twende-ride-choice .service-vehicle-image{
+   height:94px!important;max-height:94px!important;width:100%!important;object-fit:contain!important;
+   object-position:center!important;padding:3px!important;border:0!important;border-radius:11px!important;
+   background:#fff8df!important
+ }
+ body.passenger-mode #ride-services .twende-ride-choice .twende-service-copy{
+   position:relative!important;min-height:48px!important;padding:7px 27px 3px 5px!important;
+   border:0!important;display:block!important
+ }
+ body.passenger-mode #ride-services .twende-ride-choice .twende-service-copy:before{display:none!important;content:none!important}
+ body.passenger-mode #ride-services .twende-ride-choice .twende-service-copy h3{
+   margin:0 0 3px!important;font-size:clamp(13px,3.5vw,16px)!important;line-height:1.12!important;
+   font-style:normal!important;font-weight:900!important;color:#111!important
+ }
+ body.passenger-mode #ride-services .twende-ride-choice .twende-vehicle-type{
+   margin:0!important;font-size:11px!important;line-height:1.2!important;font-weight:500!important;color:#66707a!important
+ }
+ body.passenger-mode #ride-services .twende-ride-arrow{
+   right:4px!important;bottom:4px!important;width:30px!important;height:30px!important;
+   font-size:24px!important;background:#ffcc00!important;color:#111!important
+ }
+ body.passenger-mode .twende-benefits-row{
+   display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+   gap:0!important;border-top:1px solid #e1e3e5!important;background:#fff!important
+ }
+ body.passenger-mode .twende-benefits-row>div{padding:3px 3px!important;gap:5px!important}
+ body.passenger-mode .twende-benefits-row span{font-size:23px!important;line-height:1.05!important}
+ body.passenger-mode .twende-benefits-row b{display:block!important;font-size:9px!important;line-height:1.2!important;font-weight:750!important;color:#171717!important}
+ body.passenger-mode .twende-bottom-nav{height:calc(70px + env(safe-area-inset-bottom))!important}
+}
