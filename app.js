@@ -240,10 +240,23 @@ $("#registerForm").onsubmit=async e=>{
     showRegistrationError("Account creation could not be completed: "+(error?.message||"Unexpected network or application error. Please try again."));
   }finally{b.disabled=false;}
 };
+function showLoginError(message){
+  const form=$("#loginForm");let box=$("#loginError");
+  if(!box){box=document.createElement("div");box.id="loginError";box.setAttribute("role","alert");box.setAttribute("aria-live","assertive");form.querySelector('button[type="submit"]')?.before(box);}
+  box.textContent=message;
+  box.style.cssText="display:block!important;visibility:visible!important;opacity:1!important;margin:12px 0;padding:14px 16px;border-radius:12px;border:1px solid #c62828;background:#fff0f0;color:#8f1717;font-size:14px;font-weight:700;line-height:1.45;white-space:normal;overflow-wrap:anywhere;position:relative;z-index:5";
+}
 $("#loginForm").onsubmit=async e=>{
-  e.preventDefault();const b=e.submitter;b.disabled=true;
-  const {data,error}=await db.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
-  b.disabled=false;if(error){toast(error.message);return;}await onSession(data.session);toast("Signed in to TWENDE.");
+  e.preventDefault();const b=e.submitter||$("#loginForm button[type='submit']");
+  $("#loginError")?.remove();b.disabled=true;
+  try{
+    const {data,error}=await db.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
+    if(error){showLoginError("Sign-in failed: "+error.message);return;}
+    await onSession(data.session);toast("Signed in to TWENDE.");
+  }catch(error){
+    console.error("TWENDE sign-in failed:",error);
+    showLoginError("Sign-in could not be completed: "+(error?.message||"Unexpected network or application error. Please try again."));
+  }finally{b.disabled=false;}
 };
 $("#driverAccessButton")?.addEventListener("click",()=>{$("#loginForm").classList.remove("hidden");$("#registerForm").classList.add("hidden");$("#authDialog").showModal();});
 $("#signOutButton").onclick=async()=>{
