@@ -718,3 +718,26 @@ body.passenger-mode{background:#fff!important}
    background:#fff8dc!important;object-fit:contain!important;object-position:center!important
  }
 }
+
+
+/* Restore the approved passenger-home vehicle photography; booking dialogs remain artwork-free. */
+@media(max-width:800px){
+ body.passenger-mode .twende-passenger-hero-vehicles img{
+   object-fit:contain!important;
+   mix-blend-mode:multiply!important;
+ }
+ body.passenger-mode #ride-services .service-vehicle-image{
+   object-fit:cover!important;
+   object-position:center center!important;
+   background:#fff8dc!important;
+ }
+ body.passenger-mode .twende-app-header .twende-header-profile{
+   display:flex!important;position:absolute!important;right:66px!important;
+   top:62%!important;transform:translateY(-50%)!important;
+   z-index:35!important;font-size:30px!important;
+ }
+ body.passenger-mode .twende-app-header .twende-notification-button{
+   display:flex!important;position:absolute!important;right:16px!important;
+   top:62%!important;transform:translateY(-50%)!important;z-index:36!important;
+ }
+}
