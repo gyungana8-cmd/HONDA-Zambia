@@ -647,7 +647,8 @@ $("#twendeNotificationsRefresh")?.addEventListener("click",loadTwendeNotificatio
 document.addEventListener("click",e=>{
  if(!e.target.closest("#twendeNotificationsPanel")&&!e.target.closest("#twendeNotificationsButton"))closeTwendeNotifications();
 });
-\n// Live updates keep taxi requests and vehicle availability current without manual refresh.
+
+// Live updates keep taxi requests and vehicle availability current without manual refresh.
 // Online state is stored on each approved vehicle and is not reset on app restart.
 let twendeRealtimeChannel=null;
 function startTwendeRealtime(){
