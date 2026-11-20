@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffcc00"><meta name="mobile-web-app-capable" content="yes"><title>Twende | Taxi Zambia</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css?v=20261120-menu7">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css?v=20261120-passenger-hero1"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css?v=20261120-menu7">
 </head>
 <body class="passenger-mode">
 <div id="twendeSplash" class="twende-splash" role="status" aria-label="TWENDE is loading"><img src="twende-logo.svg" alt=""><strong>Twende</strong><span>ZAMBIA</span><i>Move with confidence</i></div>
@@ -17,6 +17,13 @@
 <button class="twende-header-profile" id="twendeHeaderProfileButton" type="button" aria-label="My profile" onclick="document.getElementById('twendeTabProfile').click()">♙</button>
 <button class="twende-notification-button" id="twendeNotificationsButton" type="button" aria-label="Booking notifications" aria-expanded="false"><span aria-hidden="true">🔔</span><i class="twende-notification-badge hidden" id="twendeNotificationBadge">0</i></button>
 </header>
+<section class="twende-passenger-hero" aria-label="TWENDE taxi services">
+ <div class="twende-passenger-hero-copy"><strong>Book a Taxi<br>Anytime, Anywhere</strong><span>Safe • Reliable • Affordable</span></div>
+ <div class="twende-passenger-hero-vehicles" aria-hidden="true">
+  <img class="twende-hero-car" src="assets/twende-car-photo.jpg" alt="">
+  <img class="twende-hero-motorcycle" src="assets/twende-motorcycle-photo.jpg" alt="">
+ </div>
+</section>
 <section class="twende-notifications-panel hidden" id="twendeNotificationsPanel" aria-label="Booking notifications">
  <div class="twende-notifications-head"><div><span class="eyebrow">TWENDE UPDATES</span><h2>Booking notifications</h2></div><button type="button" id="twendeNotificationsClose" aria-label="Close notifications">×</button></div>
  <div id="twendeNotificationsList"><p class="muted">Loading booking updates…</p></div>
