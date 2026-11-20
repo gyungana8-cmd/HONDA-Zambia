@@ -373,3 +373,47 @@ body.operator-mode .twende-bottom-nav{display:none!important}
  body.operator-mode .topbar .btn{font-size:11px!important;padding:9px 10px!important}
 }
 @media(max-width:390px){body.operator-mode .owner-metrics{grid-template-columns:1fr 1fr}body.operator-mode .topbar .brand-wordmark{font-size:18px!important}}
+
+
+/* Passenger service cards: real TWENDE vehicle photography */
+body.passenger-mode #ride-services .service-card{
+ background:#fff!important;
+ border:1.5px solid #e5dfca!important;
+ border-radius:24px!important;
+ box-shadow:0 8px 22px #1717170c!important;
+}
+body.passenger-mode #ride-services .service-vehicle-image{
+ object-fit:cover!important;
+ object-position:center center!important;
+ background:#fff8dc!important;
+ border-radius:17px!important;
+ padding:0!important;
+}
+body.passenger-mode #ride-services .twende-service-copy{
+ border-left:2px solid #ffcc00!important;
+}
+body.passenger-mode #ride-services .twende-service-copy h3{
+ font-style:normal!important;
+ letter-spacing:-.03em!important;
+}
+body.passenger-mode #ride-services .twende-vehicle-type{
+ color:#555!important;
+}
+body.passenger-mode #ride-services .service-card .btn{
+ background:#ffcc00!important;
+ color:#171717!important;
+ border:1px solid #efbd00!important;
+ box-shadow:0 3px 0 #d6aa00!important;
+}
+@media(max-width:600px){
+ body.passenger-mode #ride-services .service-card{
+  min-height:174px!important;height:174px!important;
+  grid-template-columns:minmax(0,1.55fr) minmax(118px,.9fr)!important;
+  padding:7px!important;border-radius:22px!important;
+ }
+ body.passenger-mode #ride-services .service-vehicle-image{height:154px!important;border-radius:15px!important}
+ body.passenger-mode #ride-services .twende-service-copy{min-height:150px!important;padding:4px 3px 4px 10px!important}
+ body.passenger-mode #ride-services .twende-service-copy h3{font-size:19px!important}
+ body.passenger-mode #ride-services .twende-vehicle-type{font-size:16px!important;margin-bottom:9px!important}
+ body.passenger-mode #ride-services .service-card .btn{min-height:42px!important;font-size:13px!important;border-radius:12px!important}
+}
