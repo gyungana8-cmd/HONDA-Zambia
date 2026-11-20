@@ -149,6 +149,7 @@ public class MainActivity extends Activity {
     }
   }
   private void locateNative() {
+    sent=false;
     try {
       lm=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
       if(lm==null || (!lm.isProviderEnabled("gps") && !lm.isProviderEnabled("network"))) { fail("Turn on Location/GPS in your phone settings."); return; }
