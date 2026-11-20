@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
-<rect width="640" height="360" rx="28" fill="#fff"/>
+
 <ellipse cx="320" cy="303" rx="255" ry="18" fill="#222" opacity=".12"/>
 <!-- sedan body, front to the right -->
 <path d="M54 237 L75 190 Q91 166 132 157 L218 143 Q258 89 331 78 L440 83 Q484 91 516 139 L555 179 L590 195 Q611 206 611 236 L607 270 L42 270 L42 251 Q42 239 54 237Z" fill="#fdfdfd" stroke="#202020" stroke-width="7" stroke-linejoin="round"/>
