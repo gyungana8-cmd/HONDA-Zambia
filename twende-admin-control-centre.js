@@ -40,11 +40,38 @@
       toast("Operations Administrator access removed.");panel.remove();await appendAdminControls();
     });
   }
+
+  async function appendPartnerApplications(){
+    const host=document.getElementById("adminContent");
+    if(!host||host.querySelector("#twendePartnerApplications"))return;
+    const {data:apps,error}=await db.rpc("twende_admin_list_partner_applications");
+    const panel=document.createElement("section");
+    panel.id="twendePartnerApplications";panel.className="dash-card";
+    if(error){
+      panel.innerHTML='<h3>Partner applications and account activation</h3><p class="muted">Partner lifecycle database setup is pending. Run supabase/twende_partner_lifecycle.sql in Supabase SQL Editor before using this section.</p>';
+      host.appendChild(panel);return;
+    }
+    const rows=apps||[];
+    panel.innerHTML='<h3>Partner applications and account activation ('+rows.length+')</h3>'+
+      (rows.map(a=>'<article class="dash-card"><h4>'+esc(a.applicant_name)+' • '+(a.partner_type==="driver"?"Driver":"Vehicle owner")+'</h4><p>'+esc(a.email)+' • '+esc(a.phone)+'</p><p>Vehicle categories: '+esc((a.vehicle_types||[]).join(", ")||"Driver application")+'</p><p>Application: <strong>'+esc(a.application_status)+'</strong> • Account: <strong>'+esc(a.account_status)+'</strong></p>'+(a.review_note?'<p>Review note: '+esc(a.review_note)+'</p>':"")+(a.application_status==="pending"?'<div class="dash-actions"><button class="btn btn-red" data-partner-review="approved" data-application-id="'+a.id+'">Approve and activate</button> <button class="btn btn-outline" data-partner-review="rejected" data-application-id="'+a.id+'">Reject</button> <button class="btn btn-outline" data-partner-review="dismissed" data-application-id="'+a.id+'">Dismiss</button></div>':a.account_status==="active"?'<button class="btn btn-outline" data-partner-review="suspended" data-application-id="'+a.id+'">Suspend account</button>':a.account_status==="suspended"?'<button class="btn btn-red" data-partner-review="activated" data-application-id="'+a.id+'">Reactivate account</button>':"")+'</article>').join("")||'<p class="muted">No partner applications have been submitted.</p>');
+    panel.addEventListener("click",async e=>{
+      const b=e.target.closest("[data-partner-review]");if(!b)return;
+      const decision=b.dataset.partnerReview;
+      const note=prompt("Optional review note (leave blank if none):")||"";
+      if(!confirm("Confirm "+decision+" for this partner account?"))return;
+      b.disabled=true;
+      const {error}=await db.rpc("twende_admin_review_partner_application",{p_application_id:b.dataset.applicationId,p_decision:decision,p_review_note:note});
+      if(error){b.disabled=false;toast("Partner account update failed: "+error.message);return;}
+      toast("Partner application/account updated: "+decision+".");
+      panel.remove();await appendPartnerApplications();
+    });
+    host.appendChild(panel);
+  }
   if(typeof original==="function"){
     window.loadAdminDashboard=async function(){
       await original();
       const snapshot=window.twendeRoleSnapshot;
-      if(snapshot&&snapshot.admin)await appendAdminControls();
+      if(snapshot&&snapshot.admin){await appendAdminControls();await appendPartnerApplications();}
     };
   }
   window.addEventListener("load",()=>setTimeout(()=>window.loadAdminDashboard?.(),250));
