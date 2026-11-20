@@ -240,3 +240,136 @@ body.passenger-mode .twende-bottom-nav button.active b{color:#111}
 }
 .twende-place-results button{min-height:44px;cursor:pointer;touch-action:manipulation}
 button:disabled{opacity:.62;cursor:wait!important}
+
+
+/* TWENDE operations dashboards: unified premium yellow, black and white interface */
+:root{
+ --twende-yellow:#ffcc00;
+ --twende-yellow-soft:#fff6cf;
+ --twende-ink:#171717;
+ --twende-surface:#ffffff;
+ --twende-muted:#68727a;
+ --twende-border:#e8e1ca;
+}
+body.operator-mode{
+ background:#f6f6f3!important;
+ color:var(--twende-ink)!important;
+}
+body.operator-mode .topbar{
+ background:var(--twende-yellow)!important;
+ color:var(--twende-ink)!important;
+ border-bottom:1px solid #e8b900!important;
+ box-shadow:0 3px 14px #1717170c!important;
+}
+body.operator-mode .topbar .brand-wordmark,
+body.operator-mode .topbar .brand-wordmark small,
+body.operator-mode .topbar .menu-btn,
+body.operator-mode .topbar #accountStatus{color:var(--twende-ink)!important}
+body.operator-mode .topbar .btn,
+body.operator-mode .topbar #authButton,
+body.operator-mode .topbar #signOutButton{
+ background:#fff!important;color:var(--twende-ink)!important;border:1px solid #dfc04c!important;border-radius:12px!important;font-weight:800!important;
+}
+body.operator-mode main{background:#f6f6f3!important;min-height:calc(100vh - 82px)}
+body.operator-mode .driver-panel:not(.hidden),
+body.operator-mode #adminPanel:not(.hidden),
+body.operator-mode #dashboard:not(.hidden){
+ display:block!important;
+ max-width:1180px!important;
+ margin:22px auto 36px!important;
+ padding:clamp(20px,4vw,42px)!important;
+ background:var(--twende-yellow-soft)!important;
+ border:1px solid #f0df9b!important;
+ border-radius:24px!important;
+ box-shadow:0 12px 34px #1717170a!important;
+}
+body.operator-mode .driver-panel .section-heading,
+body.operator-mode #adminPanel .section-heading,
+body.operator-mode #dashboard .section-heading{
+ align-items:center!important;
+ padding:0 0 22px!important;
+ margin:0 0 24px!important;
+ border-bottom:1px solid #e9d78e!important;
+}
+body.operator-mode .section-heading h2,
+body.operator-mode #adminPanel h2,
+body.operator-mode #dashboard h2{
+ color:var(--twende-ink)!important;
+ font-size:clamp(27px,4vw,38px)!important;
+ font-weight:950!important;
+ letter-spacing:-.045em!important;
+ margin:7px 0!important;
+}
+body.operator-mode .eyebrow{color:#8b6900!important;font-weight:900!important;letter-spacing:.18em!important}
+body.operator-mode .muted{color:#667078!important;line-height:1.55!important}
+body.operator-mode .btn-red,
+body.operator-mode .driver-panel .btn:not(.btn-outline),
+body.operator-mode #adminPanel .btn:not(.btn-outline),
+body.operator-mode #dashboard .btn:not(.btn-outline){
+ background:var(--twende-yellow)!important;
+ color:var(--twende-ink)!important;
+ border:1px solid #edbd00!important;
+ border-radius:12px!important;
+ font-weight:900!important;
+ box-shadow:0 4px 0 #d9ad00!important;
+}
+body.operator-mode .btn-red:hover,
+body.operator-mode .driver-panel .btn:hover,
+body.operator-mode #adminPanel .btn:hover,
+body.operator-mode #dashboard .btn:hover{filter:brightness(.97);transform:translateY(-1px)}
+body.operator-mode .btn-outline{
+ background:#fff!important;color:var(--twende-ink)!important;border:1px solid #d8d5ca!important;border-radius:12px!important;font-weight:800!important;
+}
+body.operator-mode .dash-card,
+body.operator-mode .metric-card,
+body.operator-mode .driver-panel .dash-card,
+body.operator-mode #adminPanel .dash-card,
+body.operator-mode #dashboard .dash-card{
+ background:#fff!important;border:1px solid var(--twende-border)!important;border-radius:18px!important;
+ padding:20px!important;box-shadow:0 5px 18px #17171708!important;
+}
+body.operator-mode .dash-card h3,
+body.operator-mode #adminPanel h3,
+body.operator-mode #dashboard h3{color:var(--twende-ink)!important;font-weight:900!important}
+body.operator-mode .dash-card p{color:#606a72!important;font-size:14px!important;line-height:1.6!important}
+body.operator-mode .owner-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:18px 0 26px}
+body.operator-mode .metric-card{display:grid;gap:8px;align-content:start;min-height:112px}
+body.operator-mode .metric-card span{font-size:12px;color:#68727a;font-weight:750}
+body.operator-mode .metric-card strong{font-size:27px;line-height:1.1;color:#171717;font-weight:950}
+body.operator-mode .twende-vehicle-art{width:100%;max-width:210px;object-fit:contain;background:#fff8dc;border-radius:12px;padding:8px}
+body.operator-mode .twende-owner-vehicle-card{display:grid;grid-template-columns:minmax(110px,.7fr) minmax(0,1.3fr);align-items:center;gap:18px}
+body.operator-mode .fleet-brand-tag{display:inline-flex;background:#ffcc00;color:#171717;border-radius:99px;padding:7px 12px;font-size:10px;font-weight:950;letter-spacing:.12em}
+body.operator-mode input,
+body.operator-mode select,
+body.operator-mode textarea{border:1px solid #ded9c8!important;border-radius:11px!important;background:#fff!important;min-height:44px;padding:10px 12px!important;color:#171717!important}
+body.operator-mode input:focus,
+body.operator-mode select:focus,
+body.operator-mode textarea:focus{outline:2px solid #ffcc00!important;border-color:#c99f00!important}
+body.operator-mode .driver-panel .dashboard-content,
+body.operator-mode #adminPanel .dashboard-content,
+body.operator-mode #dashboard .dashboard-content{display:grid;gap:16px}
+body.operator-mode #adminContent>h3,
+body.operator-mode #driverDashboard>h3,
+body.operator-mode #dashboardContent>h3{margin:22px 0 8px;font-size:19px}
+body.operator-mode .twende-footer{background:#fff8dc!important;border-top:1px solid #f0e2ae!important}
+body.operator-mode .twende-footer .brand-wordmark{color:#171717!important}
+body.operator-mode .twende-footer p{color:#555!important}
+body.operator-mode .twende-footer>small{color:#777!important}
+body.operator-mode .twende-bottom-nav{display:none!important}
+@media(max-width:760px){
+ body.operator-mode .driver-panel,
+ body.operator-mode #adminPanel,
+ body.operator-mode #dashboard{margin:12px 10px 24px!important;padding:20px 15px!important;border-radius:18px!important}
+ body.operator-mode .driver-panel .section-heading,
+ body.operator-mode #adminPanel .section-heading,
+ body.operator-mode #dashboard .section-heading{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+ body.operator-mode .twende-owner-vehicle-card{grid-template-columns:1fr!important}
+ body.operator-mode .twende-owner-vehicle-card .twende-vehicle-art{max-width:230px;justify-self:center}
+ body.operator-mode .dash-grid{grid-template-columns:1fr!important}
+ body.operator-mode .owner-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.operator-mode .topbar{min-height:76px!important;padding:8px 12px!important;gap:8px!important}
+ body.operator-mode .topbar .brand-wordmark{font-size:22px!important}
+ body.operator-mode .topbar #accountStatus{display:none!important}
+ body.operator-mode .topbar .btn{font-size:11px!important;padding:9px 10px!important}
+}
+@media(max-width:390px){body.operator-mode .owner-metrics{grid-template-columns:1fr 1fr}body.operator-mode .topbar .brand-wordmark{font-size:18px!important}}
