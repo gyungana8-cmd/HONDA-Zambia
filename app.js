@@ -215,18 +215,30 @@ $("#enterPickupManually").onclick=()=>{
 };
 $("#showRegister").onclick=()=>{ $("#loginForm").classList.add("hidden"); $("#registerForm").classList.remove("hidden"); };
 $("#showLogin").onclick=()=>{ $("#registerForm").classList.add("hidden"); $("#loginForm").classList.remove("hidden"); };
+function showRegistrationError(message,success=false){
+  const form=$("#registerForm");let box=$("#registerError");
+  if(!box){box=document.createElement("div");box.id="registerError";box.setAttribute("role","alert");box.setAttribute("aria-live","assertive");form.querySelector('button[type="submit"]')?.before(box);}
+  box.textContent=message;
+  box.style.cssText="display:block!important;visibility:visible!important;opacity:1!important;margin:12px 0;padding:14px 16px;border-radius:12px;border:1px solid "+(success?"#16834a":"#c62828")+";background:"+(success?"#eaf7ef":"#fff0f0")+";color:"+(success?"#145c35":"#8f1717")+";font-size:14px;font-weight:700;line-height:1.45;white-space:normal;overflow-wrap:anywhere;position:relative;z-index:5";
+}
 $("#registerForm").onsubmit=async e=>{
-  e.preventDefault(); const b=e.submitter; b.disabled=true;
-  const credentials={email:$("#registerEmail").value.trim(),password:$("#registerPassword").value,
-    options:{data:{full_name:$("#registerName").value.trim(),phone:$("#registerPhone").value.trim(),role:$("#registerRole").value}}};
-  const result=isGuestRider()
-    ? await db.auth.updateUser({email:credentials.email,password:credentials.password,data:credentials.options.data})
-    : await db.auth.signUp(credentials);
-  const data=result.data,error=result.error;
-  b.disabled=false;
-  if(error){toast(error.message);return;}
-  if(data.session){await onSession(data.session);toast("TWENDE account created.");}
-  else {toast("Account created. Check your email to confirm, then sign in.");$("#registerForm").reset();$("#registerForm").classList.add("hidden");$("#loginForm").classList.remove("hidden");}
+  e.preventDefault(); const b=e.submitter||$("#registerForm button[type='submit']");
+  let box=$("#registerError");if(box)box.remove();
+  b.disabled=true;
+  try{
+    const credentials={email:$("#registerEmail").value.trim(),password:$("#registerPassword").value,
+      options:{data:{full_name:$("#registerName").value.trim(),phone:$("#registerPhone").value.trim(),role:$("#registerRole").value}}};
+    const result=isGuestRider()
+      ? await db.auth.updateUser({email:credentials.email,password:credentials.password,data:credentials.options.data})
+      : await db.auth.signUp(credentials);
+    const data=result.data,error=result.error;
+    if(error){showRegistrationError("Account creation failed: "+error.message);return;}
+    if(data.session){await onSession(data.session);showRegistrationError("TWENDE account created successfully.",true);}
+    else {showRegistrationError("Account created. Check your email to confirm, then sign in.",true);$("#registerForm").reset();}
+  }catch(error){
+    console.error("TWENDE registration failed:",error);
+    showRegistrationError("Account creation could not be completed: "+(error?.message||"Unexpected network or application error. Please try again."));
+  }finally{b.disabled=false;}
 };
 $("#loginForm").onsubmit=async e=>{
   e.preventDefault();const b=e.submitter;b.disabled=true;
