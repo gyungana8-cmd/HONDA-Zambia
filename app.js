@@ -68,6 +68,7 @@ function updateUI() {
   $("#driver-panel")?.classList.toggle("hidden",guest||(!isDriver&&!isAdmin));
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
   $("#dashboard")?.classList.toggle("hidden",!isOwner);
+  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration};
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
@@ -398,7 +399,7 @@ function openRideDialog(service) {
 }
 window.openTwendeRideDialog = openRideDialog;
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
-$("#twendeBellButton")?.addEventListener("click",()=>document.querySelector('[data-hub="orders"]')?.click());
+$("#twendeBellButton")?.addEventListener("click",()=>window.twendeShowRoleMenu?.());
 async function submitTwendeTaxiRequest(){
   const form=$("#rideForm");
   const inlineMessage=$("#rideSubmitMessage");
