@@ -741,3 +741,29 @@ body.passenger-mode{background:#fff!important}
    top:62%!important;transform:translateY(-50%)!important;z-index:36!important;
  }
 }
+
+
+/* Real photographic passenger hero background: Kitwe, Zambia street scene (Unsplash). */
+body.passenger-mode .twende-passenger-hero{
+  background-image:
+    linear-gradient(90deg,rgba(13,22,25,.84) 0%,rgba(13,22,25,.58) 43%,rgba(13,22,25,.08) 100%),
+    url("https://images.unsplash.com/photo-1721792421861-2fdea5107633?auto=format&fit=crop&fm=jpg&q=82&w=1600")!important;
+  background-size:cover!important;
+  background-position:center 54%!important;
+  background-repeat:no-repeat!important;
+}
+@media(max-width:800px){
+  body.passenger-mode .twende-passenger-hero{
+    background-image:
+      linear-gradient(90deg,rgba(10,17,19,.82) 0%,rgba(10,17,19,.56) 44%,rgba(10,17,19,.08) 100%),
+      url("https://images.unsplash.com/photo-1721792421861-2fdea5107633?auto=format&fit=crop&fm=jpg&q=82&w=1600")!important;
+    background-size:cover!important;
+    background-position:center 58%!important;
+  }
+  body.passenger-mode .twende-passenger-hero:before{
+    opacity:.12!important;
+    background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.14) 100%)!important;
+  }
+  /* The real photograph supplies the vehicles in the banner; keep the sharper service cards below. */
+  body.passenger-mode .twende-passenger-hero-vehicles{display:none!important}
+}
