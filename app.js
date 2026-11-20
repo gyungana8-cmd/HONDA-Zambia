@@ -131,6 +131,8 @@ window.twendeReceivePushToken = async function(token) {
 async function onSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
+  // Refresh booking activity and badge after every passenger/partner session change.
+  if(typeof loadTwendeNotifications==="function") await loadTwendeNotifications();
   const requested=window.twendeRequestedPortal;
   if(requested && currentUser && !isGuestRider()){
     const allowed=requested==="admin" ? verifiedAdmin :
@@ -655,6 +657,7 @@ function startTwendeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
       if(isGuestRider()){loadPassengerRides();loadAvailableTaxiFleet();}
       else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+      if(currentUser && typeof loadTwendeNotifications==="function") loadTwendeNotifications();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
       if(isGuestRider())loadAvailableTaxiFleet();
