@@ -560,7 +560,8 @@ async function loadAdminDashboard(){
   host.innerHTML='<p class="muted">Verifying administrator permissions…</p>';
   const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
   verifiedAdmin=!adminError && isAdmin===true;
-  if(!verifiedAdmin){updateUI();host.innerHTML='<p class="muted">This account does not have administrator access. The administrator role is assigned securely by the TWENDE database.</p>';return;}
+  updateUI(); // Re-apply role visibility after the authoritative admin check completes.
+  if(!verifiedAdmin){host.innerHTML='<p class="muted">This account does not have administrator access. The administrator role is assigned securely by the TWENDE database.</p>';return;}
   panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
   const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
