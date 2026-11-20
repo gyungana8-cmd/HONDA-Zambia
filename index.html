@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffcc00"><meta name="mobile-web-app-capable" content="yes"><title>Twende | Taxi Zambia</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css"><link rel="stylesheet" href="twende-account-ui.css">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css">
 </head>
 <body>
 <div id="twendeSplash" class="twende-splash" role="status" aria-label="TWENDE is loading"><img src="twende-logo.svg" alt=""><strong>Twende</strong><span>ZAMBIA</span><i>Move with confidence</i></div>
@@ -51,7 +51,7 @@
 <button class="btn btn-red full" type="submit">Sign in</button><p class="muted">Driver or motorcycle owner? <button type="button" class="text-button" id="showRegister">Create an account</button></p></form>
 <form id="registerForm" class="dialog-form hidden"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">JOIN THE MARKETPLACE</span><h2>Create a driver / owner account</h2>
 <label>Full name<input id="registerName" autocomplete="name" required></label><label>Phone number<input id="registerPhone" type="tel" autocomplete="tel" placeholder="+260…" required></label>
-<label>Email address<input id="registerEmail" type="email" autocomplete="email" required></label><input type="hidden" id="registerRole" value="owner"><p class="muted">This account is for drivers and motorcycle / car owners. Passengers can request rides without registering.</p>
+<label>Email address<input id="registerEmail" type="email" autocomplete="email" required></label><label>Partner account type<select id="registerRole" required><option value="driver">Driver</option><option value="owner">Vehicle owner</option></select></label><p class="muted">This account is for drivers and motorcycle / car owners. Passengers can request rides without registering.</p>
 <label>Password (at least 6 characters)<div class="password-field"><input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required><button class="password-toggle" type="button" data-password-toggle="registerPassword" aria-label="Show password" aria-pressed="false">Show</button></div></label>
 <button class="btn btn-red full" type="submit">Create account</button><p class="muted">Already registered? <button type="button" class="text-button" id="showLogin">Sign in</button></p></form>
 <form id="passengerPhoneForm" class="dialog-form hidden"><button class="close" type="button" data-close="authDialog">×</button><span class="eyebrow">PASSENGER PILOT BOOKING</span><h2>Enter your phone number</h2><p class="muted">SMS verification is temporarily unavailable. Enter a reachable number so your driver can contact you. Your number will not be verified in this pilot. No passenger email or password account is required.</p><label>Zambian phone number<input id="passengerPhoneEntry" type="tel" autocomplete="tel" inputmode="tel" placeholder="+260 97 123 4567" required></label><button class="btn btn-red full" type="submit">Continue</button><p class="muted">Drivers and vehicle owners must register separately.</p></form>
