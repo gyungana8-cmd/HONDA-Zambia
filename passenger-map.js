@@ -55,8 +55,13 @@
     </div>
   `;
   const serviceGrid=home.querySelector(".service-grid");
-  if(serviceGrid){serviceGrid.classList.remove("twende-services-hidden");home.insertBefore(panel,serviceGrid);}
-  else home.append(panel);
+  const rideHeading=home.querySelector(".twende-choose-ride-heading");
+  if(serviceGrid){
+    serviceGrid.classList.remove("twende-services-hidden");
+    // Keep the pickup and destination controls directly below “Where to?”
+    // and before the ride-choice heading, matching the approved passenger design.
+    home.insertBefore(panel,rideHeading||serviceGrid);
+  } else home.append(panel);
 
   const status=$("#twendeMapStatus");
   const setStatus=s=>{if(status)status.textContent=s;};
