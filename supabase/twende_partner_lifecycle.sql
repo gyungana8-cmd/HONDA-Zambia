@@ -47,16 +47,16 @@ begin
     (cardinality(v_types)=0 or not (v_types <@ array['car','motorcycle']::text[])) then
     raise exception 'Select car, motorcycle or both vehicle categories';
   end if;
-  insert into public.twende_partner_applications(user_id,partner_type,vehicle_types,applicant_name,phone,email)
+  insert into public.twende_partner_applications as current_app(user_id,partner_type,vehicle_types,applicant_name,phone,email)
   values(auth.uid(),p_partner_type,case when p_partner_type='driver' then '{}' else v_types end,v_name,v_phone,v_email)
   on conflict(user_id,partner_type) do update set
     applicant_name=excluded.applicant_name,phone=excluded.phone,email=excluded.email,
-    vehicle_types=case when public.twende_partner_applications.application_status in ('rejected','dismissed')
-      then excluded.vehicle_types else public.twende_partner_applications.vehicle_types end,
-    application_status=case when public.twende_partner_applications.application_status in ('rejected','dismissed')
-      then 'pending' else public.twende_partner_applications.application_status end,
-    account_status=case when public.twende_partner_applications.application_status in ('rejected','dismissed')
-      then 'pending' else public.twende_partner_applications.account_status end,
+    vehicle_types=case when current_app.application_status in ('rejected','dismissed')
+      then excluded.vehicle_types else current_app.vehicle_types end,
+    application_status=case when current_app.application_status in ('rejected','dismissed')
+      then 'pending' else current_app.application_status end,
+    account_status=case when current_app.application_status in ('rejected','dismissed')
+      then 'pending' else current_app.account_status end,
     updated_at=now()
   returning id into v_id;
   return v_id;
