@@ -1093,3 +1093,33 @@ body.passenger-mode .twende-passenger-hero{
  body.passenger-mode .twende-benefits-row b{display:block!important;font-size:9px!important;line-height:1.2!important;font-weight:750!important;color:#171717!important}
  body.passenger-mode .twende-bottom-nav{height:calc(70px + env(safe-area-inset-bottom))!important}
 }
+
+
+/* Passenger screenshot feedback: yellow GPS action and crisp branded vehicle artwork. */
+@media(max-width:800px){
+ body.passenger-mode #twendeLocateMe,
+ body.passenger-mode .twende-location-action{
+   background:#ffcc00!important;color:#171717!important;border:0!important;
+   box-shadow:0 2px 5px #00000012!important;font-weight:900!important
+ }
+ body.passenger-mode .twende-passenger-hero-vehicles{
+   display:block!important;right:-2px!important;bottom:3px!important;
+   width:61%!important;height:142px!important;z-index:2!important
+ }
+ body.passenger-mode .twende-passenger-hero-vehicles img{
+   display:block!important;object-fit:contain!important;background:transparent!important;
+   filter:drop-shadow(0 5px 5px #0007)!important
+ }
+ body.passenger-mode .twende-passenger-hero .twende-hero-car{
+   width:78%!important;height:94%!important;right:18%!important;bottom:0!important;
+   transform:none!important;z-index:1!important
+ }
+ body.passenger-mode .twende-passenger-hero .twende-hero-motorcycle{
+   width:52%!important;height:82%!important;right:0!important;bottom:0!important;
+   transform:none!important;z-index:2!important
+ }
+ body.passenger-mode #ride-services .twende-ride-choice .service-vehicle-image{
+   image-rendering:auto!important;object-fit:contain!important;object-position:center!important;
+   background:#fff8df!important;padding:3px!important
+ }
+}
