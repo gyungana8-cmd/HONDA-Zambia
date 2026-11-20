@@ -161,17 +161,38 @@
     else destinationMarker=L.marker(p,{icon:pin("#7c3aed","🏁")}).addTo(map);
     destinationMarker.bindPopup("Selected destination");
   }
-  async function locate(){
+  async function getDevicePosition(){
+    // The Android wrapper loads a local file:// WebView. Use its native
+    // LocationManager bridge first; browser geolocation remains the web fallback.
+    if(window.TwendeAndroid && typeof window.TwendeAndroid.requestCurrentLocation==="function"){
+      return new Promise((resolve,reject)=>{
+        let settled=false;
+        const timer=setTimeout(()=>finish(new Error("Android GPS did not respond. Turn on Location and try again.")),30000);
+        function finish(error,position){
+          if(settled)return;settled=true;clearTimeout(timer);
+          window.onTwendeNativeLocation=null;
+          if(error)reject(error);else resolve(position);
+        }
+        window.onTwendeNativeLocation=(lat,lng,accuracy,error)=>{
+          if(error){finish(new Error(error));return;}
+          if(!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng))){finish(new Error("Android returned an invalid location. Check your phone GPS."));return;}
+          finish(null,{coords:{latitude:Number(lat),longitude:Number(lng),accuracy:Number(accuracy)||0}});
+        };
+        try{window.TwendeAndroid.requestCurrentLocation();}
+        catch(error){finish(new Error("Could not start Android GPS: "+error.message));}
+      });
+    }
     if(!navigator.geolocation)throw new Error("This browser does not support GPS. Please enable location services or select your pickup on the map.");
-    setStatus("Requesting GPS permission…");
-    const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,error=>{
-      if(error.code===1)reject(new Error("Location permission is blocked. In Chrome, select the site icon beside the address, open Site settings, set Location to Allow, then reload TWENDE."));
+    return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,error=>{
+      if(error.code===1)reject(new Error("Location permission is blocked. Allow location access for Twende in Android settings."));
       else if(error.code===2)reject(new Error("Your device could not determine its location. Turn on Location/GPS and try again, or tap your pickup point on the map."));
       else if(error.code===3)reject(new Error("GPS took too long. Move somewhere with a clearer sky view and try again, or tap your pickup point on the map."));
       else reject(new Error("GPS could not find your location. Check device location settings and try again."));
-    },{enableHighAccuracy:true,timeout:15000,maximumAge:60000}));
-    // Save exact coordinates immediately. Address lookup is helpful, but must
-    // never prevent a valid GPS fix from becoming the passenger's pickup.
+    },{enableHighAccuracy:true,timeout:25000,maximumAge:30000}));
+  }
+  async function locate(){
+    setStatus("Requesting your phone's GPS location…");
+    const pos=await getDevicePosition();
     userPoint={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"Current GPS location ("+pos.coords.latitude.toFixed(5)+", "+pos.coords.longitude.toFixed(5)+")"};
     window.twendePickupCoords=userPoint;
     $("#ridePickup").value=userPoint.label;
@@ -182,33 +203,29 @@
     $("#rideDestination").value="";
     setStatus("GPS found your pickup. Updating the address…");
     $("#twendeMapDetails").hidden=false;
-    const serviceGrid=home.querySelector(".service-grid");
-    if(serviceGrid)serviceGrid.classList.remove("twende-services-hidden");
+    const grid=home.querySelector(".service-grid");
+    if(grid)grid.classList.remove("twende-services-hidden");
     try{
       await ensureMap();
       showPickup();
       map.setView([userPoint.lat,userPoint.lng],16);
       setTimeout(()=>map&&map.invalidateSize(true),120);
       await refreshDrivers();
-    }catch(error){console.warn("TWENDE map display:",error);setStatus("GPS found your pickup, but the map could not load. You can still book a TWENDE taxi below.");}
-    // Reverse geocoding runs in the background; it must not block the booking form.
+    }catch(error){
+      console.warn("TWENDE map display:",error);
+      setStatus("Your GPS pickup is saved, but the map could not load. You can still book a TWENDE taxi.");
+    }
     reverse(userPoint.lat,userPoint.lng).then(address=>{
-      if(address && address!=="Current GPS location"){
+      if(address){
         userPoint.label=address;
         $("#ridePickup").value=address;
-        const locationLabel=$("#twendeCurrentLocation");
         if(locationLabel)locationLabel.textContent=address;
-      }else{
-        const locationLabel=$("#twendeCurrentLocation");
-        if(locationLabel)locationLabel.textContent="Current GPS location";
-      }
+      }else if(locationLabel)locationLabel.textContent="Current GPS location";
       setStatus("Pickup located by GPS. Enter your destination under Where to?.");
     }).catch(()=>{
-      const locationLabel=$("#twendeCurrentLocation");
       if(locationLabel)locationLabel.textContent="Current GPS location";
       setStatus("Pickup located by GPS. Enter your destination under Where to?.");
     });
-    if(map) refreshDrivers().catch(error=>console.warn("TWENDE nearby drivers:",error));
     return userPoint;
   }
   async function searchPlaces(q){
