@@ -61,7 +61,7 @@ function updateUI() {
   $("#signOutButton").classList.toggle("hidden",!currentUser||guest);
   $("#dashTitle").textContent=isOwner?"Vehicle owner dashboard":isDriver?"Driver dashboard":isAdmin?"Administrator dashboard":"Your dashboard";
   $("#switchRole")?.classList.add("hidden");
-  $("#menuBtn")?.classList.toggle("hidden",guest);
+  $("#menuBtn")?.classList.remove("hidden");
   $("#nav")?.classList.toggle("hidden",guest);
   $("#adminNav")?.classList.toggle("hidden",!isAdmin);
   $("#ride-services")?.classList.toggle("hidden",!guest);
@@ -355,7 +355,7 @@ $("#dashboardContent").onclick=async e=>{
 };
 $("#searchBtn").onclick=renderBikes;$("#location").onkeydown=e=>{if(e.key==="Enter")renderBikes();};
 $("#category").onchange=renderBikes;$("#maxPrice").onchange=renderBikes;
-$("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");
+$("#menuBtn").onclick=()=>window.twendeShowRoleMenu?.();
 
 
 /* TWENDE ride-hailing: cash-only taxi requests and driver onboarding.
@@ -407,7 +407,7 @@ function openRideDialog(service) {
 }
 window.openTwendeRideDialog = openRideDialog;
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
-$("#twendeBellButton")?.addEventListener("click",()=>window.twendeShowRoleMenu?.());
+
 async function submitTwendeTaxiRequest(){
   const form=$("#rideForm");
   const inlineMessage=$("#rideSubmitMessage");
@@ -601,7 +601,53 @@ updateUI();startApp();
 
 
 
-// Live updates keep taxi requests and vehicle availability current without manual refresh.
+
+/* TWENDE booking notifications: left hamburger = account/role menu; right bell = booking activity. */
+function notificationPanelOpen(){return !$("#twendeNotificationsPanel")?.classList.contains("hidden");}
+function closeTwendeNotifications(){
+ const panel=$("#twendeNotificationsPanel");if(!panel)return;
+ panel.classList.add("hidden");$("#twendeNotificationsButton")?.setAttribute("aria-expanded","false");
+}
+function notificationSummary(row){
+ const status=String(row.status||"pending").replace(/_/g," ");
+ const service=row.service_type==="car"?"Car taxi":"Motorcycle taxi";
+ const heading=status==="pending"?"New booking request":status==="accepted"?"Booking accepted":status==="rejected"?"Booking declined":status==="cancelled"?"Booking cancelled":"Booking update";
+ return {heading,detail:service+" • "+(row.pickup_text||"Pickup pending")+" → "+(row.destination_text||"Destination pending"),status,created:row.created_at};
+}
+async function loadTwendeNotifications(){
+ const host=$("#twendeNotificationsList"),badge=$("#twendeNotificationBadge");
+ if(!host)return;
+ if(!currentUser){host.innerHTML='<p class="muted">Open a passenger or partner session to view booking updates.</p>';if(badge)badge.classList.add("hidden");return;}
+ host.innerHTML='<p class="muted">Checking your latest booking updates…</p>';
+ let query=db.from("ride_requests").select("id,service_type,pickup_text,destination_text,status,created_at,rider_id,driver_id").order("created_at",{ascending:false}).limit(30);
+ if(isGuestRider()||role==="rider")query=query.eq("rider_id",currentUser.id);
+ else if(role==="driver")query=query.or("status.eq.pending,driver_id.eq."+currentUser.id);
+ else if(role==="owner")query=query.or("status.eq.pending,driver_id.eq."+currentUser.id);
+ // Verified administrators can see system-wide booking activity.
+ const {data,error}=await query;
+ if(error){console.warn("TWENDE notifications:",error);host.innerHTML='<p class="muted">Booking notifications could not be loaded. Check your connection or access permissions, then refresh.</p>';if(badge)badge.classList.add("hidden");return;}
+ const rows=data||[];
+ const pending=rows.filter(x=>x.status==="pending").length;
+ if(badge){badge.textContent=pending>99?"99+":String(pending);badge.classList.toggle("hidden",pending===0);}
+ host.innerHTML=rows.map(row=>{
+  const n=notificationSummary(row),time=n.created?new Date(n.created).toLocaleString(): "Recent";
+  return '<article class="twende-notification-item"><div class="twende-notification-dot '+(n.status==="pending"?"is-new":"")+'"></div><div><strong>'+esc(n.heading)+'</strong><p>'+esc(n.detail)+'</p><small>'+esc(n.status)+' • '+esc(time)+'</small></div></article>';
+ }).join("")||'<p class="muted">No booking notifications yet. New ride requests and status updates will appear here.</p>';
+}
+function openTwendeNotifications(){
+ const panel=$("#twendeNotificationsPanel");if(!panel)return;
+ panel.classList.remove("hidden");$("#twendeNotificationsButton")?.setAttribute("aria-expanded","true");
+ loadTwendeNotifications();
+}
+$("#twendeNotificationsButton")?.addEventListener("click",()=>{
+ if(notificationPanelOpen())closeTwendeNotifications();else openTwendeNotifications();
+});
+$("#twendeNotificationsClose")?.addEventListener("click",closeTwendeNotifications);
+$("#twendeNotificationsRefresh")?.addEventListener("click",loadTwendeNotifications);
+document.addEventListener("click",e=>{
+ if(!e.target.closest("#twendeNotificationsPanel")&&!e.target.closest("#twendeNotificationsButton"))closeTwendeNotifications();
+});
+\n// Live updates keep taxi requests and vehicle availability current without manual refresh.
 // Online state is stored on each approved vehicle and is not reset on app restart.
 let twendeRealtimeChannel=null;
 function startTwendeRealtime(){
