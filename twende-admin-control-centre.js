@@ -11,6 +11,7 @@
     const host=document.getElementById("adminContent");
     if(!host||host.querySelector("#twendeAdminHierarchy"))return;
     const {data:isPrimary,error}=await db.rpc("twende_is_primary_admin");
+    if(host.querySelector("#twendeAdminHierarchy"))return;
     if(error){host.insertAdjacentHTML("beforeend",'<p class="muted">Administrator hierarchy setup is pending. Run supabase/twende_admin_hierarchy.sql in the Supabase SQL Editor.</p>');return;}
     const {data:admins,listError}=await db.rpc("twende_list_admins");
     const rows=admins||[];
