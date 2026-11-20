@@ -7,6 +7,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 window.twendeDb = db;
 
 let currentUser = null, currentProfile = null, role = "rider";
+let verifiedAdmin = false, hasDriverRegistration = false;
 Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
 let verifiedPassengerPhone = null;
 let selectedBike = null, liveBikes = [], liveBookings = [];
@@ -47,20 +48,28 @@ document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click
 function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=!currentUser || isGuestRider();
-  const isAdmin=String(currentUser?.email||"").toLowerCase()==="gyungana8@gmail.com";
+  const isAdmin=!guest && verifiedAdmin;
+  const isDriver=!guest && currentProfile?.role==="driver";
+  const isOwner=!guest && currentProfile?.role==="owner";
   document.body.classList.toggle("passenger-mode",guest);
-  document.body.classList.toggle("operator-mode",!!currentUser&&!guest);
-  $("#accountStatus").textContent = guest ? "Passenger" : currentUser ? (currentProfile?.full_name || currentUser.email) : "Driver / owner access";
-  $("#authButton").classList.toggle("hidden", true);
-  $("#signOutButton").classList.toggle("hidden", !currentUser || guest);
-  $("#dashTitle").textContent = "Driver dashboard";
+  document.body.classList.toggle("operator-mode",!guest);
+  document.body.classList.toggle("driver-mode",isDriver);
+  document.body.classList.toggle("owner-mode",isOwner);
+  document.body.classList.toggle("admin-mode",isAdmin);
+  $("#accountStatus").textContent=guest?"Passenger":(currentProfile?.full_name||currentUser?.email||"TWENDE partner");
+  $("#authButton").classList.add("hidden");
+  $("#signOutButton").classList.toggle("hidden",!currentUser||guest);
+  $("#dashTitle").textContent=isOwner?"Vehicle owner dashboard":isDriver?"Driver dashboard":isAdmin?"Administrator dashboard":"Your dashboard";
   $("#switchRole")?.classList.add("hidden");
-  $("#menuBtn")?.classList.remove("hidden");
+  $("#menuBtn")?.classList.toggle("hidden",guest);
   $("#nav")?.classList.toggle("hidden",guest);
   $("#adminNav")?.classList.toggle("hidden",!isAdmin);
   $("#ride-services")?.classList.toggle("hidden",!guest);
-  $("#driver-panel")?.classList.toggle("hidden",guest);
-  $("#adminPanel")?.classList.toggle("hidden",guest || !isAdmin);
+  $("#driver-panel")?.classList.toggle("hidden",guest||(!isDriver&&!isAdmin));
+  $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
+  $("#dashboard")?.classList.toggle("hidden",!isOwner);
+  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration};
+  window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
   if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
@@ -84,7 +93,14 @@ async function loadProfile(user) {
     currentProfile=error?row:data;
     if(error) console.error("Profile create:",error);
   }
-  role=currentProfile?.role==="owner"?"owner":"rider";
+  role=["owner","driver","admin"].includes(currentProfile?.role)?currentProfile.role:"rider";
+  verifiedAdmin=false; hasDriverRegistration=false;
+  const [adminCheck,driverCheck]=await Promise.all([
+    db.rpc("twende_is_admin"),
+    db.from("driver_vehicles").select("id,approval_status").eq("user_id",user.id).limit(1)
+  ]);
+  verifiedAdmin=!adminCheck.error && adminCheck.data===true;
+  hasDriverRegistration=!driverCheck.error && (driverCheck.data||[]).length>0;
   updateUI();
   // Load independent dashboard panels together instead of serial network waits.
   await Promise.allSettled([
@@ -115,6 +131,14 @@ window.twendeReceivePushToken = async function(token) {
 async function onSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
+  const requested=window.twendeRequestedPortal;
+  if(requested && currentUser && !isGuestRider()){
+    const allowed=requested==="admin" ? verifiedAdmin :
+      requested==="driver" ? currentProfile?.role==="driver" :
+      requested==="owner" ? currentProfile?.role==="owner" : false;
+    if(!allowed) toast("This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
+    window.twendeRequestedPortal=null;
+  }
   if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
   if(currentUser && !isGuestRider()) { $("#authDialog").close(); }
   else if(!currentUser) { $("#dashboardIntro").textContent="Sign in to view your bookings and listings."; $("#dashboardContent").innerHTML=""; }
@@ -383,7 +407,7 @@ function openRideDialog(service) {
 }
 window.openTwendeRideDialog = openRideDialog;
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
-$("#twendeBellButton")?.addEventListener("click",()=>document.querySelector('[data-hub="orders"]')?.click());
+$("#twendeBellButton")?.addEventListener("click",()=>window.twendeShowRoleMenu?.());
 async function submitTwendeTaxiRequest(){
   const form=$("#rideForm");
   const inlineMessage=$("#rideSubmitMessage");
@@ -533,15 +557,11 @@ async function loadAdminDashboard(){
   if(!panel||!host)return;
   panel.classList.add("hidden");if(nav)nav.classList.add("hidden");
   if(!currentUser){host.innerHTML='<p class="muted">Sign in with the designated administrator account.</p>';return;}
-  // Reveal the entry point only for the specifically assigned account. All data
-  // access and approval actions remain protected by the server-side admin RPC/RLS.
-  const designatedAdmin=String(currentUser.email||"").toLowerCase()==="gyungana8@gmail.com";
-  if(!designatedAdmin){host.innerHTML='<p class="muted">This account does not have TWENDE administrator access.</p>';return;}
-  panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
   host.innerHTML='<p class="muted">Verifying administrator permissions…</p>';
   const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
-  if(adminError){host.innerHTML='<p class="muted">Admin menu is available, but permission verification failed: '+esc(adminError.message)+'. Sign out and sign in again, then refresh.</p>';return;}
-  if(isAdmin!==true){host.innerHTML='<p class="muted">Your email is recognised, but the database has not confirmed administrator permissions. Sign out and sign in again, then refresh. If this persists, re-run the TWENDE admin SQL setup.</p>';return;}
+  verifiedAdmin=!adminError && isAdmin===true;
+  if(!verifiedAdmin){updateUI();host.innerHTML='<p class="muted">This account does not have administrator access. The administrator role is assigned securely by the TWENDE database.</p>';return;}
+  panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
   const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
   const rows=vehicles||[];
