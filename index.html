@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffcc00"><meta name="mobile-web-app-capable" content="yes"><title>Twende | Taxi Zambia</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css?v=20261120-menu5">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="twende-brand-overrides.css"><link rel="stylesheet" href="twende-account-ui.css"><link rel="stylesheet" href="twende-role-menu.css?v=20261120-menu6">
 </head>
 <body class="passenger-mode">
 <div id="twendeSplash" class="twende-splash" role="status" aria-label="TWENDE is loading"><img src="twende-logo.svg" alt=""><strong>Twende</strong><span>ZAMBIA</span><i>Move with confidence</i></div>
@@ -14,8 +14,13 @@
 <span id="accountStatus" class="account-status">Passenger</span>
 <button class="btn btn-outline" id="authButton">Driver / owner sign in</button>
 <button class="btn btn-outline hidden" id="signOutButton">Sign out</button>
-<button class="twende-notification-button" id="twendeBellButton" type="button" aria-label="Open account and role access menu" onclick="var m=document.getElementById('twendeRoleMenu');if(m){m.classList.remove('hidden');m.setAttribute('aria-hidden','false');if(window.twendeShowRoleMenu)window.twendeShowRoleMenu();}else{alert('TWENDE account menu failed to initialise. Please contact support.');}"><span aria-hidden="true">♙</span><i></i></button>
+<button class="twende-notification-button" id="twendeNotificationsButton" type="button" aria-label="Booking notifications" aria-expanded="false"><span aria-hidden="true">♢</span><i class="twende-notification-badge hidden" id="twendeNotificationBadge">0</i></button>
 </header>
+<section class="twende-notifications-panel hidden" id="twendeNotificationsPanel" aria-label="Booking notifications">
+ <div class="twende-notifications-head"><div><span class="eyebrow">TWENDE UPDATES</span><h2>Booking notifications</h2></div><button type="button" id="twendeNotificationsClose" aria-label="Close notifications">×</button></div>
+ <div id="twendeNotificationsList"><p class="muted">Loading booking updates…</p></div>
+ <button type="button" class="btn btn-outline full" id="twendeNotificationsRefresh">Refresh notifications</button>
+</section>
 <div id="twendeRoleMenu" class="twende-role-overlay hidden" aria-hidden="true">
  <section class="twende-role-sheet" role="dialog" aria-modal="true" aria-labelledby="twendeRoleTitle">
   <button type="button" class="twende-role-close" id="twendeRoleMenuClose" aria-label="Close">×</button>
