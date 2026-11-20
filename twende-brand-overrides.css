@@ -693,3 +693,28 @@ body.passenger-mode{background:#fff!important}
  body.passenger-mode #ride-services .service-card{min-height:192px!important}
  body.passenger-mode #ride-services .service-vehicle-image{height:96px!important;max-height:96px!important}
 }
+
+
+/* Use the same clean vehicle artwork shown in the booking forms on the passenger home. */
+@media(max-width:800px){
+ body.passenger-mode .twende-passenger-hero-vehicles{
+   width:64%!important;height:158px!important;right:0!important;bottom:5px!important;
+   display:flex!important;align-items:flex-end!important;justify-content:flex-end!important;
+   gap:0!important
+ }
+ body.passenger-mode .twende-passenger-hero-vehicles img{
+   position:absolute!important;object-fit:contain!important;background:transparent!important;
+   filter:drop-shadow(0 5px 5px #0004)!important
+ }
+ body.passenger-mode .twende-passenger-hero .twende-hero-car{
+   width:57%!important;height:82%!important;right:40%!important;bottom:0!important;
+   transform:none!important;z-index:1!important
+ }
+ body.passenger-mode .twende-passenger-hero .twende-hero-motorcycle{
+   width:43%!important;height:77%!important;right:0!important;bottom:0!important;
+   transform:none!important;z-index:2!important
+ }
+ body.passenger-mode #ride-services .service-vehicle-image{
+   background:#fff8dc!important;object-fit:contain!important;object-position:center!important
+ }
+}
