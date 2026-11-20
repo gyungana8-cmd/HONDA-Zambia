@@ -116,7 +116,7 @@ grant execute on function public.twende_admin_review_partner_application(uuid,te
 insert into public.twende_partner_applications(
  user_id,partner_type,vehicle_types,application_status,account_status,applicant_name,phone,email,reviewed_at
 )
-select distinct v.user_id,'driver','{}','approved','active',
+select distinct v.user_id,'driver','{}'::text[],'approved','active',
  coalesce(nullif(trim(v.driver_name),''),u.email),
  coalesce(nullif(trim(v.phone),''),u.phone),
  lower(u.email),now()
