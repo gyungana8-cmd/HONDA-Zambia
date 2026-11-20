@@ -64,7 +64,6 @@
  }
  window.twendeShowRoleMenu=()=>{refresh();if(!dialog.open)dialog.showModal();};
  window.twendeRefreshRoleMenu=refresh;
- $("#twendeBellButton")?.addEventListener("click",window.twendeShowRoleMenu);
  $("#twendeRoleMenuClose").addEventListener("click",()=>dialog.close());
  $("#twendeRolePassenger").addEventListener("click",()=>{dialog.close();window.twendeShowPassengerHub?.("profile");});
  $("#twendeRoleSignOut").addEventListener("click",async()=>{dialog.close();await window.twendeSignOut?.();$("#signOutButton")?.click();});
