@@ -475,3 +475,10 @@ body.passenger-mode{background:#fff!important}
 }
 
 @media(max-width:800px){body.passenger-mode .twende-passenger-hero-vehicles img{mix-blend-mode:multiply!important}}
+
+
+/* Fix: supplied TWENDE car artwork already faces right; never mirror it. */
+@media(max-width:800px){
+ body.passenger-mode .twende-hero-car{transform:none!important}
+ body.passenger-mode #ride-services .service-card:first-child .service-vehicle-image{transform:none!important}
+}
