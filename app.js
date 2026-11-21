@@ -296,6 +296,49 @@ $("#registerForm").onsubmit=async e=>{
     b.disabled=false;
   }
 };
+function showAuthNotice(formId,message,success=false){
+  const form=$(formId);let box=form.querySelector(".auth-inline-notice");
+  if(!box){box=document.createElement("div");box.className="auth-inline-notice";box.setAttribute("role","status");box.setAttribute("aria-live","polite");form.querySelector('button[type="submit"]')?.before(box);}
+  box.textContent=message;
+  box.style.cssText="display:block!important;margin:12px 0;padding:14px 16px;border-radius:12px;border:1px solid "+(success?"#16834a":"#c62828")+";background:"+(success?"#eaf7ef":"#fff0f0")+";color:"+(success?"#145c35":"#8f1717")+";font-size:14px;font-weight:700;line-height:1.45;overflow-wrap:anywhere";
+}
+$("#showForgotPassword")?.addEventListener("click",()=>{
+  $("#loginForm").classList.add("hidden");
+  $("#registerForm").classList.add("hidden");
+  $("#passwordRecoveryForm").classList.remove("hidden");
+  $("#recoveryEmail").value=$("#loginEmail").value.trim();
+});
+$("#backToLogin")?.addEventListener("click",()=>{
+  $("#passwordRecoveryForm").classList.add("hidden");
+  $("#loginForm").classList.remove("hidden");
+});
+$("#passwordRecoveryForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();const button=e.submitter||e.currentTarget.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{
+    const email=$("#recoveryEmail").value.trim().toLowerCase();
+    const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    if(error)throw error;
+    showAuthNotice("#passwordRecoveryForm","If this email is registered, TWENDE has sent a password-reset link. Open it in this same browser, then set a new password.",true);
+  }catch(error){showAuthNotice("#passwordRecoveryForm","Password reset request failed: "+(error?.message||"Please try again."));}
+  finally{button.disabled=false;}
+});
+$("#passwordUpdateForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();const button=e.submitter||e.currentTarget.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{
+    const password=$("#newAccountPassword").value;
+    if(password.length<6)throw new Error("Use at least 6 characters for the new password.");
+    const {data,error}=await db.auth.updateUser({password});
+    if(error)throw error;
+    $("#passwordUpdateForm").classList.add("hidden");
+    $("#loginForm").classList.remove("hidden");
+    $("#loginEmail").value=data.user?.email||"";
+    $("#loginPassword").value="";
+    showAuthNotice("#loginForm","Password updated. Sign in using your new password.",true);
+  }catch(error){showAuthNotice("#passwordUpdateForm","Password update failed: "+(error?.message||"Open the reset link again and retry."));}
+  finally{button.disabled=false;}
+});
 function showLoginError(message){
   const form=$("#loginForm");let box=$("#loginError");
   if(!box){box=document.createElement("div");box.id="loginError";box.setAttribute("role","alert");box.setAttribute("aria-live","assertive");form.querySelector('button[type="submit"]')?.before(box);}
@@ -800,7 +843,17 @@ async function startApp(){
   // Nearby vehicles are fetched when a taxi class is selected, not during startup.
   // This keeps the first screen responsive on slower mobile connections.
   startTwendeRealtime();
-  db.auth.onAuthStateChange((_event,nextSession)=>setTimeout(()=>onSession(nextSession),0));
+  db.auth.onAuthStateChange((event,nextSession)=>{
+    if(event==="PASSWORD_RECOVERY"){
+      $("#loginForm").classList.add("hidden");
+      $("#registerForm").classList.add("hidden");
+      $("#passwordRecoveryForm").classList.add("hidden");
+      $("#passwordUpdateForm").classList.remove("hidden");
+      if(!$("#authDialog").open)$("#authDialog").showModal();
+      return;
+    }
+    setTimeout(()=>onSession(nextSession),0);
+  });
 }
 updateUI();startApp();
 
