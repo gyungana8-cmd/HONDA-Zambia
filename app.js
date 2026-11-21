@@ -104,8 +104,8 @@ async function loadProfile(user) {
     currentProfile={id:user.id,full_name:guestProfile?.full_name||"Passenger",phone:guestProfile?.phone||null,role:"rider"};
     verifiedPassengerPhone=currentProfile.phone;
     role="rider";updateUI();
-    $("#dashboardIntro").textContent="You are using TWENDE as a passenger without creating an account.";
-    $("#dashboardContent").innerHTML='<p class="muted">No passenger account is needed to request a taxi.</p>';
+    $("#dashboardIntro").textContent="Complete passenger registration with a verified mobile number before requesting your first taxi.";
+    $("#dashboardContent").innerHTML='<p class="muted">Passenger registration and SMS phone verification are required before booking.</p>';
     await loadPassengerRides();
     return;
   }
