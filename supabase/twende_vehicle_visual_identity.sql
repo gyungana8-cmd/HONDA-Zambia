@@ -69,4 +69,39 @@ $$;
 revoke all on function public.get_available_twende_vehicles() from public;
 grant execute on function public.get_available_twende_vehicles() to authenticated;
 
+-- Extend the owner fleet summary so owners can edit and see saved vehicle visuals.
+drop function if exists public.twende_owner_fleet_summary();
+create function public.twende_owner_fleet_summary()
+returns table(
+ vehicle_id uuid,vehicle_type text,vehicle_make text,vehicle_model text,
+ plate_number text,operating_area text,approval_status text,is_online boolean,
+ driver_user_id uuid,driver_name text,driver_phone text,last_latitude double precision,
+ last_longitude double precision,location_updated_at timestamptz,
+ completed_trips bigint,completed_value numeric,
+ vehicle_color text,vehicle_photo_url text,vehicle_photo_url_secondary text
+)
+language plpgsql stable security definer set search_path=public as $
+begin
+ if not exists(
+  select 1 from public.twende_partner_applications a
+  where a.user_id=auth.uid() and a.partner_type='vehicle_owner'
+   and a.application_status='approved' and a.account_status='active'
+ ) then
+  raise exception 'Active approved vehicle-owner account required';
+ end if;
+ return query
+ select v.id,v.vehicle_type,v.vehicle_make,v.vehicle_model,v.plate_number,v.operating_area,
+  v.approval_status,v.is_online,v.user_id,v.driver_name,v.phone,v.last_latitude,v.last_longitude,
+  v.location_updated_at,
+  count(r.id) filter(where r.status='completed'),
+  coalesce(sum(r.estimated_fare) filter(where r.status='completed'),0),
+  v.vehicle_color,v.vehicle_photo_url,v.vehicle_photo_url_secondary
+ from public.driver_vehicles v
+ left join public.ride_requests r on r.driver_vehicle_id=v.id
+ where v.owner_id=auth.uid()
+ group by v.id order by v.created_at desc;
+end; $;
+revoke all on function public.twende_owner_fleet_summary() from public;
+grant execute on function public.twende_owner_fleet_summary() to authenticated;
+
 select 'TWENDE vehicle photo and colour identification migration ready' as status;
