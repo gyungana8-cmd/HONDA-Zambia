@@ -46,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
         new Thread(()->{try{
             JSONObject session=TwendeApi.login(e,p);String token=session.getString("access_token");
             getSharedPreferences("twende_driver",MODE_PRIVATE).edit().putString("access_token",token).putString("refresh_token",session.optString("refresh_token")).apply();
-            JSONArray vehicles=TwendeApi.approvedVehicles(token);
+            String userId=session.optJSONObject("user").getString("id");
+            JSONArray vehicles=TwendeApi.approvedVehicles(token,userId);
             runOnUiThread(()->showVehicles(token,vehicles));
             FirebaseMessaging.getInstance().getToken().addOnSuccessListener(fcm->new Thread(()->{try{TwendeApi.registerToken(token,fcm);}catch(Exception ex){android.util.Log.e("TWENDE","Token registration pending",ex);}}).start());
         }catch(Exception ex){runOnUiThread(()->toast("Sign-in failed: "+ex.getMessage()));}}).start();
@@ -62,9 +63,41 @@ public class MainActivity extends AppCompatActivity {
         TextView status=new TextView(this);status.setText("You are offline.");root.addView(status);
         go.setOnClickListener(v->{JSONObject selected=vehicles.optJSONObject(spinner.getSelectedItemPosition());vehicleId=selected.optString("id");setAvailability(true,status);});
         off.setOnClickListener(v->{if(vehicleId!=null)setAvailability(false,status);});
-        Button portal=new Button(this);portal.setText("OPEN DRIVER PORTAL");root.addView(portal);
+        Button rides=new Button(this);rides.setText("REFRESH BOOKING REQUESTS");root.addView(rides);
+        LinearLayout rideList=new LinearLayout(this);rideList.setOrientation(LinearLayout.VERTICAL);root.addView(rideList);
+        rides.setOnClickListener(v->loadRides(rideList,selectedService(vehicles,spinner.getSelectedItemPosition())));
+        Button portal=new Button(this);portal.setText("OPEN FULL DRIVER PORTAL");root.addView(portal);
         portal.setOnClickListener(v->{startActivity(new Intent(this,DriverPortalActivity.class));});
     }
+    private String selectedService(JSONArray vehicles,int index) {
+        JSONObject v=vehicles.optJSONObject(index);
+        String type=v==null?"car":v.optString("vehicle_type","car");
+        return type.equalsIgnoreCase("motorcycle")?"motorcycle":"car";
+    }
+    private void loadRides(LinearLayout list,String service) {
+        list.removeAllViews();
+        TextView loading=new TextView(this);loading.setText("Checking for new "+service+" requests…");list.addView(loading);
+        new Thread(()->{try{
+            JSONArray rides=TwendeApi.pendingRides(accessToken,service);
+            runOnUiThread(()->{
+                list.removeAllViews();
+                if(rides.length()==0){TextView empty=new TextView(this);empty.setText("No pending requests at the moment.");list.addView(empty);return;}
+                for(int i=0;i<rides.length();i++){
+                    JSONObject ride=rides.optJSONObject(i);String id=ride.optString("id");
+                    TextView details=new TextView(this);
+                    details.setPadding(0,14,0,8);details.setTextSize(15);
+                    details.setText(ride.optString("passenger_name","Passenger")+" • "+ride.optString("passenger_phone")+"\\nPickup: "+ride.optString("pickup_text")+"\\nDestination: "+ride.optString("destination_text")+"\\nEstimated fare: K"+ride.optString("estimated_fare"));
+                    list.addView(details);
+                    Button accept=new Button(this);accept.setText("ACCEPT THIS RIDE");list.addView(accept);
+                    accept.setOnClickListener(v->new Thread(()->{try{
+                        TwendeApi.acceptRide(accessToken,id);
+                        runOnUiThread(()->{toast("Ride accepted.");loadRides(list,service);});
+                    }catch(Exception ex){runOnUiThread(()->toast("Ride could not be accepted: "+ex.getMessage()));}}).start());
+                }
+            });
+        }catch(Exception ex){runOnUiThread(()->toast("Could not load requests: "+ex.getMessage()));}}).start();
+    }
+
     private void setAvailability(boolean value,TextView status) {
         if(value && ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){requestPermissionsIfNeeded();toast("Allow location permission, then select Go Online again.");return;}
         new Thread(()->{try{
