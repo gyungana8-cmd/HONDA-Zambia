@@ -55,6 +55,7 @@ public class DriverLocationService extends Service {
     }
 
     private void beginTracking() {
+        stopTracking();
         if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED
             && checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         LocationRequest request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 15000)
@@ -81,7 +82,8 @@ public class DriverLocationService extends Service {
                 }).start();
             }
         };
-        fused.requestLocationUpdates(request, callback, getMainLooper());
+        fused.requestLocationUpdates(request, callback, getMainLooper())
+            .addOnFailureListener(error -> android.util.Log.e("TWENDE-GPS","Could not start background location updates",error));
     }
 
     private void stopTracking() {
