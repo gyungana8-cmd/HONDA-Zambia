@@ -19,3 +19,7 @@ body.partner-entry-mode #nav a[href="#adminPanel"] { display:none !important; }
 body.partner-entry-mode .topbar { position:sticky; top:0; z-index:20; }
 body.partner-entry-mode #accountStatus { display:inline-flex; }
 body.partner-entry-mode #signOutButton { display:inline-flex; }
+
+body.partner-entry-mode #partnerEntryWelcome { display:block !important; }
+body.partner-entry-mode.partner-authenticated #partnerEntryWelcome { display:none !important; }
+body.partner-entry-mode .search-panel, body.partner-entry-mode #motorcycle-marketplace { display:none !important; }
