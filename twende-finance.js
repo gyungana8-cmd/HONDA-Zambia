@@ -12,12 +12,12 @@
     if(pe||!allowed)return;
     // Remove the former estimated-fare-only summary so it cannot be mistaken for accounts.
     [...host.querySelectorAll("h3")].filter(h=>h.textContent.includes("Financial overview")).forEach(h=>{const n=h.nextElementSibling;h.remove();if(n&&n.classList.contains("owner-metrics"))n.remove();});
-    const {data:canReconcile}=await db.rpc("twende_admin_has_permission",{p_permission:"finance.reconcile"});
+    const [{data:canReconcile},{data:isPrimary}]=await Promise.all([db.rpc("twende_admin_has_permission",{p_permission:"finance.reconcile"}),db.rpc("twende_is_primary_admin")]);
     const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
     const panel=document.createElement("section");panel.id="twendeFinanceModule";panel.className="dash-card";
     panel.innerHTML='<h3>TWENDE Financial Management</h3><p class="muted">All amounts in Zambian Kwacha (ZMW). Commission is calculated at 15% for both car and motorcycle rides. Trip amounts are recorded from the fare captured when the ride is completed.</p>'+
       '<div class="dash-grid" id="twendeFinanceRates"><article class="dash-card"><h4>Car taxi commission</h4><strong id="twendeCarRate">15%</strong></article><article class="dash-card"><h4>Motorcycle taxi commission</h4><strong id="twendeMotoRate">15%</strong></article></div>'+
-      (canReconcile?'<form id="twendeFinanceRateForm" class="dash-card"><h4>Commission settings</h4><label>Service<select name="service_type"><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select></label><label>Commission percentage<input name="rate" type="number" min="0" max="100" step="0.01" value="15" required></label><button class="btn btn-outline" type="submit">Save commission rate</button></form>':"")+
+      (isPrimary?'<form id="twendeFinanceRateForm" class="dash-card"><h4>Commission settings</h4><label>Service<select name="service_type"><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select></label><label>Commission percentage<input name="rate" type="number" min="0" max="100" step="0.01" value="15" required></label><button class="btn btn-outline" type="submit">Save commission rate</button></form>':"")+
       '<form id="twendeFinanceReportForm" class="dash-card"><h4>Financial report period</h4><label>From<input name="from" type="date" value="'+dateInput(monthStart)+'" required></label><label>To<input name="to" type="date" value="'+dateInput(now)+'" required></label><button class="btn btn-red" type="submit">Generate report</button></form><div id="twendeFinanceReport"><p class="muted">Loading financial report…</p></div>'+
       '<h4>Completed trips and cash reconciliation</h4><div id="twendeFinanceTrips"><p class="muted">Loading trip ledger…</p></div>';
     host.appendChild(panel);
