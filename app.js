@@ -6,7 +6,9 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 // Expose the shared publishable client immediately for GPS/fare modules.
 window.twendeDb = db;
 
-const TWENDE_PASSENGER_NATIVE_APP = window.location.protocol === "file:" && new URLSearchParams(window.location.search).get("portal") !== "driver";
+const TWENDE_ENTRY_PORTAL = new URLSearchParams(window.location.search).get("portal");
+const TWENDE_PARTNER_APP = TWENDE_ENTRY_PORTAL === "partner" || TWENDE_ENTRY_PORTAL === "driver";
+const TWENDE_PASSENGER_NATIVE_APP = window.location.protocol === "file:" && !TWENDE_PARTNER_APP;
 if (TWENDE_PASSENGER_NATIVE_APP) document.documentElement.classList.add("twende-passenger-app");
 let currentUser = null, currentProfile = null, role = "rider";
 let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false, currentAdminRole = null;
@@ -191,14 +193,17 @@ async function processTwendeSession(session) {
   if(typeof loadTwendeNotifications==="function") await loadTwendeNotifications();
   const requested=window.twendeRequestedPortal;
   if(requested && currentUser && !isGuestRider()){
-    const allowed=requested==="admin" ? verifiedAdmin :
+    const allowed=requested==="partner" ? (hasDriverRegistration||hasOwnerAccess) :
+      requested==="admin" ? verifiedAdmin :
       requested==="driver" ? hasDriverRegistration :
       requested==="owner" ? hasOwnerAccess : false;
     if(!allowed){
-      toast("This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
+      toast(requested==="partner" ? "This account does not yet have an approved driver or vehicle-owner role." : "This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
+    }else if(requested==="partner"){
+      // Let a dual-role partner choose their approved workspace after sign-in.
+      activePortal=null;activePortalUserId=null;updateUI();
+      window.twendeShowRoleMenu?.();
     }else{
-      // Sign-in reloads the profile and initially selects its default role.
-      // Restore the exact portal the user chose before authentication.
       await window.twendeSetActivePortal?.(requested);
     }
     window.twendeRequestedPortal=null;
@@ -904,7 +909,8 @@ async function startApp(){
     return;
   }
   const entryPortal = new URLSearchParams(window.location.search).get("portal");
-  const restrictedPortalEntry = entryPortal==="driver" || entryPortal==="admin";
+  const restrictedPortalEntry = entryPortal==="driver" || entryPortal==="admin" || entryPortal==="partner";
+  if(TWENDE_PARTNER_APP) document.body.classList.add("partner-entry-mode");
   if(!session && !restrictedPortalEntry){
     const guest=await db.auth.signInAnonymously();
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
@@ -919,6 +925,7 @@ async function startApp(){
     $("#passengerOtpForm").classList.add("hidden");
     $("#passengerNameForm").classList.add("hidden");
     $("#loginForm").classList.remove("hidden");
+    $("#partnerEntryWelcome")?.classList.remove("hidden");
     $("#loginForm").querySelector("h2").textContent=entryPortal==="admin"?"Administrator sign in":"Driver / vehicle owner sign in";
     $("#authDialog").showModal();
   }else{
