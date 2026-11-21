@@ -123,10 +123,10 @@ jobs:
           PROJECT_DIR="$(dirname "$PROJECT_FILE")"
           ASSET_DIR="$PROJECT_DIR/app/src/main/assets"
           mkdir -p "$ASSET_DIR"
-          for FILE in index.html app.js gps-fares.js passenger-map.js twende-account-ui.js twende-role-menu.js twende-mobile-shell.js styles.css twende-brand-overrides.css twende-account-ui.css twende-role-menu.css manifest.webmanifest twende-logo.svg; do
+          for FILE in index.html app.js twende-admin-control-centre.js twende-partner-portal.js twende-owner-fleet.js gps-fares.js passenger-map.js twende-account-ui.js twende-role-menu.js twende-mobile-shell.js styles.css twende-brand-overrides.css twende-account-ui.css twende-role-menu.css manifest.webmanifest twende-logo.svg; do
             if [ -f "$FILE" ]; then cp -f "$FILE" "$ASSET_DIR/"; fi
           done
-          for REQUIRED in index.html app.js gps-fares.js passenger-map.js twende-account-ui.js twende-role-menu.js twende-mobile-shell.js styles.css twende-brand-overrides.css twende-account-ui.css twende-role-menu.css; do
+          for REQUIRED in index.html app.js twende-admin-control-centre.js twende-partner-portal.js twende-owner-fleet.js gps-fares.js passenger-map.js twende-account-ui.js twende-role-menu.js twende-mobile-shell.js styles.css twende-brand-overrides.css twende-account-ui.css twende-role-menu.css; do
             test -s "$ASSET_DIR/$REQUIRED" || { echo "Missing required TWENDE web asset: $REQUIRED"; exit 1; }
           done
           if [ -d assets ]; then
@@ -163,7 +163,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for FILE in app.js gps-fares.js passenger-map.js twende-account-ui.js twende-role-menu.js twende-mobile-shell.js; do
+          for FILE in app.js twende-admin-control-centre.js twende-partner-portal.js twende-owner-fleet.js gps-fares.js passenger-map.js twende-account-ui.js twende-role-menu.js twende-mobile-shell.js; do
             node --check "$FILE"
             echo "Syntax OK: $FILE"
           done
