@@ -23,8 +23,12 @@
   host.appendChild(panel);
  }
  async function renderOwnerApplication(){
-  const host=document.getElementById("dashboardContent");
-  if(!host||window.twendeRoleSnapshot?.activePortal!=="owner"||!window.twendeRoleSnapshot?.hasOwnerAccess||window.twendeRoleSnapshot?.guest)return;
+  const snap=window.twendeRoleSnapshot||{};
+  if(snap.guest||!snap.signedIn||!["driver","owner"].includes(snap.activePortal))return;
+  // Applicants without owner approval see the application form inside their
+  // current driver dashboard. Approved owners see their status in the owner portal.
+  const host=document.getElementById(snap.activePortal==="owner"?"dashboardContent":"driverDashboard");
+  if(!host)return;
   if(host.querySelector("#twendeOwnerTaxiApplication"))return;
   const {data:access,error}=await db.rpc("twende_get_partner_access");
   const item=(access||[]).find(x=>x.partner_type==="vehicle_owner");
@@ -52,14 +56,14 @@
  }
  const originalDriver=window.loadDriverDashboard;
  if(typeof originalDriver==="function"){
-  window.loadDriverDashboard=async function(){await originalDriver();await renderDriverApplication();};
+  window.loadDriverDashboard=async function(){await originalDriver();await renderDriverApplication();await renderOwnerApplication();};
  }
  const originalDashboard=window.loadDashboard;
  if(typeof originalDashboard==="function"){
   window.loadDashboard=async function(){await originalDashboard();await renderOwnerApplication();};
  }
  window.addEventListener("load",()=>setTimeout(()=>{
-  if(window.twendeRoleSnapshot?.activePortal==="driver")renderDriverApplication();
-  if(window.twendeRoleSnapshot?.role==="owner")renderOwnerApplication();
+  if(window.twendeRoleSnapshot?.activePortal==="driver"){renderDriverApplication();renderOwnerApplication();}
+  if(window.twendeRoleSnapshot?.activePortal==="owner")renderOwnerApplication();
  },500));
 })();
