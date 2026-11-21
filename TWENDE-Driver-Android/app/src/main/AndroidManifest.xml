@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
@@ -13,6 +14,7 @@
         android:label="TWENDE Driver"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
+        <activity android:name=".DriverPortalActivity" android:exported="false"/>
         <activity
             android:name=".MainActivity"
             android:exported="true">
