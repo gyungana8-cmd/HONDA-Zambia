@@ -29,6 +29,25 @@ final class TwendeApi {
         String raw=out.toString(); if(raw.isEmpty()) return new JSONObject(); if(raw.startsWith("[")) return new JSONObject().put("rows",new JSONArray(raw)); return new JSONObject(raw);
     }
 
+    static JSONObject requestWithSession(android.content.Context context, String path, String method,
+            JSONObject body, String prefer) throws Exception {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("twende_driver", android.content.Context.MODE_PRIVATE);
+        String access = prefs.getString("access_token", null);
+        try {
+            if (access == null || access.isEmpty()) throw new Exception("Driver session is missing.");
+            return request(path, method, access, body, prefer);
+        } catch (Exception first) {
+            if (first.getMessage() == null || !first.getMessage().contains("(401)")) throw first;
+            String refresh = prefs.getString("refresh_token", null);
+            if (refresh == null || refresh.isEmpty()) throw first;
+            JSONObject session = refreshSession(refresh);
+            String newAccess = session.getString("access_token");
+            String newRefresh = session.optString("refresh_token", refresh);
+            prefs.edit().putString("access_token", newAccess).putString("refresh_token", newRefresh).apply();
+            return request(path, method, newAccess, body, prefer);
+        }
+    }
+
     static JSONObject login(String email,String password) throws Exception {
         return request("/auth/v1/token?grant_type=password","POST",null,
             new JSONObject().put("email",email).put("password",password),null);
