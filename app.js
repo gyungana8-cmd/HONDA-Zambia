@@ -7,7 +7,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 window.twendeDb = db;
 
 let currentUser = null, currentProfile = null, role = "rider";
-let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false;
+let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false, currentAdminRole = null;
 let activePortal = null;
 Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
 let verifiedPassengerPhone = null;
@@ -96,13 +96,15 @@ async function loadProfile(user) {
     if(error) console.error("Profile create:",error);
   }
   role=["owner","driver","admin"].includes(currentProfile?.role)?currentProfile.role:"rider";
-  verifiedAdmin=false; hasDriverRegistration=false; hasOwnerAccess=false;
-  const [adminCheck,driverCheck,partnerAccess]=await Promise.all([
+  verifiedAdmin=false; hasDriverRegistration=false; hasOwnerAccess=false; currentAdminRole=null;
+  const [adminCheck,driverCheck,partnerAccess,adminRoleCheck]=await Promise.all([
     db.rpc("twende_is_admin"),
     db.from("driver_vehicles").select("id,approval_status").eq("user_id",user.id).limit(1),
-    db.rpc("twende_get_partner_access")
+    db.rpc("twende_get_partner_access"),
+    db.rpc("twende_get_my_admin_role")
   ]);
   verifiedAdmin=!adminCheck.error && adminCheck.data===true;
+  currentAdminRole=adminRoleCheck.error?null:adminRoleCheck.data;
   hasDriverRegistration=(!driverCheck.error && (driverCheck.data||[]).length>0) || (!partnerAccess.error && (partnerAccess.data||[]).some(x=>x.partner_type==="driver"));
   hasOwnerAccess=!partnerAccess.error && (partnerAccess.data||[]).some(x=>
     x.partner_type==="vehicle_owner" && x.application_status==="approved" && x.account_status==="active"
