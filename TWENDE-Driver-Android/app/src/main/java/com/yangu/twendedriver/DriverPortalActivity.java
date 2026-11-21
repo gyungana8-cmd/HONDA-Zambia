@@ -19,6 +19,6 @@ public class DriverPortalActivity extends AppCompatActivity {
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient());
         setContentView(web);
-        web.loadUrl("https://gyungana8-cmd.github.io/HONDA-Zambia/?portal=partner&driver_portal_version=20261122-partner2");
+        web.loadUrl("https://gyungana8-cmd.github.io/HONDA-Zambia/?portal=partner&driver_portal_version=20261122-partner3");
     }
 }
