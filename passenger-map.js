@@ -389,6 +389,10 @@
           'Registration: <strong>'+safe(d.plate_number||"Not provided")+'</strong><br>'+
           '<span style="color:#16803c;font-weight:700">Available • Online</span></div>';
         marker.bindPopup(details);
+        // Keep the actual vehicle identity visible beside its map marker,
+        // rather than showing only a generic car/motorcycle icon.
+        const markerLabel=vehicleName+" • "+safe(d.plate_number||"Registration unavailable");
+        marker.bindTooltip(markerLabel,{permanent:true,direction:"top",offset:[0,-24],opacity:0.96,className:"twende-vehicle-map-label"});
       }
       setStatus(rows.length?rows.length+" nearby TWENDE driver"+(rows.length===1?"":"s")+" online within 15 km.":"No online TWENDE taxis found within 15 km yet. Try again shortly.");
     }catch(e){console.warn("Nearby TWENDE drivers:",e);setStatus("Nearby taxis could not be loaded. Apply the passenger nearby-drivers database migration and check your connection.");}
