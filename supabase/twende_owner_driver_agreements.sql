@@ -166,3 +166,30 @@ select
   sum(company_commission) as twende_commission,
   sum(owner_share) as vehicle_owner_entitlement
 from public.twende_trip_finances;
+
+
+-- Replace report output label and aggregation: this is the vehicle owner's share,
+-- not a driver's wage or remuneration.
+drop function if exists public.twende_finance_report(timestamptz,timestamptz);
+create function public.twende_finance_report(p_from timestamptz,p_to timestamptz)
+returns table(
+  service_type text,trip_count bigint,gross_fares numeric,company_commission numeric,
+  owner_share numeric,expected_cash numeric,reported_cash numeric,
+  pending_reconciliation bigint,short_count bigint,over_count bigint
+) language plpgsql stable security definer set search_path=public as $$
+begin
+  if not public.twende_admin_has_permission('finance.view') then raise exception 'Finance view permission required'; end if;
+  if p_from is null or p_to is null or p_to<=p_from then raise exception 'Invalid report date range'; end if;
+  return query
+  select f.service_type,count(*),coalesce(sum(f.gross_fare),0),coalesce(sum(f.company_commission),0),
+    coalesce(sum(f.owner_share),0),coalesce(sum(f.expected_cash),0),
+    coalesce(sum(f.reported_cash),0),
+    count(*) filter(where f.reconciliation_status='pending'),
+    count(*) filter(where f.reconciliation_status='short'),
+    count(*) filter(where f.reconciliation_status='over')
+  from public.twende_trip_finances f
+  where f.completed_at>=p_from and f.completed_at<p_to
+  group by f.service_type order by f.service_type;
+end; $$;
+revoke all on function public.twende_finance_report(timestamptz,timestamptz) from public;
+grant execute on function public.twende_finance_report(timestamptz,timestamptz) to authenticated;
