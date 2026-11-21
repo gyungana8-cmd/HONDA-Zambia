@@ -104,9 +104,20 @@ public class MainActivity extends AppCompatActivity {
         Spinner spinner=new Spinner(this);spinner.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));root.addView(spinner);
         Button go=new Button(this);go.setText("GO ONLINE");root.addView(go);
         Button off=new Button(this);off.setText("GO OFFLINE");root.addView(off);
-        TextView status=new TextView(this);status.setText("You are offline.");root.addView(status);
-        go.setOnClickListener(v->{JSONObject selected=vehicles.optJSONObject(spinner.getSelectedItemPosition());vehicleId=selected.optString("id");setAvailability(true,status);});
-        off.setOnClickListener(v->{if(vehicleId!=null)setAvailability(false,status);});
+        TextView status=new TextView(this);root.addView(status);
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                JSONObject selected=vehicles.optJSONObject(position);
+                if(selected==null)return;
+                vehicleId=selected.optString("id");
+                online=selected.optBoolean("is_online",false);
+                status.setText(online?"ONLINE — this vehicle is marked available":"You are offline.");
+                if(online) startLocationService();
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        go.setOnClickListener(v->{JSONObject selected=vehicles.optJSONObject(spinner.getSelectedItemPosition());if(selected!=null){vehicleId=selected.optString("id");setAvailability(true,status);}});
+        off.setOnClickListener(v->{JSONObject selected=vehicles.optJSONObject(spinner.getSelectedItemPosition());if(selected!=null){vehicleId=selected.optString("id");setAvailability(false,status);}});
         Button rides=new Button(this);rides.setText("REFRESH BOOKING REQUESTS");root.addView(rides);
         LinearLayout rideList=new LinearLayout(this);rideList.setOrientation(LinearLayout.VERTICAL);root.addView(rideList);
         rides.setOnClickListener(v->loadRides(rideList,selectedService(vehicles,spinner.getSelectedItemPosition())));
@@ -165,11 +176,15 @@ public class MainActivity extends AppCompatActivity {
             TwendeApi.setOnline(MainActivity.this,vehicleId,value);
             runOnUiThread(()->{
                 online=value;status.setText(value?"ONLINE — background GPS service active":"OFFLINE — location sharing stopped");
-                Intent service=new Intent(this,DriverLocationService.class);
-                if(value){service.setAction(DriverLocationService.ACTION_START);service.putExtra("access_token",accessToken);if(Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);}
-                else{service.setAction(DriverLocationService.ACTION_STOP);startService(service);}
+                if(value) startLocationService();
+                else { Intent service=new Intent(this,DriverLocationService.class);service.setAction(DriverLocationService.ACTION_STOP);startService(service); }
             });
         }catch(Exception ex){runOnUiThread(()->toast("Could not change availability: "+ex.getMessage()));}}).start();
+    }
+    private void startLocationService() {
+        Intent service=new Intent(this,DriverLocationService.class);
+        service.setAction(DriverLocationService.ACTION_START);
+        if(Build.VERSION.SDK_INT>=26) startForegroundService(service); else startService(service);
     }
     private void requestPermissionsIfNeeded(){
         java.util.ArrayList<String>w=new java.util.ArrayList<>();
