@@ -214,8 +214,8 @@ $("#authButton").onclick=()=>{
 // Mandatory passenger registration: link and verify a Zambian phone number by SMS OTP.
 let pendingPassengerPhone = null;
 function normalizePassengerPhone(input){
-  const value=String(input||"").replace(/[\\s()-]/g,"");
-  if(/^\\+260[0-9]{9}$/.test(value))return value;
+  const value=String(input||"").replace(/[\s()-]/g,"");
+  if(/^\+260[0-9]{9}$/.test(value))return value;
   if(/^260[0-9]{9}$/.test(value))return "+"+value;
   if(/^0[0-9]{9}$/.test(value))return "+260"+value.slice(1);
   return null;
@@ -261,7 +261,7 @@ $("#passengerOtpForm").onsubmit=async e=>{
     currentProfile={...(currentProfile||{}),id:currentUser.id,phone,role:"rider"};
     $("#passengerOtpForm").classList.add("hidden");
     $("#passengerNameForm").classList.remove("hidden");
-    const parts=(currentProfile.full_name||currentUser.user_metadata?.full_name||"").trim().split(/\\s+/);
+    const parts=(currentProfile.full_name||currentUser.user_metadata?.full_name||"").trim().split(/\s+/);
     $("#passengerFirstName").value=parts[0]||"";
     $("#passengerLastName").value=parts.slice(1).join(" ");
     showAuthNotice("#passengerNameForm","Phone number verified successfully. Enter your full name to complete registration.",true);
