@@ -6,10 +6,13 @@
  const toast=m=>{if(typeof window.twendeToast==="function")window.twendeToast(m);else{const t=document.getElementById("toast");if(t){t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),4500);}}};
  async function renderDriverApplication(){
   const host=document.getElementById("driverDashboard");
-  if(!host||!window.twendeRoleSnapshot?.signedIn||window.twendeRoleSnapshot.guest)return;
+  if(!host||!window.twendeRoleSnapshot?.signedIn||window.twendeRoleSnapshot.guest||window.twendeRoleSnapshot.activePortal!=="driver")return;
   if(host.querySelector("#twendeDriverApplicationStatus"))return;
   const {data,error}=await db.rpc("twende_submit_partner_application",{p_partner_type:"driver",p_vehicle_types:[]});
   const {data:access, error:accessError}=await db.rpc("twende_get_partner_access");
+  // Profile loading and portal selection can overlap; re-check after async calls
+  // so two concurrent renders cannot append duplicate account-status cards.
+  if(!host.isConnected||window.twendeRoleSnapshot?.activePortal!=="driver"||host.querySelector("#twendeDriverApplicationStatus"))return;
   const item=(access||[]).find(x=>x.partner_type==="driver");
   const panel=document.createElement("section");panel.id="twendeDriverApplicationStatus";panel.className="dash-card";
   if(error||accessError){
@@ -56,7 +59,7 @@
   window.loadDashboard=async function(){await originalDashboard();await renderOwnerApplication();};
  }
  window.addEventListener("load",()=>setTimeout(()=>{
-  if(window.twendeRoleSnapshot?.role==="driver")renderDriverApplication();
+  if(window.twendeRoleSnapshot?.activePortal==="driver")renderDriverApplication();
   if(window.twendeRoleSnapshot?.role==="owner")renderOwnerApplication();
  },500));
 })();
