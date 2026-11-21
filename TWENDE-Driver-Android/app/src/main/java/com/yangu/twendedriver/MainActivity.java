@@ -19,6 +19,8 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout root;
     private String accessToken,vehicleId;
     private boolean online=false;
+    private final android.os.Handler bookingHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable bookingRefresh;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -67,6 +69,16 @@ public class MainActivity extends AppCompatActivity {
         Button rides=new Button(this);rides.setText("REFRESH BOOKING REQUESTS");root.addView(rides);
         LinearLayout rideList=new LinearLayout(this);rideList.setOrientation(LinearLayout.VERTICAL);root.addView(rideList);
         rides.setOnClickListener(v->loadRides(rideList,selectedService(vehicles,spinner.getSelectedItemPosition())));
+        bookingRefresh = new Runnable() {
+            @Override public void run() {
+                if (!isFinishing() && !isDestroyed()) {
+                    loadRides(rideList, selectedService(vehicles, spinner.getSelectedItemPosition()));
+                    bookingHandler.postDelayed(this, 15000);
+                }
+            }
+        };
+        bookingHandler.removeCallbacks(bookingRefresh);
+        bookingHandler.post(bookingRefresh);
         Button portal=new Button(this);portal.setText("OPEN FULL DRIVER PORTAL");root.addView(portal);
         portal.setOnClickListener(v->{startActivity(new Intent(this,DriverPortalActivity.class));});
     }
@@ -123,6 +135,18 @@ public class MainActivity extends AppCompatActivity {
         if(ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)w.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)w.add(Manifest.permission.POST_NOTIFICATIONS);
         if(!w.isEmpty())ActivityCompat.requestPermissions(this,w.toArray(new String[0]),501);
+    }
+    @Override protected void onPause() {
+        super.onPause();
+        if (bookingRefresh != null) bookingHandler.removeCallbacks(bookingRefresh);
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        if (bookingRefresh != null) bookingHandler.post(bookingRefresh);
+    }
+    @Override protected void onDestroy() {
+        if (bookingRefresh != null) bookingHandler.removeCallbacks(bookingRefresh);
+        super.onDestroy();
     }
     private void toast(String s){runOnUiThread(()->Toast.makeText(this,s,Toast.LENGTH_LONG).show());}
 }
