@@ -1,0 +1,21 @@
+/* Dedicated TWENDE Partner app shell. Hide passenger marketplace/navigation in partner entry mode. */
+body.partner-entry-mode .twende-passenger-hero,
+body.partner-entry-mode #ride-services,
+body.partner-entry-mode #motorcycles,
+body.partner-entry-mode #motorcycle-marketplace,
+body.partner-entry-mode #how,
+body.partner-entry-mode .twende-bottom-nav,
+body.partner-entry-mode .twende-footer,
+body.partner-entry-mode #twendeHeaderProfileButton,
+body.partner-entry-mode #twendeNotificationsButton,
+body.partner-entry-mode #twendeNotificationsPanel,
+body.partner-entry-mode #authButton { display:none !important; }
+body.partner-entry-mode #partnerEntryWelcome { display:block !important; min-height:65vh; padding:32px 22px; max-width:900px; margin:24px auto; }
+body.partner-entry-mode #partnerEntryWelcome h1 { font-size:clamp(28px,5vw,42px); line-height:1.12; margin:14px 0; }
+body.partner-entry-mode #partnerEntryWelcome .partner-entry-actions { display:grid; gap:12px; max-width:520px; margin:24px 0; }
+body.partner-entry-mode #driver-panel, body.partner-entry-mode #dashboard, body.partner-entry-mode #adminPanel { max-width:1000px; margin:18px auto; }
+body.partner-entry-mode #nav { display:flex !important; }
+body.partner-entry-mode #nav a[href="#adminPanel"] { display:none !important; }
+body.partner-entry-mode .topbar { position:sticky; top:0; z-index:20; }
+body.partner-entry-mode #accountStatus { display:inline-flex; }
+body.partner-entry-mode #signOutButton { display:inline-flex; }
