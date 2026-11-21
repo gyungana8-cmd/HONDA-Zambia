@@ -113,6 +113,38 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>window.addEventListener("load",function(){var splash=document.getElementById("twendeSplash");if(splash){setTimeout(function(){splash.classList.add("is-hidden");},450);}});setTimeout(function(){var splash=document.getElementById("twendeSplash");if(splash)splash.classList.add("is-hidden");},6000);</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261122-partner-shell3"></script><script src="twende-admin-control-centre.js?v=20261121-specialist1"></script><script src="twende-finance.js?v=20261121-finance1"></script><script src="twende-partner-portal.js?v=20261121-owner-application1"></script><script src="twende-owner-fleet.js?v=20261121-owner-driver-display2"></script><script src="twende-owner-driver-agreements.js?v=20261121-agreements1"></script><script src="twende-driver-wallet.js?v=20261121-wallet1"></script><script src="gps-fares.js?v=20261119-farefix1"></script><script src="passenger-map.js?v=20261121-vehicle-label3"></script><script src="twende-account-ui.js?v=20261119-farefix1"></script><script src="twende-role-menu.js?v=20261122-partner-shell3"></script><script src="twende-mobile-shell.js?v=20261119-farefix1"></script><script>
+/* Dedicated partner welcome actions: never route partner users into passenger registration. */
+(()=> {
+ const signIn=document.getElementById("partnerSignInButton");
+ const apply=document.getElementById("partnerCreateAccountButton");
+ const dialog=document.getElementById("authDialog");
+ const login=document.getElementById("loginForm");
+ const register=document.getElementById("registerForm");
+ if(signIn)signIn.addEventListener("click",()=>{
+   if(typeof window.twendeShowRoleMenu==="function")window.twendeShowRoleMenu();
+   else{
+     document.getElementById("passengerPhoneForm")?.classList.add("hidden");
+     document.getElementById("passengerOtpForm")?.classList.add("hidden");
+     document.getElementById("passengerNameForm")?.classList.add("hidden");
+     register?.classList.add("hidden");login?.classList.remove("hidden");
+     if(dialog&&!dialog.open)dialog.showModal();
+   }
+ });
+ if(apply)apply.addEventListener("click",()=>{
+   login?.classList.add("hidden");
+   document.getElementById("passengerPhoneForm")?.classList.add("hidden");
+   document.getElementById("passengerOtpForm")?.classList.add("hidden");
+   document.getElementById("passengerNameForm")?.classList.add("hidden");
+   register?.classList.remove("hidden");
+   const heading=register?.querySelector("h2");
+   if(heading)heading.textContent="Apply as a TWENDE driver or vehicle owner";
+   const role=document.getElementById("registerRole");
+   if(role)role.value="driver";
+   if(dialog&&!dialog.open)dialog.showModal();
+ });
+})();
+</script>
+<script>
 /* Final sign-in guard: preserve the portal selected before authentication. */
 (()=>{const form=document.getElementById("loginForm");if(!form)return;
 form.addEventListener("submit",async event=>{
