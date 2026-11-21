@@ -33,6 +33,10 @@ final class TwendeApi {
         return request("/auth/v1/token?grant_type=password","POST",null,
             new JSONObject().put("email",email).put("password",password),null);
     }
+    static JSONObject refreshSession(String refreshToken) throws Exception {
+        return request("/auth/v1/token?grant_type=refresh_token","POST",null,
+            new JSONObject().put("refresh_token",refreshToken),null);
+    }
     static JSONArray approvedVehicles(String token,String userId) throws Exception {
         String uid=java.net.URLEncoder.encode(userId,"UTF-8");
         JSONObject result=request("/rest/v1/driver_vehicles?select=id,vehicle_type,vehicle_make,vehicle_model,plate_number,approval_status,is_online&user_id=eq."+uid+"&approval_status=eq.approved&order=created_at.asc","GET",token,null,null);
