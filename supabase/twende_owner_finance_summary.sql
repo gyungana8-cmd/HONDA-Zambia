@@ -39,4 +39,5 @@ end; $function$;
 revoke all on function public.twende_owner_finance_summary() from public;
 grant execute on function public.twende_owner_finance_summary() to authenticated;
 
-select * from public.twende_owner_finance_summary();
+-- Do not invoke this owner-only RPC from the SQL editor: auth.uid() is NULL there.
+-- It is called by the signed-in Vehicle Owner dashboard.
