@@ -15,6 +15,9 @@ update public.ride_requests
 set expires_at = coalesce(expires_at, created_at + interval '15 minutes')
 where expires_at is null;
 
+alter table public.ride_requests
+  alter column expires_at set not null;
+
 -- Extend the existing status constraint without deleting historical records.
 alter table public.ride_requests
   drop constraint if exists ride_requests_status_check;
