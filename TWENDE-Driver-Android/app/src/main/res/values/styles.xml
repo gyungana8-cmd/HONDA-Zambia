@@ -1,0 +1,8 @@
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#FFC400</item>
+        <item name="colorPrimaryDark">#202020</item>
+        <item name="colorAccent">#FFC400</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+</resources>
