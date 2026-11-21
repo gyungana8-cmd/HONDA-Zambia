@@ -49,8 +49,10 @@ function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=!currentUser || isGuestRider();
   const isAdmin=!guest && verifiedAdmin;
-  const isDriver=!guest && (currentProfile?.role==="driver" || hasDriverRegistration);
   const isOwner=!guest && (currentProfile?.role==="owner" || hasOwnerAccess);
+  // Owner access takes precedence: an owner who also has a driver registration
+  // must use the fleet portal, not see the separate Driver dashboard.
+  const isDriver=!guest && !isOwner && (currentProfile?.role==="driver" || hasDriverRegistration);
   document.body.classList.toggle("passenger-mode",guest);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
