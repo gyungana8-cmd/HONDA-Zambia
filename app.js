@@ -101,11 +101,11 @@ async function loadProfile(user) {
   const previouslySelectedPortal = activePortalUserId===user.id ? activePortal : null;
   if (isGuestRider(user)) {
     const {data:guestProfile}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
-    currentProfile={id:user.id,full_name:guestProfile?.full_name||"Passenger",phone:guestProfile?.phone||null,role:"rider"};
+    currentProfile={id:user.id,full_name:guestProfile?.full_name||null,phone:guestProfile?.phone||null,role:"rider"};
     verifiedPassengerPhone=currentProfile.phone;
     role="rider";updateUI();
-    $("#dashboardIntro").textContent="Complete passenger registration with a verified mobile number before requesting your first taxi.";
-    $("#dashboardContent").innerHTML='<p class="muted">Passenger registration and SMS phone verification are required before booking.</p>';
+    $("#dashboardIntro").textContent="Complete passenger registration before requesting your first taxi.";
+    $("#dashboardContent").innerHTML='<p class="muted">Enter your name and mobile number to register for TWENDE.</p>';
     await loadPassengerRides();
     return;
   }
@@ -211,11 +211,11 @@ $("#authButton").onclick=()=>{
   $("#authDialog").showModal();
 };
 
-// Mandatory passenger registration: link and verify a Zambian phone number by SMS OTP.
+// Passenger registration is temporarily OTP-free while TWENDE completes SMS-provider compliance.
 let pendingPassengerPhone = null;
 function normalizePassengerPhone(input){
-  const value=String(input||"").replace(/[\s()-]/g,"");
-  if(/^\+260[0-9]{9}$/.test(value))return value;
+  const value=String(input||"").replace(/[\\s()-]/g,"");
+  if(/^\\+260[0-9]{9}$/.test(value))return value;
   if(/^260[0-9]{9}$/.test(value))return "+"+value;
   if(/^0[0-9]{9}$/.test(value))return "+260"+value.slice(1);
   return null;
@@ -225,57 +225,29 @@ function showPassengerRegistration(service){
   $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
   $("#passengerOtpForm").classList.add("hidden");$("#passengerNameForm").classList.add("hidden");
   $("#passengerPhoneForm").classList.remove("hidden");
-  $("#passengerPhoneEntry").value=pendingPassengerPhone||currentUser?.phone||"";
-  // Passenger registration is mandatory at first launch: do not expose a
-  // dismiss control while an unverified passenger is completing registration.
+  $("#passengerPhoneEntry").value=pendingPassengerPhone||currentProfile?.phone||"";
   $("#passengerPhoneForm").querySelector(".close")?.classList.add("hidden");
-  $("#passengerOtpForm").querySelector(".close")?.classList.add("hidden");
   $("#passengerNameForm").querySelector(".close")?.classList.add("hidden");
   if(!$("#authDialog").open)$("#authDialog").showModal();
 }
 $("#passengerPhoneForm").onsubmit=async e=>{
-  e.preventDefault();
-  const b=e.submitter;b.disabled=true;
+  e.preventDefault();const b=e.submitter;b.disabled=true;
   try{
     const phone=normalizePassengerPhone($("#passengerPhoneEntry").value);
     if(!phone)throw new Error("Enter a valid Zambian mobile number, for example 097XXXXXXX.");
-    const {data,error}=await db.auth.updateUser({phone});
-    if(error)throw error;
     pendingPassengerPhone=phone;
-    $("#passengerOtpPhone").value=phone;
     $("#passengerPhoneForm").classList.add("hidden");
-    $("#passengerOtpForm").classList.remove("hidden");
-    $("#passengerOtpCode").value="";
-    $("#passengerOtpCode").focus();
-    showAuthNotice("#passengerOtpForm","We have requested a verification code for "+phone+". Enter the SMS code to verify this number.",true);
-  }catch(error){
-    showAuthNotice("#passengerPhoneForm","Could not send verification code: "+(error?.message||"Please try again."));
-  }finally{b.disabled=false;}
-};
-$("#passengerOtpForm").onsubmit=async e=>{
-  e.preventDefault();
-  const b=e.submitter;b.disabled=true;
-  try{
-    const phone=pendingPassengerPhone||$("#passengerOtpPhone").value;
-    const token=$("#passengerOtpCode").value.trim();
-    if(!phone||!/^[0-9]{6}$/.test(token))throw new Error("Enter the 6-digit code sent to your phone.");
-    const {data,error}=await db.auth.verifyOtp({phone,token,type:"phone_change"});
-    if(error)throw error;
-    currentUser=data.user||data.session?.user||currentUser;
-    verifiedPassengerPhone=phone;
-    currentProfile={...(currentProfile||{}),id:currentUser.id,phone,role:"rider"};
-    $("#passengerOtpForm").classList.add("hidden");
     $("#passengerNameForm").classList.remove("hidden");
-    const parts=(currentProfile.full_name||currentUser.user_metadata?.full_name||"").trim().split(/\s+/);
+    const parts=(currentProfile?.full_name||currentUser?.user_metadata?.full_name||"").trim().split(/\\s+/);
     $("#passengerFirstName").value=parts[0]||"";
     $("#passengerLastName").value=parts.slice(1).join(" ");
-    showAuthNotice("#passengerNameForm","Phone number verified successfully. Enter your full name to complete registration.",true);
-  }catch(error){
-    showAuthNotice("#passengerOtpForm","Phone verification failed: "+(error?.message||"Check the code and try again."));
-  }finally{b.disabled=false;}
+    showAuthNotice("#passengerNameForm","SMS verification is temporarily disabled. Enter your name to complete passenger registration.",true);
+  }catch(error){showAuthNotice("#passengerPhoneForm",error.message||"Please check your mobile number.");}
+  finally{b.disabled=false;}
 };
+$("#passengerOtpForm").onsubmit=e=>{e.preventDefault();showAuthNotice("#passengerOtpForm","SMS verification is temporarily disabled. You do not need an OTP to register.",true);};
 $("#changePassengerPhone").onclick=()=>{
-  $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
+  $("#passengerNameForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
 };
 $("#passengerNameForm").onsubmit=async e=>{
   e.preventDefault();const b=e.submitter;b.disabled=true;
@@ -283,22 +255,19 @@ $("#passengerNameForm").onsubmit=async e=>{
     const first=$("#passengerFirstName").value.trim(),last=$("#passengerLastName").value.trim();
     if(!first||!last)throw new Error("Enter both your first name and last name.");
     const fullName=(first+" "+last).trim();
-    const phone=verifiedPassengerPhone||currentUser?.phone||pendingPassengerPhone;
-    if(!currentUser||!phone||!currentUser.phone_confirmed_at)throw new Error("Verify your phone number before completing passenger registration.");
+    const phone=pendingPassengerPhone||currentProfile?.phone||currentUser?.phone;
+    if(!currentUser||!phone)throw new Error("Enter a valid mobile number to complete registration.");
     const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
     if(authError)throw authError;
     const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone,role:"rider"});
     if(profileError)throw profileError;
     currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone,role:"rider"};
     verifiedPassengerPhone=phone;pendingPassengerPhone=null;
-    $("#passengerNameForm").reset();
-    $("#authDialog").close();
+    $("#passengerNameForm").reset();$("#authDialog").close();
     toast("Passenger registration complete. Welcome to TWENDE, "+first+".");
-    // After first-launch registration, ask for pickup GPS before ride selection.
     $("#locationPermissionDialog").showModal();
-  }catch(error){
-    showAuthNotice("#passengerNameForm","Could not save passenger profile: "+(error?.message||"Please try again."));
-  }finally{b.disabled=false;}
+  }catch(error){showAuthNotice("#passengerNameForm","Could not save passenger profile: "+(error?.message||"Please try again."));}
+  finally{b.disabled=false;}
 };
 
 $("#sharePickupLocation").onclick=async()=>{
@@ -941,11 +910,11 @@ async function startApp(){
   // Existing verified passengers go directly to the home screen.
   const passenger=session?.user;
   const passengerProfile=currentProfile||{};
-  const passengerRegistered=!!passenger?.phone_confirmed_at
-    && !!(passengerProfile.full_name||passenger?.user_metadata?.full_name)
+  const passengerRegistered=!!(passengerProfile.full_name||passenger?.user_metadata?.full_name)
+    && (passengerProfile.full_name||passenger?.user_metadata?.full_name)!=="Passenger"
     && !!(passenger?.phone||passengerProfile.phone)
     && !["driver","owner","admin"].includes(passengerProfile.role);
-  if(passenger && (passenger.is_anonymous||!passengerRegistered)){
+  if(passenger && !passengerRegistered){
     showPassengerRegistration(null);
   }
   // Nearby vehicles are fetched when a taxi class is selected, not during startup.
