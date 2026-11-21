@@ -78,7 +78,12 @@ public class MainActivity extends AppCompatActivity {
         TextView sub=new TextView(this);sub.setText("Sign in with your approved TWENDE driver account.");root.addView(sub);
         email=new EditText(this);email.setHint("Email address");email.setInputType(33);root.addView(email);
         password=new EditText(this);password.setHint("Password");password.setInputType(129);root.addView(password);
-        Button sign=new Button(this);sign.setText("SIGN IN");root.addView(sign);
+        Button partnerPortal=new Button(this);
+        partnerPortal.setText("OPEN DRIVER & VEHICLE OWNER PORTAL");
+        root.addView(partnerPortal);
+        partnerPortal.setOnClickListener(v->startActivity(new Intent(this,DriverPortalActivity.class)));
+        TextView or=new TextView(this);or.setText("— OR sign in for the quick driver dashboard —");or.setPadding(0,22,0,10);root.addView(or);
+        Button sign=new Button(this);sign.setText("DRIVER DASHBOARD SIGN IN");root.addView(sign);
         sign.setOnClickListener(v->login());
     }
     private void login() {
@@ -97,8 +102,22 @@ public class MainActivity extends AppCompatActivity {
         }catch(Exception ex){runOnUiThread(()->toast("Sign-in failed: "+ex.getMessage()));}}).start();
     }
     private void showVehicles(String token,JSONArray vehicles) {
-        accessToken=token;base("DRIVER DASHBOARD");
-        if(vehicles.length()==0){TextView t=new TextView(this);t.setText("No approved vehicle is assigned to this driver account yet. Ask the vehicle owner or TWENDE administrator to complete approval.");root.addView(t);return;}
+        accessToken=token;base("TWENDE PARTNER");
+        TextView intro=new TextView(this);
+        intro.setText("One app for TWENDE drivers and vehicle owners. Use the full partner portal to switch between every role approved for your account.");
+        intro.setTextSize(15);intro.setPadding(0,0,0,16);root.addView(intro);
+        Button partnerPortal=new Button(this);
+        partnerPortal.setText("OPEN DRIVER & VEHICLE OWNER PORTAL");
+        root.addView(partnerPortal);
+        partnerPortal.setOnClickListener(v->startActivity(new Intent(this,DriverPortalActivity.class)));
+        if(vehicles.length()==0){
+            TextView t=new TextView(this);
+            t.setText("No driver vehicle is currently assigned to this account. If you are an approved vehicle owner, open the partner portal above to manage your fleet and drivers. Driver access will appear here when an approved vehicle is assigned.");
+            t.setTextSize(15);t.setPadding(0,16,0,12);root.addView(t);
+            Button signOut=new Button(this);signOut.setText("SIGN OUT");root.addView(signOut);
+            signOut.setOnClickListener(v->{getSharedPreferences("twende_driver",MODE_PRIVATE).edit().clear().apply();showLogin();});
+            return;
+        }
         String[] labels=new String[vehicles.length()];
         for(int i=0;i<vehicles.length();i++){JSONObject v=vehicles.optJSONObject(i);labels[i]=v.optString("vehicle_make")+" "+v.optString("vehicle_model")+" • "+v.optString("plate_number")+" ("+v.optString("vehicle_type")+")";}
         Spinner spinner=new Spinner(this);spinner.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));root.addView(spinner);
@@ -131,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
         };
         bookingHandler.removeCallbacks(bookingRefresh);
         bookingHandler.post(bookingRefresh);
-        Button portal=new Button(this);portal.setText("OPEN FULL DRIVER PORTAL");root.addView(portal);
+        Button portal=new Button(this);portal.setText("OPEN DRIVER & VEHICLE OWNER PORTAL");root.addView(portal);
         portal.setOnClickListener(v->{startActivity(new Intent(this,DriverPortalActivity.class));});
     }
     private String selectedService(JSONArray vehicles,int index) {
