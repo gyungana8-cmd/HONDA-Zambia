@@ -70,6 +70,7 @@ function updateUI() {
   const isOwner=!guest && activePortal==="owner" && hasOwnerAccess;
   const isDriver=!guest && activePortal==="driver" && hasDriverRegistration;
   document.body.classList.toggle("passenger-mode",guest);
+  document.body.classList.toggle("partner-authenticated",!guest&&(isDriver||isOwner));
   document.documentElement.classList.toggle("twende-passenger-app",TWENDE_PASSENGER_NATIVE_APP);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
