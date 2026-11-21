@@ -903,22 +903,23 @@ async function startApp(){
     showPasswordUpdateForm();
     return;
   }
-  const driverPortalEntry = new URLSearchParams(window.location.search).get("portal")==="driver";
-  if(!session && !driverPortalEntry){
+  const entryPortal = new URLSearchParams(window.location.search).get("portal");
+  const restrictedPortalEntry = entryPortal==="driver" || entryPortal==="admin";
+  if(!session && !restrictedPortalEntry){
     const guest=await db.auth.signInAnonymously();
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
     else session=guest.data.session;
   }
   await onSession(session);
-  if(driverPortalEntry){
-    // Driver WebView must open the partner sign-in flow, never the passenger registration gate.
-    window.twendeRequestedPortal="driver";
+  if(restrictedPortalEntry){
+    // Dedicated partner/admin entry points never enter the passenger guest-registration flow.
+    window.twendeRequestedPortal=entryPortal;
     $("#registerForm").classList.add("hidden");
     $("#passengerPhoneForm").classList.add("hidden");
     $("#passengerOtpForm").classList.add("hidden");
     $("#passengerNameForm").classList.add("hidden");
     $("#loginForm").classList.remove("hidden");
-    $("#loginForm").querySelector("h2").textContent="Driver sign in";
+    $("#loginForm").querySelector("h2").textContent=entryPortal==="admin"?"Administrator sign in":"Driver / vehicle owner sign in";
     $("#authDialog").showModal();
   }else{
     // Require passenger name and mobile number only on the passenger entry point.
