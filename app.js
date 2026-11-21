@@ -181,6 +181,9 @@ function onSession(session){
 async function processTwendeSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
+  // Notify the passenger live map after the guest or signed-in session is ready.
+  // The map waits for an authenticated Supabase session before querying nearby drivers.
+  window.dispatchEvent(new CustomEvent("twende-session-ready",{detail:{userId:currentUser?.id||null}}));
   // Refresh booking activity and badge after every passenger/partner session change.
   if(typeof loadTwendeNotifications==="function") await loadTwendeNotifications();
   const requested=window.twendeRequestedPortal;
