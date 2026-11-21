@@ -31,7 +31,7 @@
    $("#twendeRoleSignOut")?.classList.remove("hidden");
   }
   $("#twendeRolePassenger")?.classList.toggle("hidden",driverApp||adminApp);
-  $("#twendeRoleMenuClose")?.classList.toggle("hidden",driverApp);
+
  }
  function choose(portal){
   window.twendeRequestedPortal=portal;
