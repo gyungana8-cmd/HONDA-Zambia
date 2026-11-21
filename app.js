@@ -9,6 +9,7 @@ window.twendeDb = db;
 const TWENDE_ENTRY_PORTAL = new URLSearchParams(window.location.search).get("portal");
 const TWENDE_PARTNER_APP = TWENDE_ENTRY_PORTAL === "partner" || TWENDE_ENTRY_PORTAL === "driver";
 const TWENDE_PASSENGER_NATIVE_APP = window.location.protocol === "file:" && !TWENDE_PARTNER_APP;
+if (TWENDE_PARTNER_APP) document.body.classList.add("partner-entry-mode");
 if (TWENDE_PASSENGER_NATIVE_APP) document.documentElement.classList.add("twende-passenger-app");
 let currentUser = null, currentProfile = null, role = "rider";
 let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false, currentAdminRole = null;
