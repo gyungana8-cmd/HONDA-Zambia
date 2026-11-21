@@ -33,7 +33,7 @@ body.passenger-mode #ride-services #passengerRides{margin-top:34px}
 body.passenger-mode .topbar{height:68px;justify-content:space-between}
 body.passenger-mode .topbar .menu-btn,body.passenger-mode .topbar #authButton,body.passenger-mode .topbar #signOutButton,body.passenger-mode .topbar #accountStatus{display:none!important}
 body.operator-mode #ride-services,body.operator-mode .hero,body.operator-mode .search-panel,body.operator-mode #motorcycles,body.operator-mode .owner-banner,body.operator-mode #dashboard{display:none!important}
-body.operator-mode #driver-panel{display:block!important}
+body.operator-mode #driver-panel:not(.hidden){display:block!important}
 body.operator-mode #adminPanel{display:none}
 body.operator-mode #adminPanel:not(.hidden){display:block!important}
 body.operator-mode #driver-panel{padding-top:38px}
