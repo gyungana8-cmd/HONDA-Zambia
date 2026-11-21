@@ -91,7 +91,7 @@ on conflict (ride_id) do nothing;
 create or replace function public.twende_finance_set_commission(p_service_type text,p_rate numeric)
 returns void language plpgsql security definer set search_path=public as $$
 begin
-  if not public.twende_admin_has_permission('finance.reconcile') then raise exception 'Finance reconciliation permission required'; end if;
+  if not public.twende_is_primary_admin() then raise exception 'Only the Primary Administrator can change commission rates'; end if;
   if p_service_type not in ('car','motorcycle') or p_rate < 0 or p_rate > 1 then raise exception 'Invalid service type or commission rate'; end if;
   update public.twende_finance_settings set commission_rate=p_rate,updated_at=now(),updated_by=auth.uid()
    where service_type=p_service_type;
