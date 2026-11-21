@@ -23,6 +23,9 @@
     .twende-map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
     .twende-map-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;background:#d71920}
     .twende-map-dot.car{background:#1769aa}.twende-map-dot.bike{background:#198754}
+    /* Persistent vehicle identity labels beside live taxi markers. */
+    .leaflet-tooltip.twende-vehicle-map-label{background:#fff;color:#17212b;border:1px solid #1769aa;border-radius:7px;padding:5px 8px;font-size:12px;font-weight:800;line-height:1.25;box-shadow:0 2px 8px #0003;white-space:nowrap;pointer-events:none}
+    .leaflet-tooltip.twende-vehicle-map-label:before{display:none}
     .twende-available-heading{margin:22px 0 10px;font-weight:800}
     .service-grid.twende-services-hidden{display:none!important}
     .service-grid{display:grid!important;grid-template-columns:1fr!important;gap:12px!important;margin-top:14px}
