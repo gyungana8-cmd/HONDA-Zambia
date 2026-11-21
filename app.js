@@ -167,7 +167,18 @@ window.twendeReceivePushToken = async function(token) {
   }
 };
 
-async function onSession(session) {
+let twendeSessionQueue=Promise.resolve();
+function onSession(session){
+  // Supabase auth events and the sign-in form can report the same session.
+  // Serialize processing so a second callback cannot reset the portal selected
+  // by the first callback while its owner/driver dashboard is still loading.
+  twendeSessionQueue=twendeSessionQueue.then(()=>processTwendeSession(session)).catch(error=>{
+    console.error("TWENDE session processing:",error);
+    toast("Could not finish opening your TWENDE portal. Please refresh and sign in again.");
+  });
+  return twendeSessionQueue;
+}
+async function processTwendeSession(session) {
   currentUser=session?.user||null;
   await loadProfile(currentUser);
   // Refresh booking activity and badge after every passenger/partner session change.
