@@ -26,7 +26,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(state);
         TwendeMessagingService.ensureChannel(this);
         requestPermissionsIfNeeded();
-        showLogin();
+        String savedRefresh = getSharedPreferences("twende_driver", MODE_PRIVATE).getString("refresh_token", null);
+        if (savedRefresh == null || savedRefresh.isEmpty()) showLogin();
+        else restoreSession(savedRefresh);
     }
 
     private void base(String title) {
@@ -34,6 +36,33 @@ public class MainActivity extends AppCompatActivity {
         TextView h=new TextView(this);h.setText(title);h.setTextSize(25);h.setTextColor(0xFF202020);h.setPadding(0,0,0,18);root.addView(h);
         setContentView(root);
     }
+    private void restoreSession(String refreshToken) {
+        base("TWENDE DRIVER");
+        TextView message = new TextView(this);
+        message.setText("Restoring your secure driver session…");
+        root.addView(message);
+        new Thread(() -> {
+            try {
+                JSONObject session = TwendeApi.refreshSession(refreshToken);
+                String token = session.getString("access_token");
+                String nextRefresh = session.optString("refresh_token", refreshToken);
+                getSharedPreferences("twende_driver", MODE_PRIVATE).edit()
+                    .putString("access_token", token).putString("refresh_token", nextRefresh).apply();
+                JSONObject user = session.optJSONObject("user");
+                if (user == null || user.optString("id").isEmpty()) throw new Exception("Driver account details were not returned.");
+                JSONArray vehicles = TwendeApi.approvedVehicles(token, user.getString("id"));
+                runOnUiThread(() -> showVehicles(token, vehicles));
+                FirebaseMessaging.getInstance().getToken().addOnSuccessListener(fcm ->
+                    new Thread(() -> { try { TwendeApi.registerToken(token, fcm); }
+                    catch (Exception ex) { android.util.Log.e("TWENDE", "Push token registration will retry", ex); } }).start());
+            } catch (Exception ex) {
+                getSharedPreferences("twende_driver", MODE_PRIVATE).edit()
+                    .remove("access_token").remove("refresh_token").apply();
+                runOnUiThread(() -> { toast("Please sign in again to continue."); showLogin(); });
+            }
+        }).start();
+    }
+
     private void showLogin() {
         base("TWENDE DRIVER");
         TextView sub=new TextView(this);sub.setText("Sign in with your approved TWENDE driver account.");root.addView(sub);
@@ -49,7 +78,9 @@ public class MainActivity extends AppCompatActivity {
         new Thread(()->{try{
             JSONObject session=TwendeApi.login(e,p);String token=session.getString("access_token");
             getSharedPreferences("twende_driver",MODE_PRIVATE).edit().putString("access_token",token).putString("refresh_token",session.optString("refresh_token")).apply();
-            String userId=session.optJSONObject("user").getString("id");
+            JSONObject user=session.optJSONObject("user");
+            if(user==null||user.optString("id").isEmpty())throw new Exception("Driver account details were not returned.");
+            String userId=user.getString("id");
             JSONArray vehicles=TwendeApi.approvedVehicles(token,userId);
             runOnUiThread(()->showVehicles(token,vehicles));
             FirebaseMessaging.getInstance().getToken().addOnSuccessListener(fcm->new Thread(()->{try{TwendeApi.registerToken(token,fcm);}catch(Exception ex){android.util.Log.e("TWENDE","Token registration pending",ex);}}).start());
