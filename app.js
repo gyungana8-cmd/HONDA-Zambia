@@ -8,7 +8,7 @@ window.twendeDb = db;
 
 let currentUser = null, currentProfile = null, role = "rider";
 let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false, currentAdminRole = null;
-let activePortal = null;
+let activePortal = null, activePortalUserId = null;
 Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
 let verifiedPassengerPhone = null;
 let selectedBike = null, liveBikes = [], liveBookings = [];
@@ -86,7 +86,7 @@ function updateUI() {
     if(portal==="driver"&&!hasDriverRegistration)return;
     if(portal==="owner"&&!hasOwnerAccess)return;
     if(portal==="admin"&&!verifiedAdmin)return;
-    activePortal=portal;role=portal;updateUI();
+    activePortal=portal;activePortalUserId=currentUser?.id||null;role=portal;updateUI();
     if(portal==="driver")await loadDriverDashboard();
     else if(portal==="owner")await loadDashboard();
     else if(portal==="admin")await loadAdminDashboard();
@@ -94,7 +94,11 @@ function updateUI() {
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
-  if (!user) { currentProfile=null; role="rider"; updateUI(); return; }
+  if (!user) { currentProfile=null; role="rider"; activePortal=null; activePortalUserId=null; updateUI(); return; }
+  // Preserve the portal explicitly selected by this same signed-in user across
+  // Supabase token refreshes. A driver who is also a vehicle owner must not be
+  // silently switched to the owner dashboard during a background auth refresh.
+  const previouslySelectedPortal = activePortalUserId===user.id ? activePortal : null;
   if (isGuestRider(user)) {
     const {data:guestProfile}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
     currentProfile={id:user.id,full_name:guestProfile?.full_name||"Passenger",phone:guestProfile?.phone||null,role:"rider"};
@@ -130,7 +134,12 @@ async function loadProfile(user) {
     x.partner_type==="vehicle_owner" && x.application_status==="approved" && x.account_status==="active"
   );
   if(hasOwnerAccess && !hasDriverRegistration) role="owner";
-  activePortal=null;
+  const canRestoreDriver=previouslySelectedPortal==="driver" && hasDriverRegistration;
+  const canRestoreOwner=previouslySelectedPortal==="owner" && hasOwnerAccess;
+  const canRestoreAdmin=previouslySelectedPortal==="admin" && verifiedAdmin;
+  activePortal=canRestoreDriver?"driver":canRestoreOwner?"owner":canRestoreAdmin?"admin":null;
+  activePortalUserId=user.id;
+  if(activePortal) role=activePortal;
   updateUI();
   // Load independent dashboard panels together instead of serial network waits.
   await Promise.allSettled([
