@@ -139,12 +139,16 @@ public class MainActivity extends AppCompatActivity {
         String type=v==null?"car":v.optString("vehicle_type","car");
         return type.equalsIgnoreCase("motorcycle")?"motorcycle":"car";
     }
+    private boolean ridesLoading = false;
     private void loadRides(LinearLayout list,String service) {
+        if (ridesLoading) return;
+        ridesLoading = true;
         list.removeAllViews();
         TextView loading=new TextView(this);loading.setText("Checking for new "+service+" requests…");list.addView(loading);
         new Thread(()->{try{
             JSONArray rides=TwendeApi.pendingRides(MainActivity.this,service);
             runOnUiThread(()->{
+                ridesLoading = false;
                 list.removeAllViews();
                 if(rides.length()==0){TextView empty=new TextView(this);empty.setText("No pending requests at the moment.");list.addView(empty);return;}
                 for(int i=0;i<rides.length();i++){
@@ -167,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                     }catch(Exception ex){runOnUiThread(()->toast("Ride could not be accepted: "+ex.getMessage()));}}).start());
                 }
             });
-        }catch(Exception ex){runOnUiThread(()->toast("Could not load requests: "+ex.getMessage()));}}).start();
+        }catch(Exception ex){runOnUiThread(()->{ridesLoading = false;toast("Could not load requests: "+ex.getMessage());});}}).start();
     }
 
     private void setAvailability(boolean value,TextView status) {
