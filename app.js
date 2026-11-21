@@ -900,22 +900,32 @@ async function startApp(){
     showPasswordUpdateForm();
     return;
   }
-  if(!session){
+  const driverPortalEntry = new URLSearchParams(window.location.search).get("portal")==="driver";
+  if(!session && !driverPortalEntry){
     const guest=await db.auth.signInAnonymously();
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
     else session=guest.data.session;
   }
   await onSession(session);
-  // Require phone-verified passenger registration on the first app launch.
-  // Existing verified passengers go directly to the home screen.
-  const passenger=session?.user;
-  const passengerProfile=currentProfile||{};
-  const passengerRegistered=!!(passengerProfile.full_name||passenger?.user_metadata?.full_name)
-    && (passengerProfile.full_name||passenger?.user_metadata?.full_name)!=="Passenger"
-    && !!(passenger?.phone||passengerProfile.phone)
-    && !["driver","owner","admin"].includes(passengerProfile.role);
-  if(passenger && !passengerRegistered){
-    showPassengerRegistration(null);
+  if(driverPortalEntry){
+    // Driver WebView must open the partner sign-in flow, never the passenger registration gate.
+    window.twendeRequestedPortal="driver";
+    $("#registerForm").classList.add("hidden");
+    $("#passengerPhoneForm").classList.add("hidden");
+    $("#passengerOtpForm").classList.add("hidden");
+    $("#passengerNameForm").classList.add("hidden");
+    $("#loginForm").classList.remove("hidden");
+    $("#loginForm").querySelector("h2").textContent="Driver sign in";
+    $("#authDialog").showModal();
+  }else{
+    // Require passenger name and mobile number only on the passenger entry point.
+    const passenger=session?.user;
+    const passengerProfile=currentProfile||{};
+    const passengerRegistered=!!(passengerProfile.full_name||passenger?.user_metadata?.full_name)
+      && (passengerProfile.full_name||passenger?.user_metadata?.full_name)!=="Passenger"
+      && !!(passenger?.phone||passengerProfile.phone)
+      && !["driver","owner","admin"].includes(passengerProfile.role);
+    if(passenger && !passengerRegistered) showPassengerRegistration(null);
   }
   // Nearby vehicles are fetched when a taxi class is selected, not during startup.
   // This keeps the first screen responsive on slower mobile connections.
