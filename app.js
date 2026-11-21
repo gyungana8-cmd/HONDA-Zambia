@@ -587,7 +587,7 @@ function openRideDialog(service) {
       if(!currentUser||currentUser.id!==session.user.id)await onSession(session);
       const user=session.user;
       const profile=currentProfile||{};
-      const registered=!user.is_anonymous&&!!user.phone_confirmed_at&&!!(profile.full_name||user.user_metadata?.full_name)&&!!(user.phone||profile.phone);
+      const registered=!!user.phone_confirmed_at&&!!(profile.full_name||user.user_metadata?.full_name)&&!!(user.phone||profile.phone);
       if(!registered){
         $("#rideDialog").close();
         showPassengerRegistration(service);
@@ -627,7 +627,7 @@ async function submitTwendeTaxiRequest(){
     }
     const passengerName=(currentProfile?.full_name||user.user_metadata?.full_name||"").trim();
     const passengerPhone=user.phone||currentProfile?.phone||"";
-    if(user.is_anonymous||!user.phone_confirmed_at||!passengerName||!passengerPhone){
+    if(!user.phone_confirmed_at||!passengerName||!passengerPhone){
       $("#rideDialog").close();showPassengerRegistration($("#rideServiceType").value);throw new Error("Passenger registration and SMS phone verification are required before booking.");
     }
     $("#passengerName").value=passengerName;$("#passengerPhone").value=passengerPhone;
