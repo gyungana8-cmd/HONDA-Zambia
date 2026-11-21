@@ -929,7 +929,8 @@ async function startApp(){
     $("#loginForm").classList.remove("hidden");
     $("#partnerEntryWelcome")?.classList.remove("hidden");
     $("#loginForm").querySelector("h2").textContent=entryPortal==="admin"?"Administrator sign in":"Driver / vehicle owner sign in";
-    $("#authDialog").showModal();
+    // Partner entry opens its dedicated welcome screen first; sign-in is user-initiated.
+    if(entryPortal!=="partner") $("#authDialog").showModal();
   }else{
     // Require passenger name and mobile number only on the passenger entry point.
     const passenger=session?.user;
