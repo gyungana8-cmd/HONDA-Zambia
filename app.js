@@ -108,7 +108,7 @@ async function loadProfile(user) {
   const previouslySelectedPortal = activePortalUserId===user.id ? activePortal : null;
   if (isGuestRider(user)) {
     const {data:guestProfile}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
-    currentProfile={id:user.id,full_name:guestProfile?.full_name||null,phone:guestProfile?.phone||null,role:"rider"};
+    currentProfile={id:user.id,full_name:guestProfile?.full_name||user.user_metadata?.full_name||null,phone:guestProfile?.phone||user.user_metadata?.phone||null,role:"rider"};
     verifiedPassengerPhone=currentProfile.phone;
     role="rider";updateUI();
     $("#dashboardIntro").textContent="Complete passenger registration before requesting your first taxi.";
@@ -271,7 +271,7 @@ $("#passengerNameForm").onsubmit=async e=>{
     const fullName=(first+" "+last).trim();
     const phone=pendingPassengerPhone||currentProfile?.phone||currentUser?.phone;
     if(!currentUser||!phone)throw new Error("Enter a valid mobile number to complete registration.");
-    const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
+    const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,phone,role:"rider",passenger_registration_complete:true}});
     if(authError)throw authError;
     const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone,role:"rider"});
     if(profileError)throw profileError;
@@ -615,7 +615,7 @@ async function submitTwendeTaxiRequest(){
       await onSession(guest.data.session);
     }
     const passengerName=(currentProfile?.full_name||user.user_metadata?.full_name||"").trim();
-    const passengerPhone=user.phone||currentProfile?.phone||"";
+    const passengerPhone=user.phone||currentProfile?.phone||user.user_metadata?.phone||"";
     // OTP is temporarily disabled. A saved passenger name and phone are sufficient until SMS provider approval.
     if(!passengerName||!passengerPhone){
       $("#rideDialog").close();showPassengerRegistration($("#rideServiceType").value);throw new Error("Please complete passenger registration before booking.");
@@ -942,7 +942,7 @@ async function startApp(){
     const passengerProfile=currentProfile||{};
     const passengerRegistered=!!(passengerProfile.full_name||passenger?.user_metadata?.full_name)
       && (passengerProfile.full_name||passenger?.user_metadata?.full_name)!=="Passenger"
-      && !!(passenger?.phone||passengerProfile.phone)
+      && !!(passenger?.phone||passengerProfile.phone||passenger?.user_metadata?.phone)
       && !["driver","owner","admin"].includes(passengerProfile.role);
     if(passenger && !passengerRegistered) showPassengerRegistration(null);
   }
