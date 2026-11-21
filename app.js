@@ -68,7 +68,7 @@ function updateUI() {
   $("#driver-panel")?.classList.toggle("hidden",guest||isAdmin||!isDriver);
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
   $("#dashboard")?.classList.toggle("hidden",!isOwner||isAdmin);
-  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
+  window.twendeRoleSnapshot={role,admin:verifiedAdmin,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
@@ -94,7 +94,7 @@ async function loadProfile(user) {
     if(error) console.error("Profile create:",error);
   }
   role=["owner","driver","admin"].includes(currentProfile?.role)?currentProfile.role:"rider";
-  verifiedAdmin=false; hasDriverRegistration=false;
+  verifiedAdmin=false; hasDriverRegistration=false; hasOwnerAccess=false;
   const [adminCheck,driverCheck,partnerAccess]=await Promise.all([
     db.rpc("twende_is_admin"),
     db.from("driver_vehicles").select("id,approval_status").eq("user_id",user.id).limit(1),
