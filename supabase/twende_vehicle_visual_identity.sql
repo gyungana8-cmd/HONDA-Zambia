@@ -49,7 +49,10 @@ end; $$;
 revoke all on function public.twende_owner_update_vehicle_visuals(uuid,text,text,text) from public;
 grant execute on function public.twende_owner_update_vehicle_visuals(uuid,text,text,text) to authenticated;
 
-create or replace function public.get_available_twende_vehicles()
+-- Drop the old OUT-parameter row type before changing the returned columns.
+drop function if exists public.get_available_twende_vehicles();
+
+create function public.get_available_twende_vehicles()
 returns table (
  id uuid,vehicle_type text,driver_name text,vehicle_make text,vehicle_model text,
  plate_number text,operating_area text,vehicle_color text,vehicle_photo_url text,
