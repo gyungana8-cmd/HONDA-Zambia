@@ -26,7 +26,7 @@ final class TwendeApi {
         StringBuilder out=new StringBuilder(); if(in!=null)try(BufferedReader br=new BufferedReader(new InputStreamReader(in))){String line;while((line=br.readLine())!=null)out.append(line);}
         c.disconnect();
         if(status<200||status>=300)throw new Exception("TWENDE server ("+status+"): "+out);
-        String raw=out.toString(); return raw.isEmpty()?new JSONObject():new JSONObject(raw.startsWith("[")?"{\\"rows\\":"+raw+"}":raw);
+        String raw=out.toString(); if(raw.isEmpty()) return new JSONObject(); if(raw.startsWith("[")) return new JSONObject().put("rows",new JSONArray(raw)); return new JSONObject(raw);
     }
 
     static JSONObject login(String email,String password) throws Exception {
