@@ -1,82 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
-  <title id="title">TWENDE sport touring motorcycle</title>
-  <desc id="desc">Detailed black and yellow sport touring motorcycle illustration with a windscreen, full front fairing, side pannier and TWENDE branding.</desc>
-  <defs>
-    <linearGradient id="black" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#555"/><stop offset=".35" stop-color="#17191c"/><stop offset=".72" stop-color="#050607"/><stop offset="1" stop-color="#34383c"/></linearGradient>
-    <linearGradient id="yellow" x1="0" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="#ffe66a"/><stop offset=".42" stop-color="#ffcc00"/><stop offset="1" stop-color="#d99d00"/></linearGradient>
-    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5f5f5"/><stop offset=".45" stop-color="#9da3a8"/><stop offset="1" stop-color="#454b50"/></linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9d7e8" stop-opacity=".8"/><stop offset="1" stop-color="#283e50" stop-opacity=".9"/></linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feGaussianBlur stdDeviation="8"/></filter>
-  </defs>
-  <ellipse cx="405" cy="375" rx="300" ry="20" fill="#111" opacity=".13" filter="url(#shadow)"/>
-  <!-- rear and front wheels -->
-  <g stroke="#111" stroke-width="7">
-    <circle cx="208" cy="319" r="83" fill="#17191b"/><circle cx="208" cy="319" r="62" fill="none" stroke="#777e83" stroke-width="5"/>
-    <circle cx="208" cy="319" r="48" fill="#25292c" stroke="#aeb4b8" stroke-width="3"/>
-    <circle cx="208" cy="319" r="12" fill="#aeb4b8" stroke="#4b5054" stroke-width="5"/>
-    <circle cx="208" cy="319" r="72" fill="none" stroke="#555b60" stroke-width="2" stroke-dasharray="3 10"/>
-    <circle cx="626" cy="319" r="83" fill="#17191b"/><circle cx="626" cy="319" r="62" fill="none" stroke="#777e83" stroke-width="5"/>
-    <circle cx="626" cy="319" r="48" fill="#25292c" stroke="#aeb4b8" stroke-width="3"/>
-    <circle cx="626" cy="319" r="12" fill="#aeb4b8" stroke="#4b5054" stroke-width="5"/>
-    <circle cx="626" cy="319" r="72" fill="none" stroke="#555b60" stroke-width="2" stroke-dasharray="3 10"/>
-  </g>
-  <g fill="none" stroke="#c3c8cc" stroke-width="5" opacity=".9">
-    <path d="M208 257 L208 381 M146 319 H270 M164 275 L252 363 M252 275 L164 363"/>
-    <path d="M626 257 L626 381 M564 319 H688 M582 275 L670 363 M670 275 L582 363"/>
-  </g>
-  <!-- brake discs and calipers -->
-  <g fill="none" stroke="#aeb4b8" stroke-width="5"><circle cx="626" cy="319" r="35"/><circle cx="208" cy="319" r="35"/></g>
-  <path d="M656 286 Q676 296 671 321 L654 327 L645 309Z" fill="#d7a900" stroke="#252525" stroke-width="4"/>
-  <path d="M237 288 Q255 296 251 321 L234 327 L226 309Z" fill="#d7a900" stroke="#252525" stroke-width="4"/>
-  <!-- swingarm, frame and suspension -->
-  <path d="M210 310 L350 254 L493 286 L626 319 L600 337 L465 309 L344 293 L208 319Z" fill="url(#metal)" stroke="#24282b" stroke-width="8" stroke-linejoin="round"/>
-  <path d="M585 174 L626 319" stroke="#d2d7da" stroke-width="17" stroke-linecap="round"/>
-  <path d="M601 180 L641 319" stroke="#51585e" stroke-width="7" stroke-linecap="round"/>
-  <path d="M238 275 L340 211 L466 273 L390 318 L280 305Z" fill="url(#black)" stroke="#111" stroke-width="8"/>
-  <!-- engine -->
-  <path d="M330 236 Q376 215 438 238 L466 294 L440 329 L323 327 L292 287Z" fill="url(#black)" stroke="#101214" stroke-width="8"/>
-  <g fill="none" stroke="#8e969c" stroke-width="7">
-    <path d="M333 253 L333 312 M354 244 L354 316 M376 242 L376 317 M398 245 L398 316 M420 251 L420 313"/>
-    <path d="M304 290 L452 290 M319 309 L438 309"/>
-  </g>
-  <path d="M315 330 L465 330 L492 347 L305 347Z" fill="#24282b" stroke="#111" stroke-width="6"/>
-  <!-- exhaust -->
-  <path d="M322 291 Q281 320 271 347 L210 355 Q191 355 191 369 Q192 380 211 380 L292 373 Q322 359 354 319" fill="none" stroke="#3b4145" stroke-width="19" stroke-linecap="round"/>
-  <path d="M206 367 L278 360" stroke="#d2d5d7" stroke-width="5" stroke-linecap="round"/>
-  <!-- rear seat, tail and pannier -->
-  <path d="M176 210 Q224 185 305 194 L351 222 L320 252 L219 250 L169 235Z" fill="url(#black)" stroke="#111" stroke-width="7"/>
-  <path d="M178 210 L138 197 L120 211 L148 230 L181 235Z" fill="url(#yellow)" stroke="#1b1b1b" stroke-width="6"/>
-  <path d="M166 238 Q203 226 266 237 L278 277 L193 288 L150 271Z" fill="url(#black)" stroke="#111" stroke-width="6"/>
-  <path d="M170 247 L258 247 L252 267 L167 269Z" fill="url(#yellow)" stroke="#1b1b1b" stroke-width="4"/>
-  <text x="213" y="263" font-family="Arial,sans-serif" font-size="14" font-weight="900" fill="#151515" text-anchor="middle">TWENDE</text>
-  <!-- rider seat and tank -->
-  <path d="M274 188 Q321 168 384 181 L427 210 L403 241 L302 239 L261 217Z" fill="#111316" stroke="#08090a" stroke-width="7"/>
-  <path d="M337 178 Q390 145 466 167 L505 208 L475 258 L390 254 L347 224Z" fill="url(#yellow)" stroke="#17191b" stroke-width="8"/>
-  <path d="M365 190 Q412 169 463 184" fill="none" stroke="#fff0a0" stroke-width="5" opacity=".8"/>
-  <text x="422" y="220" font-family="Arial,sans-serif" font-size="23" font-weight="900" font-style="italic" fill="#161616" text-anchor="middle">TWENDE</text>
-  <!-- full touring fairing -->
-  <path d="M467 165 Q526 137 578 165 L616 211 L605 275 Q590 302 548 310 L475 283 L449 244Z" fill="url(#black)" stroke="#101214" stroke-width="9"/>
-  <path d="M477 177 Q533 150 573 177 L598 211 L579 239 L487 234 L458 210Z" fill="url(#yellow)" stroke="#17191b" stroke-width="6"/>
-  <path d="M490 238 L592 240 L587 276 Q554 298 502 279 L468 257Z" fill="#181b1e" stroke="#08090a" stroke-width="6"/>
-  <path d="M490 249 L574 252 L559 271 L500 267Z" fill="url(#yellow)" stroke="#17191b" stroke-width="4"/>
-  <path d="M511 255 L561 257" stroke="#fff0a0" stroke-width="3"/>
-  <!-- windscreen and mirrors -->
-  <path d="M512 158 Q520 111 555 94 Q585 105 591 158 L569 176 L526 174Z" fill="url(#glass)" stroke="#1a252d" stroke-width="7"/>
-  <path d="M529 148 Q548 117 573 125" fill="none" stroke="#e8f5fb" stroke-width="4" opacity=".7"/>
-  <path d="M507 165 L472 119 L444 112" fill="none" stroke="#17191b" stroke-width="8" stroke-linecap="round"/>
-  <path d="M444 112 L419 106 L410 116 L438 126Z" fill="#25292d" stroke="#111" stroke-width="5"/>
-  <path d="M570 166 L601 116 L628 110" fill="none" stroke="#17191b" stroke-width="8" stroke-linecap="round"/>
-  <path d="M628 110 L651 105 L661 116 L635 128Z" fill="#25292d" stroke="#111" stroke-width="5"/>
-  <!-- headlamp, indicators and front details -->
-  <path d="M584 190 Q610 189 620 211 L609 234 L579 229Z" fill="#e7f4ff" stroke="#111" stroke-width="6"/>
-  <path d="M590 198 L611 210 L603 222 L584 218Z" fill="#fff" opacity=".9"/>
-  <path d="M596 236 L624 242 L618 253 L591 250Z" fill="#ffcc00" stroke="#111" stroke-width="4"/>
-  <path d="M466 265 L445 288 L457 301 L486 281" fill="none" stroke="#111" stroke-width="8"/>
-  <!-- foot pegs, controls and fine highlights -->
-  <path d="M305 300 L271 311 L258 305 M455 300 L488 309 L504 303" fill="none" stroke="#17191b" stroke-width="8" stroke-linecap="round"/>
-  <path d="M285 180 L260 159 L230 159" fill="none" stroke="#17191b" stroke-width="8" stroke-linecap="round"/>
-  <path d="M230 159 L219 165" stroke="#ffcc00" stroke-width="5"/>
-  <path d="M137 196 L119 185 L107 185" fill="none" stroke="#17191b" stroke-width="7" stroke-linecap="round"/>
-  <path d="M173 212 L195 207" stroke="#fff" stroke-width="3" opacity=".5"/>
-  <path d="M470 174 L489 183 M479 281 L508 291" stroke="#fff" stroke-width="3" opacity=".35"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Kawasaki 1400GTR motorcycle</title>
+  <desc id="desc">Photograph of a real black Kawasaki 1400GTR sport-touring motorcycle. Illustrative model image for the TWENDE motorcycle taxi listing; the assigned vehicle's details remain shown separately.</desc>
+  <rect width="960" height="720" fill="#f4f3ee"/>
+  <image href="https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Kawasaki_1400GTR.jpg/960px-Kawasaki_1400GTR.jpg?utm_campaign=index&amp;utm_content=thumbnail&amp;utm_source=commons.wikimedia.org" x="0" y="0" width="960" height="720" preserveAspectRatio="xMidYMid meet"/>
+  <rect x="0" y="690" width="960" height="30" fill="#ffcc00"/>
+  <text x="28" y="712" font-family="Arial,sans-serif" font-size="17" font-weight="700" fill="#171717">TWENDE MOTORCYCLE TAXI • ILLUSTRATIVE VEHICLE PHOTO</text>
 </svg>
