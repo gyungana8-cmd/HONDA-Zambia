@@ -5,7 +5,7 @@
  const db=window.twendeDb;if(!db)return;
  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const money=n=>"K"+Number(n||0).toLocaleString("en-ZM",{maximumFractionDigits:2});
- const toast=m=>{if(typeof window.twendeToast==="function")window.twendeToast(m);else if(typeof window.toast==="function")window.twendeToast?window.twendeToast(m):alert(m);};
+ const toast=m=>{if(typeof window.twendeToast==="function")window.twendeToast(m);else if(typeof window.toast==="function")window.toast(m);};
  const typeLabel=t=>({fixed_daily:"Fixed daily payment",fixed_monthly:"Fixed monthly payment",percentage_owner_share:"Percentage of owner's 85% share",other:"Other arrangement"}[t]||t);
  const valueLabel=a=>a.compensation_type==="percentage_owner_share"?Number(a.compensation_percentage||0)+"% of owner share":a.compensation_amount!=null?money(a.compensation_amount)+(a.compensation_type==="fixed_daily"?" per day":a.compensation_type==="fixed_monthly"?" per month":""):"As described in terms";
  const vehicleLabel=v=>[v.vehicle_make,v.vehicle_model].filter(Boolean).join(" ")+" • "+(v.plate_number||"No registration");
