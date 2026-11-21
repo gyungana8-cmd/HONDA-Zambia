@@ -820,53 +820,12 @@ async function loadAdminDashboard(){
       sections.push('<h3>Driver and vehicle applications ('+rows.length+')</h3>'+vehicleHtml);
     }
   }
-  if(canAssignFleet){
-    const [{data:assignableDrivers,error:driversError},{data:fleetVehicles,error:vehiclesError}]=await Promise.all([
-      db.rpc("twende_admin_list_assignable_drivers"),
-      db.from("driver_vehicles").select("id,owner_id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,approval_status").eq("approval_status","approved").order("created_at",{ascending:false})
-    ]);
-    if(driversError||vehiclesError){
-      sections.push('<h3>Fleet assignment</h3><p class="muted">Fleet assignment could not load: '+esc((driversError||vehiclesError).message)+'</p>');
-    } else {
-      const drivers=assignableDrivers||[], vehiclesForAssignment=fleetVehicles||[];
-      const driverOptions=drivers.map(d=>'<option value="'+esc(d.email)+'">'+esc(d.driver_name)+' — '+esc(d.email)+'</option>').join("");
-      const cards=vehiclesForAssignment.map(v=>'<article class="dash-card"><h4>'+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • '+esc(v.plate_number)+'</h4><p>'+esc(v.vehicle_type)+' taxi • Current driver: '+esc(v.driver_name||"Not assigned")+'</p><form class="twende-admin-fleet-assign" data-vehicle-id="'+v.id+'"><label>Approved driver<select name="driver_email" required '+(!drivers.length?'disabled':'')+'><option value="">Select an approved driver</option>'+driverOptions+'</select></label><label>Driver licence number<input name="driver_licence" required placeholder="Driver licence number" '+(!drivers.length?'disabled':'')+'></label><label>Driver NRC number<input name="driver_nrc" required placeholder="Driver NRC number" '+(!drivers.length?'disabled':'')+'></label><button class="btn btn-red" type="submit" '+(!drivers.length?'disabled':'')+'>Assign driver</button></form></article>').join("");
-      sections.push('<h3>Fleet management and driver assignment ('+vehiclesForAssignment.length+')</h3><p class="muted">Assign only active, approved driver accounts to TWENDE-approved vehicles. Assignment takes the vehicle offline until the driver sets it online.</p>'+(cards||'<p class="muted">No approved vehicles are available for assignment.</p>')+(!drivers.length?'<p class="muted">No active approved driver accounts are currently available.</p>':""));
-    }
-  }
+  // Driver-to-vehicle assignment belongs exclusively to the vehicle owner.
+  // Administrators review applications; they do not assign drivers to owners' vehicles.
   if(!sections.length)sections.push('<p class="muted">Your administrator account is active, but no operational modules are assigned to this role yet. Contact the Primary Administrator if you need additional access.</p>');
   host.innerHTML=sections.join("")+'<p class="muted">Only modules authorised for your administrator role are shown here.</p>';
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
-$("#adminContent")?.addEventListener("submit",async e=>{
-  const form=e.target.closest("#twendeOfficerAppointment");if(!form)return;
-  e.preventDefault();
-  if(currentAdminRole!=="primary"){toast("Only the Primary Administrator can appoint officers.");return;}
-  const button=form.querySelector('button[type="submit"]'),values=new FormData(form);
-  const email=String(values.get("officer_email")||"").trim().toLowerCase(),roleName=String(values.get("officer_role")||"");
-  if(!email||!roleName)return;
-  button.disabled=true;
-  const {error}=await db.rpc("twende_add_admin_by_role",{p_email:email,p_role:roleName});
-  button.disabled=false;
-  if(error){toast("Officer appointment failed: "+error.message);return;}
-  toast("Officer appointed and role assigned successfully.");
-  form.reset();await loadAdminDashboard();
-});
-$("#adminContent")?.addEventListener("submit",async e=>{
-  const form=e.target.closest(".twende-admin-fleet-assign");if(!form)return;
-  e.preventDefault();
-  const button=form.querySelector('button[type="submit"]');button.disabled=true;
-  const values=new FormData(form);
-  const {error}=await db.rpc("twende_admin_assign_driver_with_licence",{
-    p_vehicle_id:form.dataset.vehicleId,
-    p_driver_email:values.get("driver_email"),
-    p_driver_licence:values.get("driver_licence"),
-    p_driver_nrc:values.get("driver_nrc")
-  });
-  if(error){button.disabled=false;toast("Driver assignment failed: "+error.message);return;}
-  toast("Approved driver assigned to vehicle. Vehicle remains offline until activated by the driver.");
-  await loadAdminDashboard();
-});
 $("#adminContent")?.addEventListener("click",async e=>{
   const removeOfficer=e.target.closest("[data-officer-remove]");
   if(removeOfficer){
