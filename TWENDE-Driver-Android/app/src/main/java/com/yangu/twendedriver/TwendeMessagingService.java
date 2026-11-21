@@ -19,7 +19,7 @@ public class TwendeMessagingService extends FirebaseMessagingService {
     }
 
     @Override public void onMessageReceived(RemoteMessage message) {
-        createChannel();
+        ensureChannel(this);
         String title = message.getNotification() != null && message.getNotification().getTitle() != null
             ? message.getNotification().getTitle() : "New TWENDE booking";
         String body = message.getNotification() != null && message.getNotification().getBody() != null
@@ -38,7 +38,7 @@ public class TwendeMessagingService extends FirebaseMessagingService {
         ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify((int)System.currentTimeMillis(), builder.build());
     }
 
-    private void createChannel() {
+    public static void ensureChannel(android.content.Context context) {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel channel = new NotificationChannel(CHANNEL, "TWENDE booking alerts", NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("Sound and vibration for new taxi booking requests");
@@ -46,7 +46,7 @@ public class TwendeMessagingService extends FirebaseMessagingService {
             channel.setVibrationPattern(new long[]{0, 400, 200, 400});
             channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
                 new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).build());
-            getSystemService(NotificationManager.class).createNotificationChannel(channel);
+            ((NotificationManager)context.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(channel);
         }
     }
 }
