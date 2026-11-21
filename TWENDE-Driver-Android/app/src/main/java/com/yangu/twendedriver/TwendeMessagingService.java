@@ -13,9 +13,19 @@ public class TwendeMessagingService extends FirebaseMessagingService {
     private static final String CHANNEL = "twende_bookings";
 
     @Override public void onNewToken(String token) {
-        // Token is received by Firebase. Register it against the authenticated Supabase
-        // user after the Driver app's secure sign-in/session bridge is implemented.
-        getSharedPreferences("twende_driver", MODE_PRIVATE).edit().putString("pending_fcm_token", token).apply();
+        android.content.SharedPreferences prefs = getSharedPreferences("twende_driver", MODE_PRIVATE);
+        prefs.edit().putString("pending_fcm_token", token).apply();
+        String accessToken = prefs.getString("access_token", null);
+        if (accessToken != null && !accessToken.isEmpty()) {
+            new Thread(() -> {
+                try {
+                    TwendeApi.registerToken(accessToken, token);
+                    prefs.edit().remove("pending_fcm_token").apply();
+                } catch (Exception ex) {
+                    android.util.Log.e("TWENDE", "FCM token refresh registration failed; will retry after sign-in", ex);
+                }
+            }).start();
+        }
     }
 
     @Override public void onMessageReceived(RemoteMessage message) {
@@ -46,7 +56,7 @@ public class TwendeMessagingService extends FirebaseMessagingService {
             channel.setVibrationPattern(new long[]{0, 400, 200, 400});
             channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
                 new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).build());
-            ((NotificationManager)context.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(channel);
+            ((NotificationManager)context.getSystemService(android.content.Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
         }
     }
 }
