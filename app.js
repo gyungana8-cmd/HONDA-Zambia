@@ -612,10 +612,21 @@ $("#driverForm").onsubmit=async e=>{
   toast(hasVehicle?"Driver application and vehicle submitted for review.":"Driver application submitted. You can be assigned to an owner's approved vehicle after approval.");
   await loadDriverDashboard();
 };
+function twendeRequestAge(timestamp){
+  if(!timestamp)return "Request time unavailable";
+  const minutes=Math.max(0,Math.floor((Date.now()-new Date(timestamp).getTime())/60000));
+  if(minutes<1)return "Just now";
+  if(minutes===1)return "1 minute ago";
+  if(minutes<60)return minutes+" minutes ago";
+  const hours=Math.floor(minutes/60),remaining=minutes%60;
+  return hours+"h"+(remaining?" "+remaining+"m":"")+" ago";
+}
+function refreshTwendeRequestAges(){document.querySelectorAll("[data-request-created]").forEach(node=>{node.textContent=twendeRequestAge(node.dataset.requestCreated);});}
+if(!window.twendeRequestAgeTimer)window.twendeRequestAgeTimer=setInterval(refreshTwendeRequestAges,60000);
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
-  const {data:vehicles,error}=await db.from("driver_vehicles").select("*").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+   const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>'<article class="dash-card"><h3>'+(x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi")+' request</h3><p><strong>Requested:</strong> '+esc(x.created_at?new Date(x.created_at).toLocaleTimeString("en-ZM",{hour:"2-digit",minute:"2-digit"}):"Time unavailable")+' • <strong>Waiting:</strong> <span data-request-created="'+esc(x.created_at||"")+'">'+twendeRequestAge(x.created_at)+'</span></p><p>'+esc(x.pickup_text)+' → '+esc(x.destination_text)+'</p><p>Passenger: '+esc(x.passenger_name)+' • '+esc(x.passenger_phone)+'</p><p>'+(x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":"")+(x.estimated_fare?money(x.estimated_fare)+" estimated • ":"")+'Payment: Cash • Status: <strong>'+esc(x.status)+'</strong></p>'+(x.status==="pending"&&approved.some(v=>v.is_online&&v.vehicle_type===x.service_type)?'<button class="btn btn-red" data-ride-action="accept" data-ride-id="'+x.id+'">Accept ride</button>':x.driver_id===currentUser.id&&x.status==="accepted"?'<button class="btn btn-red" data-ride-action="complete" data-ride-id="'+x.id+'">Complete trip</button>':"")+'</article>').join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
   if(error){host.innerHTML='<p class="muted">Multi-vehicle services need the Phase 2 database setup: '+esc(error.message)+'</p>';return;}
   const addButton='<button class="btn btn-red" id="driverAddVehicle">Add another vehicle</button>';
   const approved=(vehicles||[]).filter(v=>v.approval_status==="approved");
