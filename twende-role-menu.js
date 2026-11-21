@@ -16,7 +16,7 @@
   options.replaceChildren();
   const snap=window.twendeRoleSnapshot||{role:"rider",guest:true,signedIn:false};
   const entryPortal=new URLSearchParams(window.location.search).get("portal");
-  const driverApp=entryPortal==="driver", adminApp=entryPortal==="admin";
+  const driverApp=entryPortal==="driver"||entryPortal==="partner", adminApp=entryPortal==="admin";
   $("#twendeRoleMenuIntro").textContent=adminApp?"Administrator control centre access.":driverApp?"Choose your approved driver or vehicle-owner workspace.":snap.guest?"Passenger access is ready. Partner portals require an approved account.":"Choose an authorised TWENDE portal.";
   if(snap.guest){
    add("Driver portal","Sign in with an approved driver account","driver","🚗");
