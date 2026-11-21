@@ -8,6 +8,7 @@ window.twendeDb = db;
 
 let currentUser = null, currentProfile = null, role = "rider";
 let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false;
+let activePortal = null;
 Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
 let verifiedPassengerPhone = null;
 let selectedBike = null, liveBikes = [], liveBookings = [];
@@ -49,10 +50,8 @@ function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=!currentUser || isGuestRider();
   const isAdmin=!guest && verifiedAdmin;
-  const isOwner=!guest && (currentProfile?.role==="owner" || hasOwnerAccess);
-  // Owner access takes precedence: an owner who also has a driver registration
-  // must use the fleet portal, not see the separate Driver dashboard.
-  const isDriver=!guest && !isOwner && (currentProfile?.role==="driver" || hasDriverRegistration);
+  const isOwner=!guest && (activePortal==="owner" || (!activePortal && (currentProfile?.role==="owner" || hasOwnerAccess)));
+  const isDriver=!guest && (activePortal==="driver" || (!activePortal && (currentProfile?.role==="driver" || hasDriverRegistration)));
   document.body.classList.toggle("passenger-mode",guest);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
@@ -70,7 +69,8 @@ function updateUI() {
   $("#driver-panel")?.classList.toggle("hidden",guest||isAdmin||!isDriver);
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
   $("#dashboard")?.classList.toggle("hidden",!isOwner||isAdmin);
-  window.twendeRoleSnapshot={role,admin:verifiedAdmin,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
+  window.twendeRoleSnapshot={role,activePortal:activePortal||(isOwner?"owner":isDriver?"driver":null),admin:verifiedAdmin,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
+  window.twendeSetActivePortal=async portal=>{if(portal==="driver"&&!hasDriverRegistration)return;if(portal==="owner"&&!hasOwnerAccess)return;if(portal==="admin"&&!verifiedAdmin)return;activePortal=portal;updateUI();if(portal==="driver")await loadDriverDashboard();else if(portal==="owner")await loadDashboard();else if(portal==="admin")await loadAdminDashboard();};
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
@@ -107,7 +107,8 @@ async function loadProfile(user) {
   hasOwnerAccess=!partnerAccess.error && (partnerAccess.data||[]).some(x=>
     x.partner_type==="vehicle_owner" && x.application_status==="approved" && x.account_status==="active"
   );
-  if(hasOwnerAccess) role="owner";
+  if(hasOwnerAccess && !hasDriverRegistration) role="owner";
+  activePortal=null;
   updateUI();
   // Load independent dashboard panels together instead of serial network waits.
   await Promise.allSettled([
