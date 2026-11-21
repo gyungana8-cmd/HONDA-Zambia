@@ -626,6 +626,7 @@ if(!window.twendeRequestAgeTimer)window.twendeRequestAgeTimer=setInterval(refres
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
+  const {data:vehicles,error}=await db.from("driver_vehicles").select("*").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Multi-vehicle services need the Phase 2 database setup: '+esc(error.message)+'</p>';return;}
   const addButton='<button class="btn btn-red" id="driverAddVehicle">Add another vehicle</button>';
   const approved=(vehicles||[]).filter(v=>v.approval_status==="approved");
