@@ -1,26 +1,34 @@
--- TWENDE: collect a driver's licence when a driver is assigned to a vehicle,
--- not during vehicle registration. The existing driver_vehicles.licence_number
--- remains the VEHICLE licence number.
+-- TWENDE: collect driver identity details at vehicle assignment.
+-- Vehicle registration/vehicle licence fields remain unchanged.
 alter table public.twende_partner_applications
-  add column if not exists driver_licence_number text;
+  add column if not exists driver_licence_number text,
+  add column if not exists driver_nrc_number text;
 
--- Retire the earlier assignment RPC that did not collect the driver's licence.
+-- Retire assignment RPCs that do not collect the required driver identity details.
 revoke all on function public.twende_owner_assign_driver(uuid,text) from public;
 revoke all on function public.twende_owner_assign_driver(uuid,text) from authenticated;
+revoke all on function public.twende_owner_assign_driver_with_licence(uuid,text,text) from public;
+revoke all on function public.twende_owner_assign_driver_with_licence(uuid,text,text) from authenticated;
 
 create or replace function public.twende_owner_assign_driver_with_licence(
   p_vehicle_id uuid,
   p_driver_email text,
-  p_driver_licence text
+  p_driver_licence text,
+  p_driver_nrc text
 ) returns void
 language plpgsql security definer set search_path=public,auth as $$
 declare
   v_driver uuid;
   v_licence text;
+  v_nrc text;
 begin
   v_licence := nullif(trim(p_driver_licence),'');
+  v_nrc := nullif(upper(trim(p_driver_nrc)),'');
   if v_licence is null then
     raise exception 'Enter the assigned driver licence number';
+  end if;
+  if v_nrc is null then
+    raise exception 'Enter the assigned driver NRC number';
   end if;
 
   if not exists(
@@ -51,7 +59,9 @@ begin
   end if;
 
   update public.twende_partner_applications
-  set driver_licence_number=v_licence, updated_at=now()
+  set driver_licence_number=v_licence,
+      driver_nrc_number=v_nrc,
+      updated_at=now()
   where user_id=v_driver and partner_type='driver';
 
   if not found then
@@ -67,7 +77,7 @@ begin
 end;
 $$;
 
-revoke all on function public.twende_owner_assign_driver_with_licence(uuid,text,text) from public;
-grant execute on function public.twende_owner_assign_driver_with_licence(uuid,text,text) to authenticated;
+revoke all on function public.twende_owner_assign_driver_with_licence(uuid,text,text,text) from public;
+grant execute on function public.twende_owner_assign_driver_with_licence(uuid,text,text,text) to authenticated;
 
-select 'TWENDE driver licence assignment migration ready' as status;
+select 'TWENDE driver licence and NRC assignment migration ready' as status;
