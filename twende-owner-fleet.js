@@ -6,7 +6,8 @@
  const toast=m=>{if(typeof window.twendeToast==="function")window.twendeToast(m);else if(typeof window.toast==="function")window.toast(m);else alert(m);};
  async function renderOwnerFleet(){
   const host=document.getElementById("dashboardContent"),snap=window.twendeRoleSnapshot;
-  if(!host||!snap?.signedIn||snap.guest||!(snap.role==="owner"||snap.hasOwnerAccess))return;
+  if(!host||!snap?.signedIn||snap.guest||snap.activePortal==="driver"||snap.activePortal==="admin"||!(snap.role==="owner"||snap.hasOwnerAccess))return;
+  if(snap.activePortal!=="owner" && snap.activePortal!==null) return;
   // This renderer can be reached from both the dashboard refresh and window load.
   // Replace the previous section instead of appending another copy each time.
   document.getElementById("twendeOwnerFleet")?.remove();
