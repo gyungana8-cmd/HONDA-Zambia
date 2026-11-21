@@ -49,9 +49,21 @@ document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click
 function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=!currentUser || isGuestRider();
-  const isAdmin=!guest && verifiedAdmin;
-  const isOwner=!guest && !isAdmin && (activePortal==="owner" || (!activePortal && (currentProfile?.role==="owner" || hasOwnerAccess) && !(currentProfile?.role==="driver" || hasDriverRegistration)));
-  const isDriver=!guest && !isAdmin && (activePortal==="driver" || (!activePortal && (currentProfile?.role==="driver" || hasDriverRegistration)));
+  // A user may hold more than one approved role. The selected portal, not the
+  // user's highest privilege, determines which dashboard is visible.
+  if(!guest && !activePortal){
+    if(currentProfile?.role==="driver" && hasDriverRegistration) activePortal="driver";
+    else if(currentProfile?.role==="owner" && hasOwnerAccess) activePortal="owner";
+    else if(currentProfile?.role==="admin" && verifiedAdmin) activePortal="admin";
+    else if(hasDriverRegistration && !hasOwnerAccess) activePortal="driver";
+    else if(hasOwnerAccess && !hasDriverRegistration) activePortal="owner";
+    else if(verifiedAdmin) activePortal="admin";
+    else if(hasDriverRegistration) activePortal="driver";
+    else if(hasOwnerAccess) activePortal="owner";
+  }
+  const isAdmin=!guest && activePortal==="admin" && verifiedAdmin;
+  const isOwner=!guest && activePortal==="owner" && hasOwnerAccess;
+  const isDriver=!guest && activePortal==="driver" && hasDriverRegistration;
   document.body.classList.toggle("passenger-mode",guest);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
@@ -66,11 +78,19 @@ function updateUI() {
   $("#nav")?.classList.toggle("hidden",guest);
   $("#adminNav")?.classList.toggle("hidden",!isAdmin);
   $("#ride-services")?.classList.toggle("hidden",!guest);
-  $("#driver-panel")?.classList.toggle("hidden",guest||isAdmin||!isDriver);
+  $("#driver-panel")?.classList.toggle("hidden",guest||!isDriver);
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
-  $("#dashboard")?.classList.toggle("hidden",!isOwner||isAdmin);
-  window.twendeRoleSnapshot={role,activePortal:activePortal||(isOwner?"owner":isDriver?"driver":null),admin:verifiedAdmin,adminRole:currentAdminRole||null,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
-  window.twendeSetActivePortal=async portal=>{if(portal==="driver"&&!hasDriverRegistration)return;if(portal==="owner"&&!hasOwnerAccess)return;if(portal==="admin"&&!verifiedAdmin)return;activePortal=portal;updateUI();if(portal==="driver")await loadDriverDashboard();else if(portal==="owner")await loadDashboard();else if(portal==="admin")await loadAdminDashboard();};
+  $("#dashboard")?.classList.toggle("hidden",!isOwner);
+  window.twendeRoleSnapshot={role,activePortal:guest?null:activePortal,admin:verifiedAdmin,adminRole:currentAdminRole||null,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
+  window.twendeSetActivePortal=async portal=>{
+    if(portal==="driver"&&!hasDriverRegistration)return;
+    if(portal==="owner"&&!hasOwnerAccess)return;
+    if(portal==="admin"&&!verifiedAdmin)return;
+    activePortal=portal;role=portal;updateUI();
+    if(portal==="driver")await loadDriverDashboard();
+    else if(portal==="owner")await loadDashboard();
+    else if(portal==="admin")await loadAdminDashboard();
+  };
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
