@@ -10,7 +10,7 @@
 
     <application
         android:allowBackup="false"
-        android:label="TWENDE Driver"
+        android:label="TWENDE Partner"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
         <activity android:name=".DriverPortalActivity" android:exported="false"/>
