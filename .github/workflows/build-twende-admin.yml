@@ -1,0 +1,45 @@
+name: Build TWENDE Admin Android App
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'TWENDE-Admin-Android/**'
+      - '.github/workflows/build-twende-admin.yml'
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Build TWENDE Admin debug APK
+        working-directory: TWENDE-Admin-Android
+        run: gradle --no-daemon assembleDebug
+      - name: Upload Admin APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TWENDE-Admin-Android-APK
+          path: TWENDE-Admin-Android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
