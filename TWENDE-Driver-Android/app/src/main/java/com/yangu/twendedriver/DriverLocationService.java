@@ -16,6 +16,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import org.json.JSONObject;
 
 public class DriverLocationService extends Service {
     public static final String ACTION_START = "com.yangu.twendedriver.START_LOCATION";
@@ -64,13 +65,20 @@ public class DriverLocationService extends Service {
             @Override public void onLocationResult(LocationResult result) {
                 if (result == null || result.getLastLocation() == null) return;
                 android.location.Location loc = result.getLastLocation();
-                getSharedPreferences("twende_driver", MODE_PRIVATE).edit()
-                    .putLong("last_location_time", System.currentTimeMillis())
+                android.content.SharedPreferences prefs=getSharedPreferences("twende_driver", MODE_PRIVATE);
+                prefs.edit().putLong("last_location_time", System.currentTimeMillis())
                     .putString("last_latitude", String.valueOf(loc.getLatitude()))
-                    .putString("last_longitude", String.valueOf(loc.getLongitude()))
-                    .apply();
-                // Supabase location RPC is deliberately not called until the authenticated
-                // driver session is securely connected to this service.
+                    .putString("last_longitude", String.valueOf(loc.getLongitude())).apply();
+                String token=prefs.getString("access_token", null);
+                if(token!=null) new Thread(()->{
+                    try {
+                        TwendeApi.request("/rest/v1/rpc/update_twende_driver_location","POST",token,
+                            new JSONObject().put("p_latitude",loc.getLatitude()).put("p_longitude",loc.getLongitude())
+                                .put("p_accuracy_m",loc.hasAccuracy()?loc.getAccuracy():JSONObject.NULL)
+                                .put("p_heading",loc.hasBearing()?loc.getBearing():JSONObject.NULL)
+                                .put("p_speed_mps",loc.hasSpeed()?loc.getSpeed():JSONObject.NULL),null);
+                    } catch(Exception ex) { android.util.Log.w("TWENDE-GPS","Location update failed; next GPS fix will retry",ex); }
+                }).start();
             }
         };
         fused.requestLocationUpdates(request, callback, getMainLooper());
