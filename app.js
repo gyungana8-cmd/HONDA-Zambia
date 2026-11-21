@@ -832,8 +832,38 @@ $("#adminContent")?.addEventListener("click",async e=>{
 });
 
 async function startApp(){
+  // Register the auth listener BEFORE reading the current session. Supabase may
+  // emit PASSWORD_RECOVERY while it processes the recovery URL during startup.
+  let recoveryMode = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type")==="recovery"
+    || new URLSearchParams(window.location.search).get("type")==="recovery";
+  const showPasswordUpdateForm=()=>{
+    $("#loginForm").classList.add("hidden");
+    $("#registerForm").classList.add("hidden");
+    $("#passwordRecoveryForm").classList.add("hidden");
+    $("#passwordUpdateForm").classList.remove("hidden");
+    if(!$("#authDialog").open)$("#authDialog").showModal();
+  };
+  db.auth.onAuthStateChange((event,nextSession)=>{
+    if(event==="PASSWORD_RECOVERY"){
+      recoveryMode=true;
+      showPasswordUpdateForm();
+      return;
+    }
+    if(recoveryMode){
+      // Never let the normal dashboard replace the password form during recovery.
+      showPasswordUpdateForm();
+      return;
+    }
+    setTimeout(()=>onSession(nextSession),0);
+  });
+
   const {data,error}=await db.auth.getSession();if(error)console.error(error);
   let session=data?.session||null;
+  // A recovery URL must open the password form, not the dashboard or guest flow.
+  if(recoveryMode){
+    showPasswordUpdateForm();
+    return;
+  }
   if(!session){
     const guest=await db.auth.signInAnonymously();
     if(guest.error){console.error("Passenger guest session:",guest.error);toast("Enable anonymous sign-ins in Supabase Auth settings to allow passengers to book without accounts.");}
@@ -843,17 +873,6 @@ async function startApp(){
   // Nearby vehicles are fetched when a taxi class is selected, not during startup.
   // This keeps the first screen responsive on slower mobile connections.
   startTwendeRealtime();
-  db.auth.onAuthStateChange((event,nextSession)=>{
-    if(event==="PASSWORD_RECOVERY"){
-      $("#loginForm").classList.add("hidden");
-      $("#registerForm").classList.add("hidden");
-      $("#passwordRecoveryForm").classList.add("hidden");
-      $("#passwordUpdateForm").classList.remove("hidden");
-      if(!$("#authDialog").open)$("#authDialog").showModal();
-      return;
-    }
-    setTimeout(()=>onSession(nextSession),0);
-  });
 }
 updateUI();startApp();
 
