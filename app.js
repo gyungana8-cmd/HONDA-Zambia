@@ -642,7 +642,7 @@ async function loadAvailableTaxiFleet(service=selectedRideService){
      host.innerHTML='<p class="muted">Nearby vehicles could not be loaded. Please try again.</p>';return;
    }
    const rows=(data||[]).filter(v=>v.vehicle_type===service);
-   const card=v=>`<article class="fleet-vehicle-card">${twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")}</strong><span>${esc(v.driver_name||"TWENDE driver")}</span></div></article>`;
+   const card=v=>`<article class="fleet-vehicle-card">${v.vehicle_photo_url?`<img class="twende-fleet-photo" src="${esc(v.vehicle_photo_url)}" alt="${esc((v.vehicle_color||"")+" "+(v.vehicle_make||"")+" "+(v.vehicle_model||""))}" loading="lazy">`:twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")} ${esc(v.vehicle_model||"")}</strong><span>Colour: ${esc(v.vehicle_color||"Not recorded")}</span><span>Driver: ${esc(v.driver_name||"TWENDE driver")}</span></div></article>`;
    host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online nearby at the moment.</p>`;
  }
  async function loadPassengerRides(){
