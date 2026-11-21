@@ -583,7 +583,7 @@ function syncDriverTaxiFields(){
   if(!section)return;
   const chosen=type==="car"||type==="motorcycle";
   section.hidden=!chosen;
-  ["driverVehicleMake","driverVehicleModel","driverPlate","driverLicence","driverArea"].forEach(id=>{
+  ["driverVehicleMake","driverVehicleModel","driverPlate","driverArea"].forEach(id=>{
     const field=$("#"+id);if(field)field.disabled=!chosen;
   });
   if(!chosen)return;
@@ -604,7 +604,7 @@ $("#driverForm")?.addEventListener("reset",()=>setTimeout(syncDriverTaxiFields,0
 $("#driverForm").onsubmit=async e=>{
   e.preventDefault();if(!currentUser)return;
   const b=e.submitter;b.disabled=true;
-  const taxiType=$("#driverVehicleType").value;if(!["car","motorcycle"].includes(taxiType)){b.disabled=false;toast("Choose either Motorcycle taxi or Car taxi before continuing.");return;}const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:taxiType,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverLicence").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
+  const taxiType=$("#driverVehicleType").value;if(!["car","motorcycle"].includes(taxiType)){b.disabled=false;toast("Choose either Motorcycle taxi or Car taxi before continuing.");return;}const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:taxiType,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverPlate").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
   const {error}=await db.from("driver_vehicles").insert(row);
   b.disabled=false;
   if(error){console.error("Vehicle registration:",error);toast(error.code==="23505"?"This registration number is already listed on your account.":"Vehicle registration could not be saved: "+error.message);return;}
