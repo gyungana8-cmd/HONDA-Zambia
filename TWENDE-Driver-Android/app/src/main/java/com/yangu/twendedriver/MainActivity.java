@@ -32,9 +32,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void base(String title) {
-        root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,24,24,24);
-        TextView h=new TextView(this);h.setText(title);h.setTextSize(25);h.setTextColor(0xFF202020);h.setPadding(0,0,0,18);root.addView(h);
-        setContentView(root);
+        ScrollView page = new ScrollView(this);
+        page.setFillViewport(true);
+        root=new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(24,24,24,24);
+        TextView h=new TextView(this);
+        h.setText(title);
+        h.setTextSize(25);
+        h.setTextColor(0xFF202020);
+        h.setPadding(0,0,0,18);
+        root.addView(h);
+        page.addView(root);
+        setContentView(page);
     }
     private void restoreSession(String refreshToken) {
         base("TWENDE DRIVER");
