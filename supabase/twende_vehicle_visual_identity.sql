@@ -80,7 +80,7 @@ returns table(
  completed_trips bigint,completed_value numeric,
  vehicle_color text,vehicle_photo_url text,vehicle_photo_url_secondary text
 )
-language plpgsql stable security definer set search_path=public as $
+language plpgsql stable security definer set search_path=public as $function$
 begin
  if not exists(
   select 1 from public.twende_partner_applications a
@@ -100,7 +100,7 @@ begin
  left join public.ride_requests r on r.driver_vehicle_id=v.id
  where v.owner_id=auth.uid()
  group by v.id order by v.created_at desc;
-end; $;
+end; $function$;
 revoke all on function public.twende_owner_fleet_summary() from public;
 grant execute on function public.twende_owner_fleet_summary() to authenticated;
 
