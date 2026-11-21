@@ -91,15 +91,18 @@ begin
  end if;
  return query
  select v.id,v.vehicle_type,v.vehicle_make,v.vehicle_model,v.plate_number,v.operating_area,
-  v.approval_status,v.is_online,v.user_id,v.driver_name,v.phone,v.last_latitude,v.last_longitude,
-  v.location_updated_at,
+  v.approval_status,coalesce(p.is_online,v.is_online,false),v.user_id,
+  coalesce(p.driver_name,v.driver_name),coalesce(p.phone,v.phone),
+  v.last_latitude,v.last_longitude,v.location_updated_at,
   count(r.id) filter(where r.status='completed'),
   coalesce(sum(r.estimated_fare) filter(where r.status='completed'),0),
   v.vehicle_color,v.vehicle_photo_url,v.vehicle_photo_url_secondary
  from public.driver_vehicles v
+ left join public.driver_profiles p on p.user_id=v.user_id
  left join public.ride_requests r on r.driver_vehicle_id=v.id
  where v.owner_id=auth.uid()
- group by v.id order by v.created_at desc;
+ group by v.id,p.is_online,p.driver_name,p.phone
+ order by v.created_at desc;
 end; $function$;
 revoke all on function public.twende_owner_fleet_summary() from public;
 grant execute on function public.twende_owner_fleet_summary() to authenticated;
