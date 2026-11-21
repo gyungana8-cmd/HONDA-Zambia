@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
                 JSONArray vehicles = TwendeApi.approvedVehicles(token, user.getString("id"));
                 runOnUiThread(() -> showVehicles(token, vehicles));
                 FirebaseMessaging.getInstance().getToken().addOnSuccessListener(fcm ->
-                    new Thread(() -> { try { TwendeApi.registerToken(token, fcm); }
+                    new Thread(() -> { try { TwendeApi.registerToken(MainActivity.this, fcm); }
                     catch (Exception ex) { android.util.Log.e("TWENDE", "Push token registration will retry", ex); } }).start());
             } catch (Exception ex) {
                 getSharedPreferences("twende_driver", MODE_PRIVATE).edit()
@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
             String userId=user.getString("id");
             JSONArray vehicles=TwendeApi.approvedVehicles(token,userId);
             runOnUiThread(()->showVehicles(token,vehicles));
-            FirebaseMessaging.getInstance().getToken().addOnSuccessListener(fcm->new Thread(()->{try{TwendeApi.registerToken(token,fcm);}catch(Exception ex){android.util.Log.e("TWENDE","Token registration pending",ex);}}).start());
+            FirebaseMessaging.getInstance().getToken().addOnSuccessListener(fcm->new Thread(()->{try{TwendeApi.registerToken(MainActivity.this,fcm);}catch(Exception ex){android.util.Log.e("TWENDE","Token registration pending",ex);}}).start());
         }catch(Exception ex){runOnUiThread(()->toast("Sign-in failed: "+ex.getMessage()));}}).start();
     }
     private void showVehicles(String token,JSONArray vehicles) {
@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
         list.removeAllViews();
         TextView loading=new TextView(this);loading.setText("Checking for new "+service+" requests…");list.addView(loading);
         new Thread(()->{try{
-            JSONArray rides=TwendeApi.pendingRides(accessToken,service);
+            JSONArray rides=TwendeApi.pendingRides(MainActivity.this,service);
             runOnUiThread(()->{
                 list.removeAllViews();
                 if(rides.length()==0){TextView empty=new TextView(this);empty.setText("No pending requests at the moment.");list.addView(empty);return;}
@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
                     });
                     Button accept=new Button(this);accept.setText("ACCEPT THIS RIDE");list.addView(accept);
                     accept.setOnClickListener(v->new Thread(()->{try{
-                        TwendeApi.acceptRide(accessToken,id);
+                        TwendeApi.acceptRide(MainActivity.this,id);
                         runOnUiThread(()->{toast("Ride accepted.");loadRides(list,service);});
                     }catch(Exception ex){runOnUiThread(()->toast("Ride could not be accepted: "+ex.getMessage()));}}).start());
                 }
@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
     private void setAvailability(boolean value,TextView status) {
         if(value && ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){requestPermissionsIfNeeded();toast("Allow location permission, then select Go Online again.");return;}
         new Thread(()->{try{
-            TwendeApi.setOnline(accessToken,vehicleId,value);
+            TwendeApi.setOnline(MainActivity.this,vehicleId,value);
             runOnUiThread(()->{
                 online=value;status.setText(value?"ONLINE — background GPS service active":"OFFLINE — location sharing stopped");
                 Intent service=new Intent(this,DriverLocationService.class);
