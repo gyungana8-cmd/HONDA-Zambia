@@ -69,7 +69,7 @@ function updateUI() {
   $("#driver-panel")?.classList.toggle("hidden",guest||isAdmin||!isDriver);
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
   $("#dashboard")?.classList.toggle("hidden",!isOwner||isAdmin);
-  window.twendeRoleSnapshot={role,activePortal:activePortal||(isOwner?"owner":isDriver?"driver":null),admin:verifiedAdmin,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
+  window.twendeRoleSnapshot={role,activePortal:activePortal||(isOwner?"owner":isDriver?"driver":null),admin:verifiedAdmin,adminRole:currentAdminRole||null,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
   window.twendeSetActivePortal=async portal=>{if(portal==="driver"&&!hasDriverRegistration)return;if(portal==="owner"&&!hasOwnerAccess)return;if(portal==="admin"&&!verifiedAdmin)return;activePortal=portal;updateUI();if(portal==="driver")await loadDriverDashboard();else if(portal==="owner")await loadDashboard();else if(portal==="admin")await loadAdminDashboard();};
   window.twendeRefreshRoleMenu?.();
 }
