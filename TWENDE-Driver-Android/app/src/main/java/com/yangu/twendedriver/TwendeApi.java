@@ -61,20 +61,20 @@ final class TwendeApi {
         JSONObject result=request("/rest/v1/driver_vehicles?select=id,vehicle_type,vehicle_make,vehicle_model,plate_number,approval_status,is_online&user_id=eq."+uid+"&approval_status=eq.approved&order=created_at.asc","GET",token,null,null);
         return result.optJSONArray("rows")==null?new JSONArray():result.getJSONArray("rows");
     }
-    static void setOnline(String token,String vehicleId,boolean online) throws Exception {
-        request("/rest/v1/rpc/twende_set_vehicle_online","POST",token,
+    static void setOnline(android.content.Context context,String vehicleId,boolean online) throws Exception {
+        requestWithSession(context,"/rest/v1/rpc/twende_set_vehicle_online","POST",
             new JSONObject().put("p_vehicle_id",vehicleId).put("p_online",online),null);
     }
-    static JSONArray pendingRides(String token,String service) throws Exception {
+    static JSONArray pendingRides(android.content.Context context,String service) throws Exception {
         String type=java.net.URLEncoder.encode(service,"UTF-8");
-        JSONObject result=request("/rest/v1/ride_requests?select=id,passenger_name,passenger_phone,pickup_text,destination_text,estimated_fare,service_type,created_at&status=eq.pending&service_type=eq."+type+"&order=created_at.asc","GET",token,null,null);
+        JSONObject result=requestWithSession(context,"/rest/v1/ride_requests?select=id,passenger_name,passenger_phone,pickup_text,destination_text,estimated_fare,service_type,created_at&status=eq.pending&service_type=eq."+type+"&order=created_at.asc","GET",null,null);
         return result.optJSONArray("rows")==null?new JSONArray():result.getJSONArray("rows");
     }
-    static void acceptRide(String token,String rideId) throws Exception {
-        request("/rest/v1/rpc/accept_twende_ride","POST",token,new JSONObject().put("p_ride_id",rideId),null);
+    static void acceptRide(android.content.Context context,String rideId) throws Exception {
+        requestWithSession(context,"/rest/v1/rpc/accept_twende_ride","POST",new JSONObject().put("p_ride_id",rideId),null);
     }
-    static void registerToken(String token,String fcm) throws Exception {
-        request("/rest/v1/rpc/register_twende_push_token","POST",token,
+    static void registerToken(android.content.Context context,String fcm) throws Exception {
+        requestWithSession(context,"/rest/v1/rpc/register_twende_push_token","POST",
             new JSONObject().put("p_token",fcm).put("p_platform","android"),null);
     }
 }
