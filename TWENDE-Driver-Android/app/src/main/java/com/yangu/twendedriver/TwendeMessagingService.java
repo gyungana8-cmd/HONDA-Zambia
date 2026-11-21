@@ -19,7 +19,7 @@ public class TwendeMessagingService extends FirebaseMessagingService {
         if (accessToken != null && !accessToken.isEmpty()) {
             new Thread(() -> {
                 try {
-                    TwendeApi.registerToken(accessToken, token);
+                    TwendeApi.registerToken(TwendeMessagingService.this, token);
                     prefs.edit().remove("pending_fcm_token").apply();
                 } catch (Exception ex) {
                     android.util.Log.e("TWENDE", "FCM token refresh registration failed; will retry after sign-in", ex);
