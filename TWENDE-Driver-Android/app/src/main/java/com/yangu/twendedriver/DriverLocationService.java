@@ -72,7 +72,7 @@ public class DriverLocationService extends Service {
                 String token=prefs.getString("access_token", null);
                 if(token!=null) new Thread(()->{
                     try {
-                        TwendeApi.request("/rest/v1/rpc/update_twende_driver_location","POST",token,
+                        TwendeApi.requestWithSession(DriverLocationService.this,"/rest/v1/rpc/update_twende_driver_location","POST",
                             new JSONObject().put("p_latitude",loc.getLatitude()).put("p_longitude",loc.getLongitude())
                                 .put("p_accuracy_m",loc.hasAccuracy()?loc.getAccuracy():JSONObject.NULL)
                                 .put("p_heading",loc.hasBearing()?loc.getBearing():JSONObject.NULL)
