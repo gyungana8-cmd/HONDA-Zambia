@@ -59,6 +59,20 @@
  }
  const original=window.loadDashboard;
  if(typeof original==="function")window.loadDashboard=async function(){await original();await renderOwnerFleet();};
+ const originalDriver=window.loadDriverDashboard;
+ if(typeof originalDriver==="function")window.loadDriverDashboard=async function(){
+  await originalDriver();
+  const snap=window.twendeRoleSnapshot;
+  if(!snap?.signedIn||snap.guest||!navigator.geolocation||window.twendeOwnerGpsWatch)return;
+  const {data:assigned}=await db.from("driver_vehicles").select("id").not("owner_id","is",null).eq("user_id",window.currentTwendeUser.id).eq("approval_status","approved");
+  if(!assigned?.length)return;
+  window.twendeOwnerGpsWatch=navigator.geolocation.watchPosition(async pos=>{
+   for(const v of assigned){
+    const {error}=await db.rpc("twende_owner_update_vehicle_location",{p_vehicle_id:v.id,p_latitude:pos.coords.latitude,p_longitude:pos.coords.longitude});
+    if(error)console.warn("TWENDE fleet GPS update:",error.message);
+   }
+  },err=>console.info("TWENDE fleet GPS unavailable:",err.message),{enableHighAccuracy:true,maximumAge:15000,timeout:20000});
+ };
  window.addEventListener("load",()=>setTimeout(renderOwnerFleet,900));
  window.twendeRefreshOwnerFleet=renderOwnerFleet;
 })();
