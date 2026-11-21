@@ -733,6 +733,9 @@ async function loadAdminDashboard(){
   verifiedAdmin=!adminError && isAdmin===true;
   updateUI();
   if(!verifiedAdmin){host.innerHTML='<p class="muted">This account does not have administrator access.</p>';return;}
+  // Admin data may be checked in the background, but its dashboard is rendered
+  // only while the user has explicitly selected the Administrator portal.
+  if(activePortal!=="admin"){panel.classList.add("hidden");if(nav)nav.classList.add("hidden");return;}
   panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
   const [fleetPermission,financePermission,assignPermission]=await Promise.all([
     db.rpc("twende_admin_has_permission",{p_permission:"fleet.review"}),
