@@ -21,7 +21,7 @@
  }
  async function renderOwnerApplication(){
   const host=document.getElementById("dashboardContent");
-  if(!host||window.twendeRoleSnapshot?.role!=="owner"||window.twendeRoleSnapshot?.guest)return;
+  if(!host||window.twendeRoleSnapshot?.activePortal!=="owner"||!window.twendeRoleSnapshot?.hasOwnerAccess||window.twendeRoleSnapshot?.guest)return;
   if(host.querySelector("#twendeOwnerTaxiApplication"))return;
   const {data:access,error}=await db.rpc("twende_get_partner_access");
   const item=(access||[]).find(x=>x.partner_type==="vehicle_owner");
