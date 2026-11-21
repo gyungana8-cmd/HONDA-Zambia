@@ -836,3 +836,14 @@ body.passenger-mode .twende-app-header #twendeNotificationsButton .twende-notifi
 /* Actual owner-uploaded vehicle identity photos */
 .twende-fleet-photo{display:block;width:100%;max-width:260px;height:150px;object-fit:cover;border-radius:14px;background:#f4f0d9;margin:0 0 12px}
 .fleet-vehicle-card .twende-fleet-photo{max-width:100%;height:150px}
+
+
+/* Mobile passenger map visibility fix: GPS may work while the map was hidden by
+   an earlier mobile-shell rule. Keep the map and its status visible on phones. */
+@media(max-width:800px){
+ body.passenger-mode #twendeMapStatus{display:block!important;min-height:18px;margin:8px 2px;color:#555;font-size:12px}
+ body.passenger-mode #twendeMapDetails{display:block!important;margin-top:10px}
+ body.passenger-mode #twendeMapDetails[hidden]{display:none!important}
+ body.passenger-mode #twendePassengerMap{display:block!important;width:100%;height:300px!important;min-height:260px!important;margin:8px 0;border-radius:14px;background:#edf0f2;overflow:hidden}
+ body.passenger-mode .twende-map-legend{display:flex!important;gap:12px;flex-wrap:wrap;margin:8px 0 14px;font-size:11px}
+}
