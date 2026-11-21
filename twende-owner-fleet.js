@@ -34,13 +34,35 @@
    '<h3>Your fleet and assigned drivers</h3><div class="dash-grid">'+(items.map(v=>{
     const driver=v.driver_user_id===window.currentTwendeUser?.id?"Not assigned":(v.driver_name||"Assigned driver");
     const gps=v.last_latitude!=null&&v.last_longitude!=null?'<p>Last GPS: '+Number(v.last_latitude).toFixed(5)+', '+Number(v.last_longitude).toFixed(5)+' • '+esc(v.location_updated_at||"")+'</p>':'<p class="muted">No driver GPS update received yet.</p>';
-    return '<article class="dash-card">'+(v.vehicle_photo_url?'<img class="twende-fleet-photo" src="'+esc(v.vehicle_photo_url)+'" alt="'+esc(v.vehicle_color||'')+' '+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+'" loading="lazy">':'')+'<h3>'+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • '+(v.vehicle_type==="car"?"Car taxi":"Motorcycle taxi")+'</h3><p>Registration: <strong>'+esc(v.plate_number)+'</strong> • Colour: <strong>'+esc(v.vehicle_color||"Not recorded")+'</strong> • '+esc(v.operating_area)+'</p><p>Approval: <strong>'+esc(v.approval_status)+'</strong> • Availability: <strong>'+(v.is_online?"Online":"Offline")+'</strong></p><p>Driver: <strong>'+esc(driver)+'</strong> '+(v.driver_user_id!==window.currentTwendeUser?.id?'• '+esc(v.driver_phone||""):"")+'</p>'+gps+'<p>Completed trips: '+Number(v.completed_trips||0)+' • Trip value: <strong>'+money(v.completed_value)+'</strong></p>'+(v.approval_status==="approved"?(v.driver_user_id===window.currentTwendeUser?.id?'<form class="twendeAssignDriver" data-vehicle="'+v.vehicle_id+'"><label>Approved driver account email<input type="email" name="email" required placeholder="driver@example.com"></label><label>Driver licence number<input type="text" name="driverLicence" required autocomplete="off" placeholder="Enter licence number"></label><label>National Registration Card (NRC) number<input type="text" name="driverNrc" required autocomplete="off" placeholder="Enter NRC number"></label><p class="muted">Driver licence and NRC details are collected securely at assignment, not during vehicle registration.</p><button class="btn btn-red" type="submit">Assign driver</button></form>':'<button class="btn btn-outline" data-unassign="'+v.vehicle_id+'">Dismiss / unassign driver</button>'):'<p class="muted">Vehicle must be approved by TWENDE before a driver can be assigned.</p>')+'</article>';
+    return '<article class="dash-card">'+(v.vehicle_photo_url?'<img class="twende-fleet-photo" src="'+esc(v.vehicle_photo_url)+'" alt="'+esc(v.vehicle_color||'')+' '+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+'" loading="lazy">':'')+'<h3>'+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • '+(v.vehicle_type==="car"?"Car taxi":"Motorcycle taxi")+'</h3><p>Registration: <strong>'+esc(v.plate_number)+'</strong> • Colour: <strong>'+esc(v.vehicle_color||"Not recorded")+'</strong> • '+esc(v.operating_area)+'</p><button type="button" class="btn btn-outline" data-edit-visuals="'+v.vehicle_id+'">Edit vehicle photo / colour</button><form class="twendeEditVehicleVisuals dash-card" data-edit-visual-form="'+v.vehicle_id+'" hidden><h4>Update vehicle identification</h4><label>Vehicle colour<select name="color" required><option value="">Select colour</option>'+["Black","White","Silver","Grey","Blue","Red","Green","Yellow","Brown","Other"].map(color=>'<option value="'+color+'" '+(v.vehicle_color===color?'selected':'')+'>'+color+'</option>').join("")+'</select></label><label>Replace main vehicle photo (optional)<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Replace additional photo (optional)<input name="photo2" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="muted">Leave photo fields empty to keep existing photos. Maximum 5 MB per photo.</p><button class="btn btn-red" type="submit">Save vehicle updates</button><button class="btn btn-outline" type="button" data-cancel-edit="'+v.vehicle_id+'">Cancel</button></form><p>Approval: <strong>'+esc(v.approval_status)+'</strong> • Availability: <strong>'+(v.is_online?"Online":"Offline")+'</strong></p><p>Driver: <strong>'+esc(driver)+'</strong> '+(v.driver_user_id!==window.currentTwendeUser?.id?'• '+esc(v.driver_phone||""):"")+'</p>'+gps+'<p>Completed trips: '+Number(v.completed_trips||0)+' • Trip value: <strong>'+money(v.completed_value)+'</strong></p>'+(v.approval_status==="approved"?(v.driver_user_id===window.currentTwendeUser?.id?'<form class="twendeAssignDriver" data-vehicle="'+v.vehicle_id+'"><label>Approved driver account email<input type="email" name="email" required placeholder="driver@example.com"></label><label>Driver licence number<input type="text" name="driverLicence" required autocomplete="off" placeholder="Enter licence number"></label><label>National Registration Card (NRC) number<input type="text" name="driverNrc" required autocomplete="off" placeholder="Enter NRC number"></label><p class="muted">Driver licence and NRC details are collected securely at assignment, not during vehicle registration.</p><button class="btn btn-red" type="submit">Assign driver</button></form>':'<button class="btn btn-outline" data-unassign="'+v.vehicle_id+'">Dismiss / unassign driver</button>'):'<p class="muted">Vehicle must be approved by TWENDE before a driver can be assigned.</p>')+'</article>';
    }).join("")||'<p class="muted">No fleet vehicles registered yet.</p>')+'</div>'+
    '<p class="muted">GPS tracking is shown when the assigned driver app sends location updates. It is not continuous when the driver app is closed.</p>';
   // Re-check immediately before insertion to prevent overlapping refreshes from duplicating the section.
   document.getElementById("twendeOwnerFleet")?.remove();
   host.appendChild(section);
   section.addEventListener("submit",async e=>{
+   if(e.target.matches(".twendeEditVehicleVisuals")){
+    e.preventDefault();const form=e.target,button=e.submitter;button.disabled=true;
+    const vehicleId=form.dataset.editVisualForm;
+    const upload=async(file,suffix)=>{
+      if(!file)return null;
+      if(file.size>5*1024*1024)throw new Error("Each vehicle photo must be 5 MB or smaller.");
+      const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
+      const path=window.currentTwendeUser.id+"/"+vehicleId+"/"+suffix+"."+ext;
+      const {error:upErr}=await db.storage.from("twende-vehicle-photos").upload(path,file,{upsert:true,contentType:file.type});
+      if(upErr)throw upErr;
+      return db.storage.from("twende-vehicle-photos").getPublicUrl(path).data.publicUrl;
+    };
+    try{
+      const current=items.find(x=>String(x.vehicle_id)===String(vehicleId));
+      const primary=form.elements.photo.files[0]?await upload(form.elements.photo.files[0],"main"):(current?.vehicle_photo_url||null);
+      const secondary=form.elements.photo2.files[0]?await upload(form.elements.photo2.files[0],"alternate"):(current?.vehicle_photo_url_secondary||null);
+      const {error}=await db.rpc("twende_owner_update_vehicle_visuals",{p_vehicle_id:vehicleId,p_vehicle_color:form.elements.color.value,p_photo_url:primary,p_photo_url_secondary:secondary});
+      if(error)throw error;
+      toast("Vehicle photo and colour updated successfully.");await renderOwnerFleet();
+    }catch(err){button.disabled=false;toast("Vehicle update failed: "+(err.message||err));}
+    return;
+   }
    if(e.target.id==="twendeOwnerVehicleForm"){
     e.preventDefault();const f=e.target,b=e.submitter;b.disabled=true;
     const val=n=>f.elements[n].value.trim();
@@ -72,6 +94,10 @@
    }
   });
   section.addEventListener("click",async e=>{
+   const edit=e.target.closest("[data-edit-visuals]");
+   if(edit){const form=section.querySelector('[data-edit-visual-form="'+edit.dataset.editVisuals+'"]');if(form)form.hidden=!form.hidden;return;}
+   const cancel=e.target.closest("[data-cancel-edit]");
+   if(cancel){const form=section.querySelector('[data-edit-visual-form="'+cancel.dataset.cancelEdit+'"]');if(form)form.hidden=true;return;}
    const b=e.target.closest("[data-unassign]");if(!b)return;
    if(!confirm("Dismiss this driver and take the vehicle offline?"))return;
    b.disabled=true;const {error}=await db.rpc("twende_owner_unassign_driver",{p_vehicle_id:b.dataset.unassign});
