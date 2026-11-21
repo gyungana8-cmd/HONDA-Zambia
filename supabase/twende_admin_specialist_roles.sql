@@ -119,3 +119,11 @@ grant execute on function public.twende_admin_list_partner_applications() to aut
 grant execute on function public.twende_admin_review_partner_application(uuid,text,text) to authenticated;
 
 select admin_role,permission_key from public.twende_admin_role_permissions order by admin_role,permission_key;
+
+-- Return only the signed-in administrator's own role label.
+create or replace function public.twende_get_my_admin_role()
+returns text language sql stable security definer set search_path=public as $$
+ select admin_role from public.twende_admins where user_id=auth.uid() limit 1;
+$$;
+revoke all on function public.twende_get_my_admin_role() from public;
+grant execute on function public.twende_get_my_admin_role() to authenticated;
