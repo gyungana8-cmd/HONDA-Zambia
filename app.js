@@ -226,7 +226,12 @@ function showPassengerRegistration(service){
   $("#passengerOtpForm").classList.add("hidden");$("#passengerNameForm").classList.add("hidden");
   $("#passengerPhoneForm").classList.remove("hidden");
   $("#passengerPhoneEntry").value=pendingPassengerPhone||currentUser?.phone||"";
-  $("#authDialog").showModal();
+  // Passenger registration is mandatory at first launch: do not expose a
+  // dismiss control while an unverified passenger is completing registration.
+  $("#passengerPhoneForm").querySelector(".close")?.classList.add("hidden");
+  $("#passengerOtpForm").querySelector(".close")?.classList.add("hidden");
+  $("#passengerNameForm").querySelector(".close")?.classList.add("hidden");
+  if(!$("#authDialog").open)$("#authDialog").showModal();
 }
 $("#passengerPhoneForm").onsubmit=async e=>{
   e.preventDefault();
@@ -289,7 +294,8 @@ $("#passengerNameForm").onsubmit=async e=>{
     $("#passengerNameForm").reset();
     $("#authDialog").close();
     toast("Passenger registration complete. Welcome to TWENDE, "+first+".");
-    if(pendingPassengerService)$("#locationPermissionDialog").showModal();
+    // After first-launch registration, ask for pickup GPS before ride selection.
+    $("#locationPermissionDialog").showModal();
   }catch(error){
     showAuthNotice("#passengerNameForm","Could not save passenger profile: "+(error?.message||"Please try again."));
   }finally{b.disabled=false;}
@@ -931,6 +937,17 @@ async function startApp(){
     else session=guest.data.session;
   }
   await onSession(session);
+  // Require phone-verified passenger registration on the first app launch.
+  // Existing verified passengers go directly to the home screen.
+  const passenger=session?.user;
+  const passengerProfile=currentProfile||{};
+  const passengerRegistered=!!passenger?.phone_confirmed_at
+    && !!(passengerProfile.full_name||passenger?.user_metadata?.full_name)
+    && !!(passenger?.phone||passengerProfile.phone)
+    && !["driver","owner","admin"].includes(passengerProfile.role);
+  if(passenger && (passenger.is_anonymous||!passengerRegistered)){
+    showPassengerRegistration(null);
+  }
   // Nearby vehicles are fetched when a taxi class is selected, not during startup.
   // This keeps the first screen responsive on slower mobile connections.
   startTwendeRealtime();
