@@ -832,3 +832,7 @@ body.passenger-mode .twende-app-header #twendeHeaderProfileButton{
 body.passenger-mode .twende-app-header #twendeNotificationsButton .twende-notification-badge{
  position:absolute!important;right:0!important;top:0!important;
 }
+
+/* Actual owner-uploaded vehicle identity photos */
+.twende-fleet-photo{display:block;width:100%;max-width:260px;height:150px;object-fit:cover;border-radius:14px;background:#f4f0d9;margin:0 0 12px}
+.fleet-vehicle-card .twende-fleet-photo{max-width:100%;height:150px}
