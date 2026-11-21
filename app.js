@@ -6,6 +6,8 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 // Expose the shared publishable client immediately for GPS/fare modules.
 window.twendeDb = db;
 
+const TWENDE_PASSENGER_NATIVE_APP = window.location.protocol === "file:" && new URLSearchParams(window.location.search).get("portal") !== "driver";
+if (TWENDE_PASSENGER_NATIVE_APP) document.documentElement.classList.add("twende-passenger-app");
 let currentUser = null, currentProfile = null, role = "rider";
 let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false, currentAdminRole = null;
 let activePortal = null, activePortalUserId = null;
@@ -48,7 +50,7 @@ document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click
 
 function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
-  const guest=!currentUser || isGuestRider();
+  const guest=TWENDE_PASSENGER_NATIVE_APP || !currentUser || isGuestRider();
   // A user may hold more than one approved role. The selected portal, not the
   // user's highest privilege, determines which dashboard is visible.
   if(!guest && !activePortal){
@@ -65,6 +67,7 @@ function updateUI() {
   const isOwner=!guest && activePortal==="owner" && hasOwnerAccess;
   const isDriver=!guest && activePortal==="driver" && hasDriverRegistration;
   document.body.classList.toggle("passenger-mode",guest);
+  document.documentElement.classList.toggle("twende-passenger-app",TWENDE_PASSENGER_NATIVE_APP);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
   document.body.classList.toggle("owner-mode",isOwner);
