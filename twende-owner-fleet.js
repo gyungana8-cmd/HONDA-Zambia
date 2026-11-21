@@ -30,7 +30,7 @@
   const trips=items.reduce((n,x)=>n+Number(x.completed_trips||0),0);
   section.innerHTML=
    '<div class="owner-metrics"><article class="metric-card"><span>Fleet vehicles</span><strong>'+items.length+'</strong></article><article class="metric-card"><span>Completed trips</span><strong>'+trips+'</strong></article><article class="metric-card"><span>Estimated earnings today</span><strong>'+money(dailyValue)+'</strong><small>Completed trips only</small></article><article class="metric-card"><span>Total completed trip value</span><strong>'+money(allValue)+'</strong></article></div>'+
-   '<h3>Register a car or motorcycle taxi</h3><form id="twendeOwnerVehicleForm" class="dash-card"><label>Taxi type<select name="type" required><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select></label><label>Make<input name="make" required placeholder="e.g. Toyota or Honda"></label><label>Model<input name="model" required placeholder="e.g. Corolla or Boxer"></label><label>Registration number<input name="plate" required></label><label>Vehicle licence number<input name="licence" required></label><label>Operating area<input name="area" required placeholder="e.g. Mufumbwe"></label><button class="btn btn-red" type="submit">Submit vehicle for approval</button></form>'+
+   '<h3>Register a car or motorcycle taxi</h3><form id="twendeOwnerVehicleForm" class="dash-card"><label>Taxi type<select name="type" required><option value="car">Car taxi</option><option value="motorcycle">Motorcycle taxi</option></select></label><label>Make<input name="make" required placeholder="e.g. Toyota or Honda"></label><label>Model<input name="model" required placeholder="e.g. Corolla or Boxer"></label><label>Registration number<input name="plate" required></label><label>Operating area<input name="area" required placeholder="e.g. Mufumbwe"></label><button class="btn btn-red" type="submit">Submit vehicle for approval</button></form>'+
    '<h3>Your fleet and assigned drivers</h3><div class="dash-grid">'+(items.map(v=>{
     const driver=v.driver_user_id===window.currentTwendeUser?.id?"Not assigned":(v.driver_name||"Assigned driver");
     const gps=v.last_latitude!=null&&v.last_longitude!=null?'<p>Last GPS: '+Number(v.last_latitude).toFixed(5)+', '+Number(v.last_longitude).toFixed(5)+' • '+esc(v.location_updated_at||"")+'</p>':'<p class="muted">No driver GPS update received yet.</p>';
@@ -44,7 +44,7 @@
    if(e.target.id==="twendeOwnerVehicleForm"){
     e.preventDefault();const f=e.target,b=e.submitter;b.disabled=true;
     const val=n=>f.elements[n].value.trim();
-    const {error}=await db.rpc("twende_owner_add_vehicle",{p_vehicle_type:val("type"),p_make:val("make"),p_model:val("model"),p_plate:val("plate"),p_licence:val("licence"),p_area:val("area")});
+    const {error}=await db.rpc("twende_owner_add_vehicle",{p_vehicle_type:val("type"),p_make:val("make"),p_model:val("model"),p_plate:val("plate"),p_licence:val("plate"),p_area:val("area")});
     b.disabled=false;if(error){toast("Vehicle registration failed: "+error.message);return;}
     toast("Vehicle submitted for administrator approval.");await renderOwnerFleet();return;
    }
