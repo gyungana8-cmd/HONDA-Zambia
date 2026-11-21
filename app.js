@@ -103,7 +103,7 @@ async function loadProfile(user) {
     db.rpc("twende_get_partner_access")
   ]);
   verifiedAdmin=!adminCheck.error && adminCheck.data===true;
-  hasDriverRegistration=!driverCheck.error && (driverCheck.data||[]).length>0;
+  hasDriverRegistration=(!driverCheck.error && (driverCheck.data||[]).length>0) || (!partnerAccess.error && (partnerAccess.data||[]).some(x=>x.partner_type==="driver"));
   hasOwnerAccess=!partnerAccess.error && (partnerAccess.data||[]).some(x=>
     x.partner_type==="vehicle_owner" && x.application_status==="approved" && x.account_status==="active"
   );
@@ -578,37 +578,39 @@ $("#driverRegisterBtn").onclick=()=>{
   $("#driverDialog").showModal();
 };
 function syncDriverTaxiFields(){
-  const type=$("#driverVehicleType")?.value||"";
+  const hasVehicle=$("#driverHasVehicle")?.checked===true;
   const section=$("#driverVehicleDetails");
   if(!section)return;
-  const chosen=type==="car"||type==="motorcycle";
-  section.hidden=!chosen;
-  ["driverVehicleMake","driverVehicleModel","driverPlate","driverArea"].forEach(id=>{
-    const field=$("#"+id);if(field)field.disabled=!chosen;
-  });
-  if(!chosen)return;
-  const motorcycle=type==="motorcycle";
-  $("#driverVehicleDetailsTitle").textContent=motorcycle?"Motorcycle taxi registration details":"Car taxi registration details";
-  $("#driverVehicleDetailsIntro").textContent=motorcycle
-    ?"Enter the details of the motorcycle that will be used for TWENDE motorcycle taxi trips."
-    :"Enter the details of the car that will be used for TWENDE car taxi trips.";
-  $("#driverMakeLabel").firstChild.textContent=motorcycle?"Motorcycle make":"Car make";
-  $("#driverModelLabel").firstChild.textContent=motorcycle?"Motorcycle model":"Car model";
-  $("#driverPlateLabel").firstChild.textContent=motorcycle?"Motorcycle registration number":"Car registration number";
-  $("#driverVehicleMake").placeholder=motorcycle?"e.g. Honda, Boxer, Yamaha":"e.g. Toyota, Nissan, Honda";
-  $("#driverVehicleModel").placeholder=motorcycle?"e.g. CG 125, BM150":"e.g. Corolla, Note, Axio";
+  section.hidden=!hasVehicle;
+  ["driverVehicleType","driverVehicleMake","driverVehicleModel","driverPlate","driverArea"].forEach(id=>{const field=$("#"+id);if(field)field.disabled=!hasVehicle;});
+  const type=$("#driverVehicleType")?.value||"",motorcycle=type==="motorcycle";
+  if($("#driverVehicleDetailsTitle"))$("#driverVehicleDetailsTitle").textContent=type?(motorcycle?"Motorcycle details":"Car details"):"Optional vehicle registration";
+  if($("#driverVehicleDetailsIntro"))$("#driverVehicleDetailsIntro").textContent="You may register a vehicle now, or skip this and be assigned to an approved vehicle by an owner later.";
+  if($("#driverMakeLabel"))$("#driverMakeLabel").firstChild.textContent=motorcycle?"Motorcycle make":"Vehicle make";
+  if($("#driverModelLabel"))$("#driverModelLabel").firstChild.textContent=motorcycle?"Motorcycle model":"Vehicle model";
+  if($("#driverPlateLabel"))$("#driverPlateLabel").firstChild.textContent=motorcycle?"Motorcycle registration number":"Vehicle registration number";
+  if($("#driverVehicleMake"))$("#driverVehicleMake").placeholder=motorcycle?"e.g. Honda, Boxer, Yamaha":"e.g. Toyota, Nissan, Honda";
+  if($("#driverVehicleModel"))$("#driverVehicleModel").placeholder=motorcycle?"e.g. CG 125, BM150":"e.g. Corolla, Note, GTR 1400";
 }
+$("#driverHasVehicle")?.addEventListener("change",syncDriverTaxiFields);
 $("#driverVehicleType")?.addEventListener("change",syncDriverTaxiFields);
 $("#driverForm")?.addEventListener("reset",()=>setTimeout(syncDriverTaxiFields,0));
 
 $("#driverForm").onsubmit=async e=>{
   e.preventDefault();if(!currentUser)return;
   const b=e.submitter;b.disabled=true;
-  const taxiType=$("#driverVehicleType").value;if(!["car","motorcycle"].includes(taxiType)){b.disabled=false;toast("Choose either Motorcycle taxi or Car taxi before continuing.");return;}const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:taxiType,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverPlate").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
-  const {error}=await db.from("driver_vehicles").insert(row);
-  b.disabled=false;
-  if(error){console.error("Vehicle registration:",error);toast(error.code==="23505"?"This registration number is already listed on your account.":"Vehicle registration could not be saved: "+error.message);return;}
-  closeDialog("driverDialog");e.target.reset();toast("Vehicle submitted for verification. You can add another vehicle.");await loadDriverDashboard();
+  const hasVehicle=$("#driverHasVehicle").checked,taxiType=$("#driverVehicleType").value;
+  if(hasVehicle&&!["car","motorcycle"].includes(taxiType)){b.disabled=false;toast("Choose car taxi or motorcycle taxi, or untick the vehicle registration option.");return;}
+  const {error:applicationError}=await db.rpc("twende_submit_partner_application",{p_partner_type:"driver",p_vehicle_types:[]});
+  if(applicationError){b.disabled=false;toast("Driver application could not be submitted: "+applicationError.message);return;}
+  if(hasVehicle){
+    const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:taxiType,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverPlate").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
+    const {error}=await db.from("driver_vehicles").insert(row);
+    if(error){b.disabled=false;toast("Driver application submitted, but vehicle registration failed: "+error.message);await loadDriverDashboard();return;}
+  }
+  b.disabled=false;closeDialog("driverDialog");e.target.reset();syncDriverTaxiFields();
+  toast(hasVehicle?"Driver application and vehicle submitted for review.":"Driver application submitted. You can be assigned to an owner's approved vehicle after approval.");
+  await loadDriverDashboard();
 };
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
