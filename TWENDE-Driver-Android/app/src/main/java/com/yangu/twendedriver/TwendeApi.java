@@ -33,12 +33,18 @@ final class TwendeApi {
             JSONObject body, String prefer) throws Exception {
         android.content.SharedPreferences prefs = context.getSharedPreferences("twende_driver", android.content.Context.MODE_PRIVATE);
         String access = prefs.getString("access_token", null);
+        String refresh = prefs.getString("refresh_token", null);
+        if (access == null || access.isEmpty()) {
+            if (refresh == null || refresh.isEmpty()) throw new Exception("Driver session is missing. Please sign in again.");
+            JSONObject session = refreshSession(refresh);
+            access = session.getString("access_token");
+            refresh = session.optString("refresh_token", refresh);
+            prefs.edit().putString("access_token", access).putString("refresh_token", refresh).apply();
+        }
         try {
-            if (access == null || access.isEmpty()) throw new Exception("Driver session is missing.");
             return request(path, method, access, body, prefer);
         } catch (Exception first) {
             if (first.getMessage() == null || !first.getMessage().contains("(401)")) throw first;
-            String refresh = prefs.getString("refresh_token", null);
             if (refresh == null || refresh.isEmpty()) throw first;
             JSONObject session = refreshSession(refresh);
             String newAccess = session.getString("access_token");
