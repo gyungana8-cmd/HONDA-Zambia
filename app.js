@@ -211,46 +211,88 @@ $("#authButton").onclick=()=>{
   $("#authDialog").showModal();
 };
 
-// Temporary TWENDE pilot mode: collect passenger contact details without SMS OTP.
-// Phone numbers are NOT verified in this pilot; retain server-side ride access controls.
-function normalizePilotPhone(input){
-  const value=String(input||"").replace(/[\s()-]/g,"");
-  if(/^\+260[0-9]{9}$/.test(value))return value;
+// Mandatory passenger registration: link and verify a Zambian phone number by SMS OTP.
+let pendingPassengerPhone = null;
+function normalizePassengerPhone(input){
+  const value=String(input||"").replace(/[\\s()-]/g,"");
+  if(/^\\+260[0-9]{9}$/.test(value))return value;
   if(/^260[0-9]{9}$/.test(value))return "+"+value;
   if(/^0[0-9]{9}$/.test(value))return "+260"+value.slice(1);
   return null;
 }
+function showPassengerRegistration(service){
+  pendingPassengerService=service||pendingPassengerService||"car";
+  $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
+  $("#passengerOtpForm").classList.add("hidden");$("#passengerNameForm").classList.add("hidden");
+  $("#passengerPhoneForm").classList.remove("hidden");
+  $("#passengerPhoneEntry").value=pendingPassengerPhone||currentUser?.phone||"";
+  $("#authDialog").showModal();
+}
 $("#passengerPhoneForm").onsubmit=async e=>{
   e.preventDefault();
   const b=e.submitter;b.disabled=true;
-  const phone=normalizePilotPhone($("#passengerPhoneEntry").value);
-  if(!phone){b.disabled=false;toast("Enter a valid Zambian mobile number, for example 097XXXXXXX.");return;}
-  if(!currentUser){b.disabled=false;toast("Passenger session is not ready. Please refresh and try again.");return;}
-  verifiedPassengerPhone=phone;
-  currentProfile={...(currentProfile||{}),id:currentUser.id,phone,role:"rider"};
-  $("#loginForm").classList.add("hidden");$("#registerForm").classList.add("hidden");
-  $("#passengerPhoneForm").classList.add("hidden");$("#passengerOtpForm").classList.add("hidden");
-  $("#passengerNameForm").classList.remove("hidden");
-  b.disabled=false;
-  toast("Pilot mode: phone number saved but not SMS-verified.");
+  try{
+    const phone=normalizePassengerPhone($("#passengerPhoneEntry").value);
+    if(!phone)throw new Error("Enter a valid Zambian mobile number, for example 097XXXXXXX.");
+    const {data,error}=await db.auth.updateUser({phone});
+    if(error)throw error;
+    pendingPassengerPhone=phone;
+    $("#passengerOtpPhone").value=phone;
+    $("#passengerPhoneForm").classList.add("hidden");
+    $("#passengerOtpForm").classList.remove("hidden");
+    $("#passengerOtpCode").value="";
+    $("#passengerOtpCode").focus();
+    showAuthNotice("#passengerOtpForm","We have requested a verification code for "+phone+". Enter the SMS code to verify this number.",true);
+  }catch(error){
+    showAuthNotice("#passengerPhoneForm","Could not send verification code: "+(error?.message||"Please try again."));
+  }finally{b.disabled=false;}
+};
+$("#passengerOtpForm").onsubmit=async e=>{
+  e.preventDefault();
+  const b=e.submitter;b.disabled=true;
+  try{
+    const phone=pendingPassengerPhone||$("#passengerOtpPhone").value;
+    const token=$("#passengerOtpCode").value.trim();
+    if(!phone||!/^[0-9]{6}$/.test(token))throw new Error("Enter the 6-digit code sent to your phone.");
+    const {data,error}=await db.auth.verifyOtp({phone,token,type:"phone_change"});
+    if(error)throw error;
+    currentUser=data.user||data.session?.user||currentUser;
+    verifiedPassengerPhone=phone;
+    currentProfile={...(currentProfile||{}),id:currentUser.id,phone,role:"rider"};
+    $("#passengerOtpForm").classList.add("hidden");
+    $("#passengerNameForm").classList.remove("hidden");
+    const parts=(currentProfile.full_name||currentUser.user_metadata?.full_name||"").trim().split(/\\s+/);
+    $("#passengerFirstName").value=parts[0]||"";
+    $("#passengerLastName").value=parts.slice(1).join(" ");
+    showAuthNotice("#passengerNameForm","Phone number verified successfully. Enter your full name to complete registration.",true);
+  }catch(error){
+    showAuthNotice("#passengerOtpForm","Phone verification failed: "+(error?.message||"Check the code and try again."));
+  }finally{b.disabled=false;}
 };
 $("#changePassengerPhone").onclick=()=>{
   $("#passengerOtpForm").classList.add("hidden");$("#passengerPhoneForm").classList.remove("hidden");
 };
 $("#passengerNameForm").onsubmit=async e=>{
   e.preventDefault();const b=e.submitter;b.disabled=true;
-  const first=$("#passengerFirstName").value.trim(),last=$("#passengerLastName").value.trim();
-  const fullName=(first+" "+last).trim();
-  const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
-  if(authError){b.disabled=false;toast("Could not save your name: "+authError.message);return;}
-  const passengerPhone=verifiedPassengerPhone||currentProfile?.phone||null;
-  const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone:passengerPhone,role:"rider"});
-  if(profileError) console.warn("Profile details could not be mirrored:",profileError);
-  currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone:passengerPhone,role:"rider"};
-  b.disabled=false;$("#passengerNameForm").reset();
-  toast("Welcome to TWENDE, "+first+".");
-  $("#authDialog").close();
-  if(pendingPassengerService) $("#locationPermissionDialog").showModal();
+  try{
+    const first=$("#passengerFirstName").value.trim(),last=$("#passengerLastName").value.trim();
+    if(!first||!last)throw new Error("Enter both your first name and last name.");
+    const fullName=(first+" "+last).trim();
+    const phone=verifiedPassengerPhone||currentUser?.phone||pendingPassengerPhone;
+    if(!currentUser||!phone||!currentUser.phone_confirmed_at)throw new Error("Verify your phone number before completing passenger registration.");
+    const {error:authError}=await db.auth.updateUser({data:{full_name:fullName,first_name:first,last_name:last,role:"rider"}});
+    if(authError)throw authError;
+    const {error:profileError}=await db.from("profiles").upsert({id:currentUser.id,full_name:fullName,phone,role:"rider"});
+    if(profileError)throw profileError;
+    currentProfile={...(currentProfile||{}),id:currentUser.id,full_name:fullName,phone,role:"rider"};
+    verifiedPassengerPhone=phone;pendingPassengerPhone=null;
+    $("#passengerNameForm").reset();
+    $("#authDialog").close();
+    toast("Passenger registration complete. Welcome to TWENDE, "+first+".");
+    if(pendingPassengerService)$("#locationPermissionDialog").showModal();
+  }catch(error){
+    showAuthNotice("#passengerNameForm","Could not save passenger profile: "+(error?.message||"Please try again."));
+  }finally{b.disabled=false;}
 };
 
 $("#sharePickupLocation").onclick=async()=>{
@@ -526,43 +568,38 @@ $("#menuBtn").onclick=()=>window.twendeShowRoleMenu?.();
 let selectedRideService = "motorcycle";
 let pendingPassengerService=null;
 function openRideDialog(service) {
-  // Always open the booking form immediately. GPS and destination selection
-  // are handled on the home screen; they must not block the service buttons.
-  selectedRideService=service;
+  selectedRideService=service;pendingPassengerService=service;
   $("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
   const pickup=$("#ridePickup"), destination=$("#rideDestination");
-  if(pickup&&!pickup.value){
-    pickup.value=window.twendePickupCoords?.label||$("#twendeCurrentLocation")?.textContent?.trim()||"Current GPS location";
-  }
-  if(destination&&!destination.value&&window.twendeDestinationCoords?.label){
-    destination.value=window.twendeDestinationCoords.label;
-  }
-  $("#passengerName").value=currentProfile?.full_name||"";
-  $("#passengerPhone").value=currentProfile?.phone||"";
-  const dialog=$("#rideDialog");
-  if(!dialog.open)dialog.showModal();
-
-  // Prepare passenger session/profile after the form is visible.
+  if(pickup&&!pickup.value)pickup.value=window.twendePickupCoords?.label||$("#twendeCurrentLocation")?.textContent?.trim()||"Current GPS location";
+  if(destination&&!destination.value&&window.twendeDestinationCoords?.label)destination.value=window.twendeDestinationCoords.label;
   (async()=>{
     try{
-      let {data,error}=await db.auth.getSession();
-      if(error)throw error;
+      let {data,error}=await db.auth.getSession();if(error)throw error;
       let session=data?.session;
       if(!session){
         const guest=await db.auth.signInAnonymously();
-        if(guest.error)throw guest.error;
+        if(guest.error)throw new Error("Passenger registration could not start. Please try again.");
         session=guest.data?.session;
       }
       if(!session?.user)throw new Error("Passenger session could not start. Check your internet connection.");
       if(!currentUser||currentUser.id!==session.user.id)await onSession(session);
-      if($("#passengerName")&&!$("#passengerName").value)$("#passengerName").value=currentProfile?.full_name||"";
-      if($("#passengerPhone")&&!$("#passengerPhone").value)$("#passengerPhone").value=currentProfile?.phone||"";
+      const user=session.user;
+      const profile=currentProfile||{};
+      const registered=!user.is_anonymous&&!!user.phone_confirmed_at&&!!(profile.full_name||user.user_metadata?.full_name)&&!!(user.phone||profile.phone);
+      if(!registered){
+        $("#rideDialog").close();
+        showPassengerRegistration(service);
+        return;
+      }
+      $("#passengerName").value=profile.full_name||user.user_metadata?.full_name||"";
+      $("#passengerPhone").value=user.phone||profile.phone||"";
+      if(!$("#rideDialog").open)$("#rideDialog").showModal();
       await loadAvailableTaxiFleet(service);
     }catch(error){
       console.error("TWENDE passenger setup:",error);
-      const msg=$("#rideSubmitMessage");
-      if(msg){msg.hidden=false;msg.textContent="Passenger setup: "+(error?.message||"Please check your connection.");msg.style.display="block";}
+      toast("Passenger setup: "+(error?.message||"Please check your connection."));
     }
   })();
 }
@@ -588,8 +625,12 @@ async function submitTwendeTaxiRequest(){
       currentUser=user;
       await onSession(guest.data.session);
     }
-    const passengerName=$("#passengerName").value.trim();
-    const passengerPhone=$("#passengerPhone").value.trim();
+    const passengerName=(currentProfile?.full_name||user.user_metadata?.full_name||"").trim();
+    const passengerPhone=user.phone||currentProfile?.phone||"";
+    if(user.is_anonymous||!user.phone_confirmed_at||!passengerName||!passengerPhone){
+      $("#rideDialog").close();showPassengerRegistration($("#rideServiceType").value);throw new Error("Passenger registration and SMS phone verification are required before booking.");
+    }
+    $("#passengerName").value=passengerName;$("#passengerPhone").value=passengerPhone;
     const pickup=$("#ridePickup").value.trim();
     const destination=$("#rideDestination").value.trim();
     const service=$("#rideServiceType").value;
