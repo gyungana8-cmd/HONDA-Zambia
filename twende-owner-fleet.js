@@ -7,6 +7,9 @@
  async function renderOwnerFleet(){
   const host=document.getElementById("dashboardContent"),snap=window.twendeRoleSnapshot;
   if(!host||!snap?.signedIn||snap.guest||!(snap.role==="owner"||snap.hasOwnerAccess))return;
+  // This renderer can be reached from both the dashboard refresh and window load.
+  // Replace the previous section instead of appending another copy each time.
+  document.getElementById("twendeOwnerFleet")?.remove();
   let {data:items,error}=await db.rpc("twende_owner_fleet_summary");
   const section=document.createElement("section");section.id="twendeOwnerFleet";section.className="twende-owner-fleet";
   if(error){
