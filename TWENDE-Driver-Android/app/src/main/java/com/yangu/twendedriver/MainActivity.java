@@ -24,11 +24,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        TwendeMessagingService.ensureChannel(this);
-        requestPermissionsIfNeeded();
-        String savedRefresh = getSharedPreferences("twende_driver", MODE_PRIVATE).getString("refresh_token", null);
-        if (savedRefresh == null || savedRefresh.isEmpty()) showLogin();
-        else restoreSession(savedRefresh);
+        // One dedicated entry point for both TWENDE drivers and vehicle owners.
+        startActivity(new Intent(this, DriverPortalActivity.class));
+        finish();
     }
 
     private void base(String title) {
