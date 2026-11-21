@@ -50,8 +50,8 @@ function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=!currentUser || isGuestRider();
   const isAdmin=!guest && verifiedAdmin;
-  const isOwner=!guest && (activePortal==="owner" || (!activePortal && (currentProfile?.role==="owner" || hasOwnerAccess)));
-  const isDriver=!guest && (activePortal==="driver" || (!activePortal && (currentProfile?.role==="driver" || hasDriverRegistration)));
+  const isOwner=!guest && !isAdmin && (activePortal==="owner" || (!activePortal && (currentProfile?.role==="owner" || hasOwnerAccess) && !(currentProfile?.role==="driver" || hasDriverRegistration)));
+  const isDriver=!guest && !isAdmin && (activePortal==="driver" || (!activePortal && (currentProfile?.role==="driver" || hasDriverRegistration)));
   document.body.classList.toggle("passenger-mode",guest);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
