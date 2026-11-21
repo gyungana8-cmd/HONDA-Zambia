@@ -140,46 +140,13 @@ form.addEventListener("submit",async event=>{
 /* Reliable passenger booking entry point for Android WebView.
    Deliberately independent of app.js event binding and GPS/map handlers. */
 window.twendeShowBookingForm = function(service) {
-  // All passenger booking entry points must pass through the mandatory
-  // verified-phone registration guard in app.js. Never open rideDialog here.
+  // All booking entry points use the mandatory verified-phone registration guard.
   if (typeof window.openTwendeRideDialog === "function") {
     window.openTwendeRideDialog(service === "car" ? "car" : "motorcycle");
     return false;
   }
   alert("TWENDE passenger registration is still loading. Please refresh and try again.");
   return false;
-  try {
-    var dialog=document.getElementById("rideDialog");
-    var form=document.getElementById("rideForm");
-    if(!dialog || !form) { alert("TWENDE booking form is unavailable. Please refresh the app."); return; }
-    var type=document.getElementById("rideServiceType");
-    var title=document.getElementById("rideDialogTitle");
-    var pickup=document.getElementById("ridePickup");
-    var destination=document.getElementById("rideDestination");
-    if(type) type.value=service;
-    if(title) title.textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
-    if(pickup && !pickup.value) {
-      var gps=window.twendePickupCoords;
-      var loc=document.getElementById("twendeCurrentLocation");
-      pickup.value=(gps && gps.label) || (loc && loc.textContent.trim()) || "Current GPS location";
-    }
-    if(destination && !destination.value) {
-      var dest=window.twendeDestinationCoords;
-      var search=document.getElementById("twendeDestinationSearch");
-      destination.value=(dest && dest.label) || (search && search.value.trim()) || "";
-    }
-    if(typeof dialog.showModal==="function") {
-      if(!dialog.open) dialog.showModal();
-    } else {
-      dialog.setAttribute("open","open");
-      dialog.style.display="block";
-    }
-    return false;
-  } catch(error) {
-    console.error("TWENDE booking form open error:",error);
-    alert("Could not open the booking form: "+(error.message||error));
-    return false;
-  }
 };
 </script>
 </body></html>
