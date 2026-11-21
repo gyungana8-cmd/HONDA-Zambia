@@ -24,7 +24,7 @@
   }else{
    if(snap.admin)add("Administrator portal","Manage the TWENDE system","admin","🛡️");
    if(snap.role==="driver"||snap.hasDriverRegistration)add("Driver portal","View and accept assigned ride requests","driver","🚗");
-   if(snap.role==="owner")add("Vehicle owner portal","Manage fleet, drivers and income","owner","🔑");
+   if(snap.role==="owner"||snap.hasOwnerAccess)add("Vehicle owner portal","Manage fleet, drivers and income","owner","🔑");
    if(!options.children.length){const p=document.createElement("p");p.className="muted";p.textContent="This account currently has passenger access only.";options.append(p);}
    $("#twendeRoleSignOut")?.classList.remove("hidden");
   }
@@ -32,7 +32,7 @@
  function choose(portal){
   window.twendeRequestedPortal=portal;
   const snap=window.twendeRoleSnapshot||{};
-  const allowed=portal==="admin"?snap.admin===true:portal==="driver"?snap.role==="driver":portal==="owner"?snap.role==="owner":false;
+  const allowed=portal==="admin"?snap.admin===true:portal==="driver"?(snap.role==="driver"||snap.hasDriverRegistration):portal==="owner"?(snap.role==="owner"||snap.hasOwnerAccess):false;
   hide();
   if(allowed){
    const target=portal==="admin"?"#adminPanel":portal==="driver"?"#driver-panel":"#dashboard";
