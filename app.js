@@ -576,14 +576,18 @@ function openRideDialog(service) {
       if(!currentUser||currentUser.id!==session.user.id)await onSession(session);
       const user=session.user;
       const profile=currentProfile||{};
-      const registered=!!user.phone_confirmed_at&&!!(profile.full_name||user.user_metadata?.full_name)&&!!(user.phone||profile.phone);
+      // OTP is temporarily disabled. Registration is complete when the passenger's
+      // saved name and mobile number are present in profile or auth metadata.
+      const registered=!!(profile.full_name||user.user_metadata?.full_name)
+        && !!(user.phone||profile.phone||user.user_metadata?.phone)
+        && (profile.full_name||user.user_metadata?.full_name)!=="Passenger";
       if(!registered){
         $("#rideDialog").close();
         showPassengerRegistration(service);
         return;
       }
       $("#passengerName").value=profile.full_name||user.user_metadata?.full_name||"";
-      $("#passengerPhone").value=user.phone||profile.phone||"";
+      $("#passengerPhone").value=user.phone||profile.phone||user.user_metadata?.phone||"";
       if(!$("#rideDialog").open)$("#rideDialog").showModal();
       await loadAvailableTaxiFleet(service);
     }catch(error){
