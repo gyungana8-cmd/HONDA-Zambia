@@ -96,3 +96,15 @@ body.passenger-mode .twende-app-header #twendeHeaderProfileButton{
   transform:translateY(-50%)!important;
   z-index:10040!important;
 }
+
+
+/* Strict portal isolation: never render both operator dashboards in one active view. */
+body.driver-mode #dashboard,
+body.driver-mode #ownerFleetPortal,
+body.driver-mode .owner-fleet-portal,
+body.owner-mode #driver-panel,
+body.owner-mode #driverDashboard,
+body.admin-mode #dashboard,
+body.admin-mode #driver-panel{display:none!important}
+body.driver-mode #driver-panel{display:block!important}
+body.owner-mode #dashboard{display:block!important}
