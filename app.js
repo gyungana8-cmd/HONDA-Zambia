@@ -680,6 +680,14 @@ async function loadAdminDashboard(){
   const canViewFinance=!financePermission.error&&financePermission.data===true;
   const canAssignFleet=!assignPermission.error&&assignPermission.data===true;
   const sections=[];
+  // Only the Primary Administrator can appoint, change or remove officers.
+  if(currentAdminRole==="primary"){
+    const {data:admins,error:adminsError}=await db.rpc("twende_list_admins");
+    const roleLabels={primary:"Primary Administrator",operations:"Operations Administrator",fleet_manager:"Fleet Manager",driver_support:"Driver Support Administrator",finance:"Finance Administrator",customer_support:"Customer Support Administrator",compliance:"Compliance Administrator",dispatcher:"Dispatcher"};
+    const roleOptions=Object.entries(roleLabels).filter(([key])=>key!=="primary").map(([key,label])=>'<option value="'+key+'">'+label+'</option>').join("");
+    const adminRows=adminsError?'<p class="muted">Officer list unavailable: '+esc(adminsError.message)+'</p>':(admins||[]).map(a=>'<article class="dash-card"><h4>'+esc(roleLabels[a.admin_role]||a.admin_role)+'</h4><p>'+esc(a.email)+'</p><p class="muted">Appointed: '+esc(a.created_at?new Date(a.created_at).toLocaleDateString("en-ZM"):"Date unavailable")+'</p>'+(a.admin_role==="primary"?'<span class="fleet-brand-tag">Master account</span>':'<div class="admin-officer-actions"><label>Change role<select data-officer-role="'+esc(a.user_id)+'">'+Object.entries(roleLabels).filter(([key])=>key!=="primary").map(([key,label])=>'<option value="'+key+'" '+(a.admin_role===key?'selected':'')+'>'+label+'</option>').join("")+'</select></label><button class="btn btn-outline" data-officer-update="'+esc(a.user_id)+'" data-officer-email="'+esc(a.email)+'">Save role</button> <button class="btn btn-red" data-officer-remove="'+esc(a.user_id)+'" data-officer-email="'+esc(a.email)+'">Remove access</button></div>')+'</article>').join("")||'<p class="muted">No specialist officers have been appointed.</p>';
+    sections.push('<section class="twende-officer-management"><h3>Officer Management</h3><p class="muted">Primary Administrator control: appoint officers, assign or change their roles, and remove administrative access. Officers must first register a TWENDE account using their own email address.</p><form id="twendeOfficerAppointment" class="dash-card"><label>Registered TWENDE email address<input name="officer_email" type="email" required placeholder="officer@example.com"></label><label>Administrator role<select name="officer_role" required><option value="">Select officer role</option>'+roleOptions+'</select></label><button class="btn btn-red" type="submit">Appoint officer / assign role</button></form><h4>Current administrators ('+(admins||[]).length+')</h4>'+adminRows+'</section>');
+  }
   if(canViewFinance){
     const {data:completedRides,error}=await db.from("ride_requests").select("service_type,estimated_fare,status").eq("status","completed");
     if(error)sections.push('<h3>Financial overview</h3><p class="muted">Financial summary unavailable: '+esc(error.message)+'</p>');
@@ -718,6 +726,20 @@ async function loadAdminDashboard(){
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("submit",async e=>{
+  const form=e.target.closest("#twendeOfficerAppointment");if(!form)return;
+  e.preventDefault();
+  if(currentAdminRole!=="primary"){toast("Only the Primary Administrator can appoint officers.");return;}
+  const button=form.querySelector('button[type="submit"]'),values=new FormData(form);
+  const email=String(values.get("officer_email")||"").trim().toLowerCase(),roleName=String(values.get("officer_role")||"");
+  if(!email||!roleName)return;
+  button.disabled=true;
+  const {error}=await db.rpc("twende_add_admin_by_role",{p_email:email,p_role:roleName});
+  button.disabled=false;
+  if(error){toast("Officer appointment failed: "+error.message);return;}
+  toast("Officer appointed and role assigned successfully.");
+  form.reset();await loadAdminDashboard();
+});
+$("#adminContent")?.addEventListener("submit",async e=>{
   const form=e.target.closest(".twende-admin-fleet-assign");if(!form)return;
   e.preventDefault();
   const button=form.querySelector('button[type="submit"]');button.disabled=true;
@@ -733,6 +755,28 @@ $("#adminContent")?.addEventListener("submit",async e=>{
   await loadAdminDashboard();
 });
 $("#adminContent")?.addEventListener("click",async e=>{
+  const removeOfficer=e.target.closest("[data-officer-remove]");
+  if(removeOfficer){
+    if(currentAdminRole!=="primary"){toast("Only the Primary Administrator can remove officers.");return;}
+    if(!window.confirm("Remove administrator access from "+removeOfficer.dataset.officerEmail+"? Their TWENDE account will remain active."))return;
+    removeOfficer.disabled=true;
+    const {error}=await db.rpc("twende_remove_operations_admin",{p_user_id:removeOfficer.dataset.officerRemove});
+    if(error){removeOfficer.disabled=false;toast("Could not remove officer: "+error.message);return;}
+    toast("Administrator access removed. The user's TWENDE account remains active.");
+    await loadAdminDashboard();return;
+  }
+  const updateOfficer=e.target.closest("[data-officer-update]");
+  if(updateOfficer){
+    if(currentAdminRole!=="primary"){toast("Only the Primary Administrator can change officer roles.");return;}
+    const select=$("#adminContent [data-officer-role='"+CSS.escape(updateOfficer.dataset.officerUpdate)+"']");
+    const nextRole=select?.value;
+    if(!nextRole)return;
+    if(!window.confirm("Assign "+nextRole.replace(/_/g," ")+" to "+updateOfficer.dataset.officerEmail+"?"))return;
+    updateOfficer.disabled=true;
+    const {error}=await db.rpc("twende_add_admin_by_role",{p_email:updateOfficer.dataset.officerEmail,p_role:nextRole});
+    if(error){updateOfficer.disabled=false;toast("Role change failed: "+error.message);return;}
+    toast("Officer role updated.");await loadAdminDashboard();return;
+  }
   const vehicleButton=e.target.closest("[data-vehicle-decision]");
   if(vehicleButton){const decision=vehicleButton.dataset.vehicleDecision;if(!window.confirm((decision==="approved"?"Approve":"Reject")+" this vehicle?"))return;vehicleButton.disabled=true;const {error}=await db.rpc("twende_admin_review_vehicle",{p_vehicle_id:vehicleButton.dataset.vehicleId,p_decision:decision});if(error){vehicleButton.disabled=false;toast("Vehicle review failed: "+error.message);return;}toast("Vehicle "+decision+".");await loadAdminDashboard();return;}
   const b=e.target.closest("[data-admin-decision]");if(!b)return;
