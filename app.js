@@ -570,10 +570,34 @@ $("#driverRegisterBtn").onclick=()=>{
   $("#driverPhone").value=currentProfile?.phone||"";
   $("#driverDialog").showModal();
 };
+function syncDriverTaxiFields(){
+  const type=$("#driverVehicleType")?.value||"";
+  const section=$("#driverVehicleDetails");
+  if(!section)return;
+  const chosen=type==="car"||type==="motorcycle";
+  section.hidden=!chosen;
+  ["driverVehicleMake","driverVehicleModel","driverPlate","driverLicence","driverArea"].forEach(id=>{
+    const field=$("#"+id);if(field)field.disabled=!chosen;
+  });
+  if(!chosen)return;
+  const motorcycle=type==="motorcycle";
+  $("#driverVehicleDetailsTitle").textContent=motorcycle?"Motorcycle taxi registration details":"Car taxi registration details";
+  $("#driverVehicleDetailsIntro").textContent=motorcycle
+    ?"Enter the details of the motorcycle that will be used for TWENDE motorcycle taxi trips."
+    :"Enter the details of the car that will be used for TWENDE car taxi trips.";
+  $("#driverMakeLabel").firstChild.textContent=motorcycle?"Motorcycle make":"Car make";
+  $("#driverModelLabel").firstChild.textContent=motorcycle?"Motorcycle model":"Car model";
+  $("#driverPlateLabel").firstChild.textContent=motorcycle?"Motorcycle registration number":"Car registration number";
+  $("#driverVehicleMake").placeholder=motorcycle?"e.g. Honda, Boxer, Yamaha":"e.g. Toyota, Nissan, Honda";
+  $("#driverVehicleModel").placeholder=motorcycle?"e.g. CG 125, BM150":"e.g. Corolla, Note, Axio";
+}
+$("#driverVehicleType")?.addEventListener("change",syncDriverTaxiFields);
+$("#driverForm")?.addEventListener("reset",()=>setTimeout(syncDriverTaxiFields,0));
+
 $("#driverForm").onsubmit=async e=>{
   e.preventDefault();if(!currentUser)return;
   const b=e.submitter;b.disabled=true;
-  const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:$("#driverVehicleType").value,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverLicence").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
+  const taxiType=$("#driverVehicleType").value;if(!["car","motorcycle"].includes(taxiType)){b.disabled=false;toast("Choose either Motorcycle taxi or Car taxi before continuing.");return;}const row={user_id:currentUser.id,driver_name:$("#driverName").value.trim(),phone:$("#driverPhone").value.trim(),vehicle_type:taxiType,vehicle_make:$("#driverVehicleMake").value.trim(),vehicle_model:$("#driverVehicleModel").value.trim(),plate_number:$("#driverPlate").value.trim(),licence_number:$("#driverLicence").value.trim(),operating_area:$("#driverArea").value.trim(),approval_status:"pending",is_online:false};
   const {error}=await db.from("driver_vehicles").insert(row);
   b.disabled=false;
   if(error){console.error("Vehicle registration:",error);toast(error.code==="23505"?"This registration number is already listed on your account.":"Vehicle registration could not be saved: "+error.message);return;}
