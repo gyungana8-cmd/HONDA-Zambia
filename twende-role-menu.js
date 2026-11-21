@@ -35,8 +35,13 @@
   const allowed=portal==="admin"?snap.admin===true:portal==="driver"?(snap.role==="driver"||snap.hasDriverRegistration):portal==="owner"?(snap.role==="owner"||snap.hasOwnerAccess):false;
   hide();
   if(allowed){
-   const target=portal==="admin"?"#adminPanel":portal==="driver"?"#driver-panel":"#dashboard";
-   $(target)?.scrollIntoView({behavior:"smooth",block:"start"});return;
+   if(portal==="driver"||portal==="owner"||portal==="admin"){
+    Promise.resolve(window.twendeSetActivePortal?.(portal)).then(()=>{
+     const target=portal==="admin"?"#adminPanel":portal==="driver"?"#driver-panel":"#dashboard";
+     $(target)?.scrollIntoView({behavior:"smooth",block:"start"});
+    });
+   }
+   return;
   }
   const dlg=$("#authDialog"),login=$("#loginForm"),register=$("#registerForm");
   if(!dlg||!login){console.error("TWENDE sign-in dialog is missing");return;}
