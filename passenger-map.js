@@ -380,7 +380,15 @@
         const car=d.vehicle_type==="car";
         if(!marker){marker=L.marker(p,{icon:pin(car?"#1769aa":"#198754",car?"🚕":"🏍️")}).addTo(map);driverMarkers.set(d.driver_id,marker);}
         else marker.setLatLng(p);
-        marker.bindPopup((car?"Car taxi":"Motorcycle taxi")+" • Online");
+        const safe=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+        const photo=d.vehicle_photo_url?'<img src="'+safe(d.vehicle_photo_url)+'" alt="Vehicle photo" style="width:100%;max-width:230px;height:125px;object-fit:cover;border-radius:9px;margin-bottom:7px">':'';
+        const vehicleName=[d.vehicle_make,d.vehicle_model].filter(Boolean).map(safe).join(" ")|| (car?"Car taxi":"Motorcycle taxi");
+        const details='<div style="min-width:190px;max-width:245px">'+photo+
+          '<strong>'+vehicleName+'</strong><br>'+
+          'Colour: <strong>'+safe(d.vehicle_color||"Not provided")+'</strong><br>'+
+          'Registration: <strong>'+safe(d.plate_number||"Not provided")+'</strong><br>'+
+          '<span style="color:#16803c;font-weight:700">Available • Online</span></div>';
+        marker.bindPopup(details);
       }
       setStatus(rows.length?rows.length+" nearby TWENDE driver"+(rows.length===1?"":"s")+" online within 15 km.":"No online TWENDE taxis found within 15 km yet. Try again shortly.");
     }catch(e){console.warn("Nearby TWENDE drivers:",e);setStatus("Nearby taxis could not be loaded. Apply the passenger nearby-drivers database migration and check your connection.");}
