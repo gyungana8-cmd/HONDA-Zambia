@@ -89,6 +89,13 @@ public class MainActivity extends AppCompatActivity {
                     details.setPadding(0,14,0,8);details.setTextSize(15);
                     details.setText(ride.optString("passenger_name","Passenger")+" • "+ride.optString("passenger_phone")+"\\nPickup: "+ride.optString("pickup_text")+"\\nDestination: "+ride.optString("destination_text")+"\\nEstimated fare: K"+ride.optString("estimated_fare"));
                     list.addView(details);
+                    Button call=new Button(this);call.setText("CALL PASSENGER");list.addView(call);
+                    call.setOnClickListener(v->{
+                        String phone=ride.optString("passenger_phone","");
+                        if(phone.isEmpty()){toast("Passenger phone number is unavailable.");return;}
+                        try { startActivity(new Intent(Intent.ACTION_DIAL,android.net.Uri.parse("tel:"+android.net.Uri.encode(phone)))); }
+                        catch(Exception ex){toast("Could not open the phone dialler.");}
+                    });
                     Button accept=new Button(this);accept.setText("ACCEPT THIS RIDE");list.addView(accept);
                     accept.setOnClickListener(v->new Thread(()->{try{
                         TwendeApi.acceptRide(accessToken,id);
