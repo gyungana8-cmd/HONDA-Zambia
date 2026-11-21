@@ -19,7 +19,7 @@ const datesOverlap = (aStart,aDays,bStart,bDays) => aStart < addDaysISO(bStart,b
 const localISODate = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 const bikeBookedOn = (bikeId,date) => liveBookings.some(x=>x.motorcycle_id===bikeId && datesOverlap(x.start_date,x.days,date,1));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const TWENDE_VEHICLE_IMAGES = { car: "assets/twende-car-v2.svg", motorcycle: "assets/twende-motorcycle-v2.svg" };
+const TWENDE_VEHICLE_IMAGES = { car: "assets/twende-car-v2.svg", motorcycle: "assets/twende-motorcycle-v2.svg?v=20261121-tour1" };
 function twendeVehicleImage(type, altText) {
   const kind = type === "car" ? "car" : "motorcycle";
   const fallback = kind === "car" ? "TWENDE branded car taxi" : "TWENDE branded motorcycle taxi";
