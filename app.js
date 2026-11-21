@@ -7,7 +7,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 window.twendeDb = db;
 
 let currentUser = null, currentProfile = null, role = "rider";
-let verifiedAdmin = false, hasDriverRegistration = false;
+let verifiedAdmin = false, hasDriverRegistration = false, hasOwnerAccess = false;
 Object.defineProperty(window, "currentTwendeUser", { configurable:true, get:()=>currentUser });
 let verifiedPassengerPhone = null;
 let selectedBike = null, liveBikes = [], liveBookings = [];
@@ -49,8 +49,8 @@ function isGuestRider(user=currentUser){ return !!user?.is_anonymous; }
 function updateUI() {
   const guest=!currentUser || isGuestRider();
   const isAdmin=!guest && verifiedAdmin;
-  const isDriver=!guest && currentProfile?.role==="driver";
-  const isOwner=!guest && currentProfile?.role==="owner";
+  const isDriver=!guest && (currentProfile?.role==="driver" || hasDriverRegistration);
+  const isOwner=!guest && (currentProfile?.role==="owner" || hasOwnerAccess);
   document.body.classList.toggle("passenger-mode",guest);
   document.body.classList.toggle("operator-mode",!guest);
   document.body.classList.toggle("driver-mode",isDriver);
@@ -68,7 +68,7 @@ function updateUI() {
   $("#driver-panel")?.classList.toggle("hidden",guest||isAdmin||!isDriver);
   $("#adminPanel")?.classList.toggle("hidden",!isAdmin);
   $("#dashboard")?.classList.toggle("hidden",!isOwner||isAdmin);
-  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
+  window.twendeRoleSnapshot={role:currentProfile?.role||"rider",admin:verifiedAdmin,hasDriverRegistration,hasOwnerAccess,guest:!currentUser||isGuestRider(),signedIn:!!currentUser};
   window.twendeRefreshRoleMenu?.();
 }
 async function loadProfile(user) {
@@ -95,12 +95,17 @@ async function loadProfile(user) {
   }
   role=["owner","driver","admin"].includes(currentProfile?.role)?currentProfile.role:"rider";
   verifiedAdmin=false; hasDriverRegistration=false;
-  const [adminCheck,driverCheck]=await Promise.all([
+  const [adminCheck,driverCheck,partnerAccess]=await Promise.all([
     db.rpc("twende_is_admin"),
-    db.from("driver_vehicles").select("id,approval_status").eq("user_id",user.id).limit(1)
+    db.from("driver_vehicles").select("id,approval_status").eq("user_id",user.id).limit(1),
+    db.rpc("twende_get_partner_access")
   ]);
   verifiedAdmin=!adminCheck.error && adminCheck.data===true;
   hasDriverRegistration=!driverCheck.error && (driverCheck.data||[]).length>0;
+  hasOwnerAccess=!partnerAccess.error && (partnerAccess.data||[]).some(x=>
+    x.partner_type==="vehicle_owner" && x.application_status==="approved" && x.account_status==="active"
+  );
+  if(hasOwnerAccess) role="owner";
   updateUI();
   // Load independent dashboard panels together instead of serial network waits.
   await Promise.allSettled([
@@ -136,8 +141,8 @@ async function onSession(session) {
   const requested=window.twendeRequestedPortal;
   if(requested && currentUser && !isGuestRider()){
     const allowed=requested==="admin" ? verifiedAdmin :
-      requested==="driver" ? currentProfile?.role==="driver" :
-      requested==="owner" ? currentProfile?.role==="owner" : false;
+      requested==="driver" ? (currentProfile?.role==="driver" || hasDriverRegistration) :
+      requested==="owner" ? (currentProfile?.role==="owner" || hasOwnerAccess) : false;
     if(!allowed) toast("This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
     window.twendeRequestedPortal=null;
   }
