@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        TwendeMessagingService.ensureChannel(this);
         requestPermissionsIfNeeded();
         showLogin();
     }
