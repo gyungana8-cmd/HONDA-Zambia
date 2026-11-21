@@ -664,23 +664,41 @@ async function loadAdminDashboard(){
   const panel=$("#adminPanel"),nav=$("#adminNav"),host=$("#adminContent");
   if(!panel||!host)return;
   panel.classList.add("hidden");if(nav)nav.classList.add("hidden");
-  if(!currentUser){host.innerHTML='<p class="muted">Sign in with the designated administrator account.</p>';return;}
+  if(!currentUser){host.innerHTML='<p class="muted">Sign in with an authorised administrator account.</p>';return;}
   host.innerHTML='<p class="muted">Verifying administrator permissions…</p>';
   const {data:isAdmin,error:adminError}=await db.rpc("twende_is_admin");
   verifiedAdmin=!adminError && isAdmin===true;
   updateUI();
-  if(!verifiedAdmin){host.innerHTML='<p class="muted">This account does not have administrator access. The administrator role is assigned securely by the TWENDE database.</p>';return;}
+  if(!verifiedAdmin){host.innerHTML='<p class="muted">This account does not have administrator access.</p>';return;}
   panel.classList.remove("hidden");if(nav)nav.classList.remove("hidden");
-  const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
-  if(error){host.innerHTML='<p class="muted">Could not load vehicle applications: '+esc(error.message)+'</p>';return;}
-  const rows=vehicles||[];
-  const {data:completedRides,error:earningsError}=await db.from("ride_requests").select("service_type,estimated_fare,status").eq("status","completed");
-  const completed=completedRides||[];
-  const carValue=completed.filter(x=>x.service_type==="car").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
-  const motoValue=completed.filter(x=>x.service_type==="motorcycle").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
-  const earningsHtml=earningsError?'<p class="muted">Trip-value summary unavailable: '+esc(earningsError.message)+'</p>':'<h3>Financial overview — completed taxi trips</h3><div class="owner-metrics"><article class="metric-card"><span>Car taxi trip value</span><strong>'+money(carValue)+'</strong><small>'+completed.filter(x=>x.service_type==="car").length+' completed trips</small></article><article class="metric-card"><span>Motorcycle taxi trip value</span><strong>'+money(motoValue)+'</strong><small>'+completed.filter(x=>x.service_type==="motorcycle").length+' completed trips</small></article><article class="metric-card"><span>Total completed trip value</span><strong>'+money(carValue+motoValue)+'</strong><small>Estimated fares recorded, not verified cash receipts or company commission</small></article></div>';
-  const vehicleHtml=rows.map(v=>'<article class="dash-card"><h3>'+esc(v.driver_name)+' • '+esc(v.vehicle_type)+'</h3><p>Phone: '+esc(v.phone)+' • Area: '+esc(v.operating_area)+'</p><p>Vehicle: '+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • Registration: '+esc(v.plate_number)+'</p><p>Status: <strong>'+esc(v.approval_status)+'</strong></p>'+(v.approval_status==="pending"?'<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="'+v.id+'">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="'+v.id+'">Reject</button>':"")+'</article>').join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
-  host.innerHTML=earningsHtml+'<h3>Driver and vehicle applications ('+rows.length+')</h3>'+vehicleHtml+'<p class="muted">Taxi requests, acceptance and trip completion are managed from the Driver portal. This Control Centre retains approval and system-wide financial oversight.</p>';
+  const [fleetPermission,financePermission]=await Promise.all([
+    db.rpc("twende_admin_has_permission",{p_permission:"fleet.review"}),
+    db.rpc("twende_admin_has_permission",{p_permission:"finance.view"})
+  ]);
+  const canReviewFleet=!fleetPermission.error&&fleetPermission.data===true;
+  const canViewFinance=!financePermission.error&&financePermission.data===true;
+  const sections=[];
+  if(canViewFinance){
+    const {data:completedRides,error}=await db.from("ride_requests").select("service_type,estimated_fare,status").eq("status","completed");
+    if(error)sections.push('<h3>Financial overview</h3><p class="muted">Financial summary unavailable: '+esc(error.message)+'</p>');
+    else{
+      const completed=completedRides||[];
+      const carValue=completed.filter(x=>x.service_type==="car").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
+      const motoValue=completed.filter(x=>x.service_type==="motorcycle").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
+      sections.push('<h3>Financial overview — completed taxi trips</h3><div class="owner-metrics"><article class="metric-card"><span>Car taxi trip value</span><strong>'+money(carValue)+'</strong><small>'+completed.filter(x=>x.service_type==="car").length+' completed trips</small></article><article class="metric-card"><span>Motorcycle taxi trip value</span><strong>'+money(motoValue)+'</strong><small>'+completed.filter(x=>x.service_type==="motorcycle").length+' completed trips</small></article><article class="metric-card"><span>Total completed trip value</span><strong>'+money(carValue+motoValue)+'</strong><small>Estimated fares recorded, not verified cash receipts or company commission</small></article></div>');
+    }
+  }
+  if(canReviewFleet){
+    const {data:vehicles,error}=await db.from("driver_vehicles").select("id,user_id,driver_name,phone,vehicle_type,vehicle_make,vehicle_model,plate_number,operating_area,approval_status,created_at").order("created_at",{ascending:false});
+    if(error)sections.push('<h3>Driver and vehicle applications</h3><p class="muted">Vehicle applications unavailable: '+esc(error.message)+'</p>');
+    else{
+      const rows=vehicles||[];
+      const vehicleHtml=rows.map(v=>'<article class="dash-card"><h3>'+esc(v.driver_name)+' • '+esc(v.vehicle_type)+'</h3><p>Phone: '+esc(v.phone)+' • Area: '+esc(v.operating_area)+'</p><p>Vehicle: '+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • Registration: '+esc(v.plate_number)+'</p><p>Status: <strong>'+esc(v.approval_status)+'</strong></p>'+(v.approval_status==="pending"?'<button class="btn btn-red" data-vehicle-decision="approved" data-vehicle-id="'+v.id+'">Approve</button> <button class="btn btn-outline" data-vehicle-decision="rejected" data-vehicle-id="'+v.id+'">Reject</button>':"")+'</article>').join("")||'<p class="muted">No vehicle applications have been submitted.</p>';
+      sections.push('<h3>Driver and vehicle applications ('+rows.length+')</h3>'+vehicleHtml);
+    }
+  }
+  if(!sections.length)sections.push('<p class="muted">Your administrator account is active, but no operational modules are assigned to this role yet. Contact the Primary Administrator if you need additional access.</p>');
+  host.innerHTML=sections.join("")+'<p class="muted">Only modules authorised for your administrator role are shown here.</p>';
 }
 $("#refreshAdmin")?.addEventListener("click",loadAdminDashboard);
 $("#adminContent")?.addEventListener("click",async e=>{
