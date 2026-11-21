@@ -224,11 +224,15 @@ $("#authButton").onclick=()=>{
 // Passenger registration is temporarily OTP-free while TWENDE completes SMS-provider compliance.
 let pendingPassengerPhone = null;
 function normalizePassengerPhone(input){
-  const value=String(input||"").replace(/[\\s()-]/g,"");
-  if(/^\\+260[0-9]{9}$/.test(value))return value;
-  if(/^260[0-9]{9}$/.test(value))return "+"+value;
-  if(/^0[0-9]{9}$/.test(value))return "+260"+value.slice(1);
-  return null;
+  // Accept Zambian mobile numbers in local (076xxxxxxx) or international (+26076xxxxxxx) form.
+  const digits=String(input||"").replace(/\D/g,"");
+  let national="";
+  if(digits.startsWith("260")&&digits.length===12) national="0"+digits.slice(3);
+  else if(digits.length===10&&digits.startsWith("0")) national=digits;
+  else return null;
+  // Zambian mobile prefixes; keep validation broad enough for all major networks.
+  if(!/^0(?:75|76|77|95|96|97)\d{7}$/.test(national)) return null;
+  return "+260"+national.slice(1);
 }
 function showPassengerRegistration(service){
   pendingPassengerService=service||pendingPassengerService||"car";
@@ -612,8 +616,9 @@ async function submitTwendeTaxiRequest(){
     }
     const passengerName=(currentProfile?.full_name||user.user_metadata?.full_name||"").trim();
     const passengerPhone=user.phone||currentProfile?.phone||"";
-    if(!user.phone_confirmed_at||!passengerName||!passengerPhone){
-      $("#rideDialog").close();showPassengerRegistration($("#rideServiceType").value);throw new Error("Passenger registration and SMS phone verification are required before booking.");
+    // OTP is temporarily disabled. A saved passenger name and phone are sufficient until SMS provider approval.
+    if(!passengerName||!passengerPhone){
+      $("#rideDialog").close();showPassengerRegistration($("#rideServiceType").value);throw new Error("Please complete passenger registration before booking.");
     }
     $("#passengerName").value=passengerName;$("#passengerPhone").value=passengerPhone;
     const pickup=$("#ridePickup").value.trim();
