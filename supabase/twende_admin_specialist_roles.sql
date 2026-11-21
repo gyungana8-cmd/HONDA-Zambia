@@ -127,3 +127,20 @@ returns text language sql stable security definer set search_path=public as $$
 $$;
 revoke all on function public.twende_get_my_admin_role() from public;
 grant execute on function public.twende_get_my_admin_role() to authenticated;
+
+-- Vehicle approval actions require the fleet-review permission.
+create or replace function public.twende_admin_review_vehicle(
+ p_vehicle_id uuid,p_decision text
+) returns void language plpgsql security definer set search_path=public as $$
+begin
+ if not public.twende_admin_has_permission('fleet.review') then
+   raise exception 'Fleet-review permission required';
+ end if;
+ if p_decision not in ('approved','rejected') then raise exception 'Decision must be approved or rejected'; end if;
+ update public.driver_vehicles
+ set approval_status=p_decision,is_online=false
+ where id=p_vehicle_id and approval_status='pending';
+ if not found then raise exception 'Pending vehicle application not found'; end if;
+end; $$;
+revoke all on function public.twende_admin_review_vehicle(uuid,text) from public;
+grant execute on function public.twende_admin_review_vehicle(uuid,text) to authenticated;
