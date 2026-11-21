@@ -166,9 +166,15 @@ async function onSession(session) {
   const requested=window.twendeRequestedPortal;
   if(requested && currentUser && !isGuestRider()){
     const allowed=requested==="admin" ? verifiedAdmin :
-      requested==="driver" ? (currentProfile?.role==="driver" || hasDriverRegistration) :
-      requested==="owner" ? (currentProfile?.role==="owner" || hasOwnerAccess) : false;
-    if(!allowed) toast("This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
+      requested==="driver" ? hasDriverRegistration :
+      requested==="owner" ? hasOwnerAccess : false;
+    if(!allowed){
+      toast("This account is not approved for the "+requested+" portal. Please sign in with the account assigned to that role.");
+    }else{
+      // Sign-in reloads the profile and initially selects its default role.
+      // Restore the exact portal the user chose before authentication.
+      await window.twendeSetActivePortal?.(requested);
+    }
     window.twendeRequestedPortal=null;
   }
   if (currentUser && window.TwendePush?.requestPushToken) window.TwendePush.requestPushToken();
