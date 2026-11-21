@@ -15,19 +15,22 @@
  function refresh(){
   options.replaceChildren();
   const snap=window.twendeRoleSnapshot||{role:"rider",guest:true,signedIn:false};
-  $("#twendeRoleMenuIntro").textContent=snap.guest?"Passenger access is ready. Partner portals require an approved account.":"Choose an authorised TWENDE portal.";
+  const driverApp=new URLSearchParams(window.location.search).get("portal")==="driver";
+  $("#twendeRoleMenuIntro").textContent=driverApp?"Choose your approved driver or vehicle-owner workspace.":snap.guest?"Passenger access is ready. Partner portals require an approved account.":"Choose an authorised TWENDE portal.";
   if(snap.guest){
    add("Driver portal","Sign in with an approved driver account","driver","🚗");
    add("Vehicle owner portal","Sign in with an approved owner account","owner","🔑");
-   add("Administrator portal","Restricted to authorised administrators","admin","🛡️");
+   if(!driverApp)add("Administrator portal","Restricted to authorised administrators","admin","🛡️");
    $("#twendeRoleSignOut")?.classList.add("hidden");
   }else{
-   if(snap.admin)add("Administrator portal","Manage the TWENDE system","admin","🛡️");
+   if(!driverApp&&snap.admin)add("Administrator portal","Manage the TWENDE system","admin","🛡️");
    if(snap.role==="driver"||snap.hasDriverRegistration)add("Driver portal","View and accept assigned ride requests","driver","🚗");
    if(snap.role==="owner"||snap.hasOwnerAccess)add("Vehicle owner portal","Manage fleet, drivers and income","owner","🔑");
-   if(!options.children.length){const p=document.createElement("p");p.className="muted";p.textContent="This account currently has passenger access only.";options.append(p);}
+   if(!options.children.length){const p=document.createElement("p");p.className="muted";p.textContent="No approved driver or vehicle-owner access is linked to this account yet.";options.append(p);}
    $("#twendeRoleSignOut")?.classList.remove("hidden");
   }
+  $("#twendeRolePassenger")?.classList.toggle("hidden",driverApp);
+  $("#twendeRoleMenuClose")?.classList.toggle("hidden",driverApp);
  }
  function choose(portal){
   window.twendeRequestedPortal=portal;
