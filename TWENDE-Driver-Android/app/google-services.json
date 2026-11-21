@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1013523954614",
+    "project_id": "twende-zambia",
+    "storage_bucket": "twende-zambia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1013523954614:android:7c2bd5e5f556e11f595f17",
+        "android_client_info": {
+          "package_name": "com.yangu.hondazambia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1e32HQ1sHZeclXInqEWtRyoUwsb4jJTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1013523954614:android:09b72f46fc8647b3595f17",
+        "android_client_info": {
+          "package_name": "com.yangu.twendedriver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1e32HQ1sHZeclXInqEWtRyoUwsb4jJTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
