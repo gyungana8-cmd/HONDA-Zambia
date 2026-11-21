@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject ride=rides.optJSONObject(i);String id=ride.optString("id");
                     TextView details=new TextView(this);
                     details.setPadding(0,14,0,8);details.setTextSize(15);
-                    details.setText(ride.optString("passenger_name","Passenger")+" • "+ride.optString("passenger_phone")+"\\nPickup: "+ride.optString("pickup_text")+"\\nDestination: "+ride.optString("destination_text")+"\\nEstimated fare: K"+ride.optString("estimated_fare"));
+                    details.setText(ride.optString("passenger_name","Passenger")+" • "+ride.optString("passenger_phone")+"\nPickup: "+ride.optString("pickup_text")+"\nDestination: "+ride.optString("destination_text")+"\nEstimated fare: K"+ride.optString("estimated_fare"));
                     list.addView(details);
                     Button call=new Button(this);call.setText("CALL PASSENGER");list.addView(call);
                     call.setOnClickListener(v->{
