@@ -14,6 +14,7 @@
   const section=document.createElement("section");section.id="twendeOwnerFleet";section.className="twende-owner-fleet";
   if(error){
    section.innerHTML='<h3>Fleet management</h3><p class="muted">Apply the TWENDE owner fleet migration in Supabase to enable fleet management. Details: '+esc(error.message)+'</p>';
+   document.getElementById("twendeOwnerFleet")?.remove();
    host.appendChild(section);return;
   }
   items=items||[];
@@ -36,6 +37,8 @@
     return '<article class="dash-card"><h3>'+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • '+(v.vehicle_type==="car"?"Car taxi":"Motorcycle taxi")+'</h3><p>Registration: <strong>'+esc(v.plate_number)+'</strong> • '+esc(v.operating_area)+'</p><p>Approval: <strong>'+esc(v.approval_status)+'</strong> • Availability: <strong>'+(v.is_online?"Online":"Offline")+'</strong></p><p>Driver: <strong>'+esc(driver)+'</strong> '+(v.driver_user_id!==window.currentTwendeUser?.id?'• '+esc(v.driver_phone||""):"")+'</p>'+gps+'<p>Completed trips: '+Number(v.completed_trips||0)+' • Trip value: <strong>'+money(v.completed_value)+'</strong></p>'+(v.approval_status==="approved"?(v.driver_user_id===window.currentTwendeUser?.id?'<form class="twendeAssignDriver" data-vehicle="'+v.vehicle_id+'"><label>Assign approved driver by account email<input type="email" name="email" required placeholder="driver@example.com"></label><button class="btn btn-red" type="submit">Assign driver</button></form>':'<button class="btn btn-outline" data-unassign="'+v.vehicle_id+'">Dismiss / unassign driver</button>'):'<p class="muted">Vehicle must be approved by TWENDE before a driver can be assigned.</p>')+'</article>';
    }).join("")||'<p class="muted">No fleet vehicles registered yet.</p>')+'</div>'+
    '<p class="muted">GPS tracking is shown when the assigned driver app sends location updates. It is not continuous when the driver app is closed.</p>';
+  // Re-check immediately before insertion to prevent overlapping refreshes from duplicating the section.
+  document.getElementById("twendeOwnerFleet")?.remove();
   host.appendChild(section);
   section.addEventListener("submit",async e=>{
    if(e.target.id==="twendeOwnerVehicleForm"){
