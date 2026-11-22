@@ -629,12 +629,16 @@ function openRideDialog(service) {
 window.openTwendeRideDialog = openRideDialog;
 document.querySelectorAll("[data-ride-service]").forEach(b=>b.addEventListener("click",()=>openRideDialog(b.dataset.rideService)));
 
+let twendeTaxiSubmitInFlight=false;
+let twendeTaxiRequestKey=null;
 async function submitTwendeTaxiRequest(){
   const form=$("#rideForm");
   const inlineMessage=$("#rideSubmitMessage");
   const b=$("#rideRequestSubmit");
-  if(!form||!b)return;
-  if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Sending your taxi request…";inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
+  if(!form||!b||twendeTaxiSubmitInFlight)return;
+  twendeTaxiSubmitInFlight=true;
+  if(!twendeTaxiRequestKey)twendeTaxiRequestKey=crypto.randomUUID();
+  if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Sending your taxi request… Please wait. Do not submit again.";inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
   b.disabled=true;b.textContent="Sending request…";
   try{
     let {data:sessionData,error:sessionError}=await db.auth.getSession();
@@ -678,29 +682,37 @@ async function submitTwendeTaxiRequest(){
       destination_lat:fareEstimate.destination.lat,destination_lng:fareEstimate.destination.lng,
       route_distance_km:Number(fareEstimate.km.toFixed(2)),
       estimated_fare:Number(fareEstimate.fare.toFixed(2)),fare_currency:"ZMW",
-      payment_method:"cash",status:"pending"
+      payment_method:"cash",status:"pending",request_key:twendeTaxiRequestKey
     };
     if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Sending your request to the selected TWENDE driver…";inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
-    const {error}=await withTimeout(db.from("ride_requests").insert(row),"Taxi request",20000);
-    if(error){
-      console.error("Taxi request insert failed:",error);
-      if(error.code==="42501")throw new Error("Booking was blocked by database permissions. The ride-booking SQL policies need updating.");
-      if(error.code==="23503")throw new Error("Passenger session was not accepted by the database. Please refresh TWENDE and try again.");
-      throw new Error("Booking failed: "+(error.message||"database error"));
+    let insertResult=await withTimeout(db.from("ride_requests").insert(row).select("id").single(),"Taxi request",20000);
+    if(insertResult.error?.code==="23505"){
+      const existing=await withTimeout(db.from("ride_requests").select("id").eq("rider_id",user.id).eq("request_key",twendeTaxiRequestKey).maybeSingle(),"Existing taxi request",10000);
+      if(existing.error||!existing.data)throw insertResult.error;
+      insertResult={data:existing.data,error:null};
     }
+    if(insertResult.error){
+      console.error("Taxi request insert failed:",insertResult.error);
+      if(insertResult.error.code==="42501")throw new Error("Booking was blocked by database permissions. Apply the TWENDE booking reliability SQL migration.");
+      if(insertResult.error.code==="23503")throw new Error("Passenger session was not accepted by the database. Please refresh TWENDE and try again.");
+      if(insertResult.error.code==="42703")throw new Error("Booking database update is required. Apply supabase/twende_booking_reliability_fix.sql first.");
+      throw new Error("Booking failed: "+(insertResult.error.message||"database error"));
+    }
+    twendeTaxiRequestKey=null;
     closeDialog("rideDialog");form.reset();
-    toast("Taxi request sent successfully. Waiting for an approved online driver.");
-    await loadPassengerRides();
-    if(typeof loadAvailableTaxiFleet==="function")await loadAvailableTaxiFleet();
-    if(typeof loadDriverDashboard==="function"&&!isGuestRider())await loadDriverDashboard();
+    toast("Taxi request sent successfully. Waiting for the selected driver.");
+    void loadPassengerRides().catch(error=>console.warn("Passenger history refresh:",error));
+    if(typeof loadAvailableTaxiFleet==="function")void loadAvailableTaxiFleet();
+    if(typeof loadDriverDashboard==="function"&&!isGuestRider())void loadDriverDashboard();
   }catch(error){
     console.error("TWENDE taxi booking:",error);
     const message=error?.message||"Taxi booking failed. Please try again.";
     if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Request not sent: "+message;inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
     toast(message);
   }finally{
+    twendeTaxiSubmitInFlight=false;
     b.disabled=false;
-    b.textContent=$("#selectedTwendeVehicleId")?.value?"Retry booking":"Choose a vehicle first";
+    b.textContent=$("#selectedTwendeVehicleId")?.value?"Confirm booking":"Choose a vehicle first";
   }
 }
 window.submitTwendeTaxiRequest=submitTwendeTaxiRequest;
@@ -846,7 +858,7 @@ async function loadDriverDashboard(){
   const motoValue=completed.filter(x=>x.service_type==="motorcycle").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
   const metrics='<div class="owner-metrics"><article class="metric-card"><span>Completed car taxi value</span><strong>'+money(carValue)+'</strong><small>'+completed.filter(x=>x.service_type==="car").length+' completed trips</small></article><article class="metric-card"><span>Completed motorcycle taxi value</span><strong>'+money(motoValue)+'</strong><small>'+completed.filter(x=>x.service_type==="motorcycle").length+' completed trips</small></article><article class="metric-card"><span>Total completed trip value</span><strong>'+money(carValue+motoValue)+'</strong><small>Based on saved estimated fares; not verified cash receipts</small></article></div>';
   const vehicleCards=(vehicles||[]).map(v=>'<article class="dash-card twende-owner-vehicle-card">'+(v.vehicle_photo_url?'<img class="twende-fleet-photo" src="'+esc(v.vehicle_photo_url)+'" alt="'+esc((v.vehicle_color||"")+" "+v.vehicle_make+" "+v.vehicle_model)+'" loading="lazy">':twendeVehicleImage(v.vehicle_type,v.vehicle_type==="car"?"TWENDE branded owner car taxi":"TWENDE branded owner motorcycle taxi"))+'<div><span class="fleet-brand-tag">TWENDE '+(v.vehicle_type==="car"?"CAR TAXI":"MOTORCYCLE TAXI")+'</span><h3>'+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • '+esc(v.vehicle_type)+'</h3><p>Registration: '+esc(v.plate_number)+' • Colour: '+esc(v.vehicle_color||"Not recorded")+' • Area: '+esc(v.operating_area)+'</p><p>Verification: <strong>'+esc(v.approval_status)+'</strong></p><p>Availability: <strong>'+(v.is_online?"Online":"Offline")+'</strong></p>'+(v.approval_status==="approved"?'<button class="btn btn-red" data-vehicle-online="'+v.id+'" data-online="'+(!v.is_online)+'">'+(v.is_online?"Go offline":"Go online")+'</button>':'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>')+'</div></article>').join("");
-  const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>'<article class="dash-card"><h3>'+(x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi")+' request</h3><p><strong>Requested:</strong> '+esc(x.created_at?new Date(x.created_at).toLocaleTimeString("en-ZM",{hour:"2-digit",minute:"2-digit"}):"Time unavailable")+' • <strong>Waiting:</strong> <span data-request-created="'+esc(x.created_at||"")+'">'+twendeRequestAge(x.created_at)+'</span>'+(x.status==="pending"&&x.expires_at?' • <strong><span data-request-expires="'+esc(x.expires_at)+'">'+twendeRequestExpiry(x.expires_at)+'</span></strong>':"")+'</p><p>'+esc(x.pickup_text)+' → '+esc(x.destination_text)+'</p><p>Passenger: '+esc(x.passenger_name)+' • '+esc(x.passenger_phone)+'</p><p>'+(x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":"")+(x.estimated_fare?money(x.estimated_fare)+" estimated • ":"")+'Payment: Cash • Status: <strong>'+esc(x.status)+'</strong></p>'+(x.status==="pending"&&approved.some(v=>v.is_online&&v.vehicle_type===x.service_type)?'<button class="btn btn-red" data-ride-action="accept" data-ride-id="'+x.id+'">Accept ride</button>':x.driver_id===currentUser.id&&x.status==="accepted"?'<button class="btn btn-red" data-ride-action="complete" data-ride-id="'+x.id+'">Complete trip</button>':"")+'</article>').join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
+  const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>'<article class="dash-card"><h3>'+(x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi")+' request</h3><p><strong>Requested:</strong> '+esc(x.created_at?new Date(x.created_at).toLocaleTimeString("en-ZM",{hour:"2-digit",minute:"2-digit"}):"Time unavailable")+' • <strong>Waiting:</strong> <span data-request-created="'+esc(x.created_at||"")+'">'+twendeRequestAge(x.created_at)+'</span>'+(x.status==="pending"&&x.expires_at?' • <strong><span data-request-expires="'+esc(x.expires_at)+'">'+twendeRequestExpiry(x.expires_at)+'</span></strong>':"")+'</p><p>'+esc(x.pickup_text)+' → '+esc(x.destination_text)+'</p><p>Passenger: '+esc(x.passenger_name)+' • '+esc(x.passenger_phone)+'</p><p>'+(x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":"")+(x.estimated_fare?money(x.estimated_fare)+" estimated • ":"")+'Payment: Cash • Status: <strong>'+esc(x.status)+'</strong></p>'+(x.status==="pending"&&approved.some(v=>v.is_online&&v.id===x.driver_vehicle_id)?'<button class="btn btn-red" data-ride-action="accept" data-ride-id="'+x.id+'">Accept ride</button>':x.driver_id===currentUser.id&&x.status==="accepted"?'<button class="btn btn-red" data-ride-action="complete" data-ride-id="'+x.id+'">Complete trip</button>':"")+'</article>').join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
   host.innerHTML=expiryWarning+metrics+'<h3>Your assigned vehicle ('+(vehicles||[]).length+')</h3>'+(vehicleCards||'<p class="muted">No vehicle has been assigned to you yet. An approved vehicle owner can assign you a vehicle after your operator application is approved.</p>')+'<h3 id="driverTaxiRequests">Taxi requests and trip management</h3>'+rideCards;
 }
 $("#driverDashboard").onclick=async e=>{
