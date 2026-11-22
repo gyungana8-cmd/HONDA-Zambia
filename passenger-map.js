@@ -292,14 +292,15 @@
       const qLower=query.toLowerCase();
       const categoryWords=/\b(schools?|primary|secondary|colleges?|universities|academies|hospitals?|clinics?|health|medical|dispensaries|pharmacies|markets?|trading|shops?|roads?|streets?|avenues?|highways?|compounds?|townships?|residential|neighbourhoods?|neighborhoods?)\b/gi;
       const term=query.replace(categoryWords," ").replace(/[^a-zA-Z0-9 ]/g," ").replace(/\s+/g," ").trim().slice(0,70);
-      const nameFilter=term.length>=3?'["name"~"'+term+'",i]':"";
+      const nameFilter=term.length>=3&&!/mufumbwe|north western|zambia/i.test(term)?'["name"~"'+term+'",i]':"";
       const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
+      const searchArea=/mufumbwe/i.test(query)?"(around:60000,-13.13683,25.00296)":bbox;
       const selectors=[];
-      if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+nameFilter+bbox+';');
-      if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+nameFilter+bbox+';');
-      if(/market|trading|shop/.test(qLower)){selectors.push('nwr["amenity"="marketplace"]'+nameFilter+bbox+';');selectors.push('nwr["shop"="market"]'+nameFilter+bbox+';');}
-      if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]'+nameFilter+bbox+';');
-      if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+nameFilter+bbox+';');selectors.push('nwr["landuse"="residential"]'+nameFilter+bbox+';');}
+      if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+nameFilter+searchArea+';');
+      if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+nameFilter+searchArea+';');
+      if(/market|trading|shop/.test(qLower)){selectors.push('nwr["amenity"="marketplace"]'+nameFilter+searchArea+';');selectors.push('nwr["shop"="market"]'+nameFilter+searchArea+';');}
+      if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]'+nameFilter+searchArea+';');
+      if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+nameFilter+searchArea+';');selectors.push('nwr["landuse"="residential"]'+nameFilter+searchArea+';');}
       if(!selectors.length) selectors.push('nwr["name"~"'+term+'",i]'+bbox+';');
       const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center tags;';
       const body=new URLSearchParams({data:overpassQuery});
