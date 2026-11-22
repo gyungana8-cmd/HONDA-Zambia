@@ -82,5 +82,21 @@ using (
   and exists(select 1 from public.twende_admins a where a.user_id=auth.uid())
 );
 
--- Admins can upload three independently replaceable images:
--- passenger hero background, branded car artwork, branded motorcycle artwork.
+-- Seed the three images already uploaded to twende-homepage-assets.
+-- Re-running this script safely refreshes these initial paths.
+insert into public.twende_homepage_settings
+  (id, hero_background_path, hero_car_path, hero_motorcycle_path)
+values
+  (
+    'passenger',
+    'hero_background_path/1795327351067-wllpwv.png',
+    'hero_car_path/1795328399747-jdp0be.png',
+    'hero_motorcycle_path/1795327718085-lix8e8.png'
+  )
+on conflict (id) do update set
+  hero_background_path = excluded.hero_background_path,
+  hero_car_path = excluded.hero_car_path,
+  hero_motorcycle_path = excluded.hero_motorcycle_path,
+  updated_at = now();
+
+-- Admins can later replace each image independently from the Admin Portal.
