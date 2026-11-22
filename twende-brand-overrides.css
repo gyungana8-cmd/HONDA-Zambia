@@ -990,7 +990,7 @@ body.passenger-mode .twende-passenger-hero-vehicles{
  visibility:visible!important;
  opacity:1!important;
  position:absolute!important;
- z-index:4!important;
+ z-index:2!important;
  pointer-events:none!important;
 }
 body.passenger-mode .twende-passenger-hero-vehicles img{
