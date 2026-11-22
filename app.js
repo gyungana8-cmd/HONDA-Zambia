@@ -174,6 +174,25 @@ window.twendeReceivePushToken = async function(token) {
   }
 };
 
+// Keep GPS alive in a native Android foreground service while the driver
+// explicitly remains online. A WebView timer alone is suspended in background.
+window.twendeSyncNativeDriverLocation = async function(online) {
+  const bridge = window.TwendeNative;
+  if (!bridge) return;
+  if (!online) { bridge.stopLocationTracking(); return; }
+  try {
+    const { data, error } = await db.auth.getSession();
+    const session = data?.session;
+    if (error || !session?.access_token) {
+      console.warn("TWENDE native GPS could not obtain the active session.", error);
+      return;
+    }
+    bridge.startLocationTracking(session.access_token, session.refresh_token || "");
+  } catch (error) {
+    console.warn("TWENDE native GPS start failed:", error);
+  }
+};
+
 let twendeSessionQueue=Promise.resolve();
 function onSession(session){
   // Supabase auth events and the sign-in form can report the same session.
@@ -661,7 +680,8 @@ async function submitTwendeTaxiRequest(){
       estimated_fare:Number(fareEstimate.fare.toFixed(2)),fare_currency:"ZMW",
       payment_method:"cash",status:"pending"
     };
-    const {error}=await db.from("ride_requests").insert(row);
+    if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Sending your request to the selected TWENDE driver…";inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
+    const {error}=await withTimeout(db.from("ride_requests").insert(row),"Taxi request",20000);
     if(error){
       console.error("Taxi request insert failed:",error);
       if(error.code==="42501")throw new Error("Booking was blocked by database permissions. The ride-booking SQL policies need updating.");
@@ -675,8 +695,13 @@ async function submitTwendeTaxiRequest(){
     if(typeof loadDriverDashboard==="function"&&!isGuestRider())await loadDriverDashboard();
   }catch(error){
     console.error("TWENDE taxi booking:",error);
-    toast(error?.message||"Taxi booking failed. Please try again.");
-  }finally{b.disabled=false;b.textContent="Request taxi";}
+    const message=error?.message||"Taxi booking failed. Please try again.";
+    if(inlineMessage){inlineMessage.hidden=false;inlineMessage.textContent="Request not sent: "+message;inlineMessage.style.display="block";inlineMessage.classList.add("is-visible");}
+    toast(message);
+  }finally{
+    b.disabled=false;
+    b.textContent=$("#selectedTwendeVehicleId")?.value?"Retry booking":"Choose a vehicle first";
+  }
 }
 window.submitTwendeTaxiRequest=submitTwendeTaxiRequest;
 $("#rideForm").addEventListener("submit",e=>{e.preventDefault();submitTwendeTaxiRequest();});
@@ -798,6 +823,9 @@ async function loadDriverDashboard(){
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
   const {data:vehicles,error}=await db.from("driver_vehicles").select("*").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){host.innerHTML='<p class="muted">Multi-vehicle services need the Phase 2 database setup: '+esc(error.message)+'</p>';return;}
+  if(activePortal==="driver" && (vehicles||[]).some(v=>v.approval_status==="approved"&&v.is_online)) {
+    window.twendeSyncNativeDriverLocation?.(true);
+  }
 
   // Expire stale requests before showing the active queue.
   const {data:expiredCount,error:expiryError}=await db.rpc("expire_stale_twende_rides");
@@ -828,7 +856,8 @@ $("#driverDashboard").onclick=async e=>{
     vehicleToggle.disabled=true;
     const {error}=await db.rpc("twende_set_vehicle_online",{p_vehicle_id:vehicleToggle.dataset.vehicleOnline,p_online:desired});
     if(error){vehicleToggle.disabled=false;toast("Could not change vehicle availability: "+error.message);return;}
-    toast(desired?"Vehicle is now online.":"Vehicle is now offline.");
+    await window.twendeSyncNativeDriverLocation?.(desired);
+    toast(desired?"Vehicle is now online. GPS will continue in the background while TWENDE remains online.":"Vehicle is now offline.");
     window.dispatchEvent(new CustomEvent("twende-vehicle-online",{detail:{online:desired}}));
     await loadDriverDashboard();
     return;
