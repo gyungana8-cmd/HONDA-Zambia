@@ -151,10 +151,13 @@
         // Prefer a useful local pickup label over a long administrative string.
         const locality=a.suburb||a.neighbourhood||a.village||a.town||a.city||a.hamlet||a.county;
         const road=[a.house_number,a.road].filter(Boolean).join(" ");
-        const parts=[road,locality,a.city_district,a.state,a.country].filter(Boolean);
-        const label=[...new Set(parts)].join(", ");
-        if(label)return label;
-        if(data.display_name)return data.display_name;
+        const localParts=[road,locality].filter(Boolean);
+        // Never display a province-only reverse-geocode result as the passenger's pickup.
+        // If the map provider cannot identify a nearby locality, keep the exact GPS pin visible.
+        if(localParts.length){
+          const parts=[...localParts,a.city_district,a.state,a.country].filter(Boolean);
+          return [...new Set(parts)].join(", ");
+        }
       }
     }catch(error){console.warn("TWENDE GPS address lookup:",error);}
     return "GPS location ("+Number(lat).toFixed(5)+", "+Number(lng).toFixed(5)+")";
