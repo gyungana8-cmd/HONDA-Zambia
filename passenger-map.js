@@ -294,15 +294,17 @@
     // Search named OpenStreetMap features across Mufumbwe and North-Western Province.
     // Coverage depends on what local contributors have mapped.
     try{
-      const term=query.trim().replace(/[^a-zA-Z0-9 ]/g," ").replace(/\\s+/g," ").trim().slice(0,70);
-      const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
       const qLower=query.toLowerCase();
+      const categoryWords=/\\b(schools?|primary|secondary|colleges?|universities|academies|hospitals?|clinics?|health|medical|dispensaries|pharmacies|markets?|trading|shops?|roads?|streets?|avenues?|highways?|compounds?|townships?|residential|neighbourhoods?|neighborhoods?)\\b/gi;
+      const term=query.replace(categoryWords," ").replace(/[^a-zA-Z0-9 ]/g," ").replace(/\\s+/g," ").trim().slice(0,70);
+      const nameFilter=term.length>=3?'["name"~"'+term+'",i]':"";
+      const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
       const selectors=[];
-      if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+bbox+';');
-      if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+bbox+';');
-      if(/market|trading|shop/.test(qLower)){selectors.push('nwr["amenity"="marketplace"]'+bbox+';');selectors.push('nwr["shop"="market"]'+bbox+';');}
-      if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]["name"~"'+term+'",i]'+bbox+';');
-      if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+bbox+';');selectors.push('nwr["landuse"="residential"]["name"~"'+term+'",i]'+bbox+';');}
+      if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+nameFilter+bbox+';');
+      if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+nameFilter+bbox+';');
+      if(/market|trading|shop/.test(qLower)){selectors.push('nwr["amenity"="marketplace"]'+nameFilter+bbox+';');selectors.push('nwr["shop"="market"]'+nameFilter+bbox+';');}
+      if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]'+nameFilter+bbox+';');
+      if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+nameFilter+bbox+';');selectors.push('nwr["landuse"="residential"]'+nameFilter+bbox+';');}
       if(!selectors.length) selectors.push('nwr["name"~"'+term+'",i]'+bbox+';');
       const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center tags;';
       const body=new URLSearchParams({data:overpassQuery});
