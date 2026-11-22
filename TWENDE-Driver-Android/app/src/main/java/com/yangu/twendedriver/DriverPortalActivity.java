@@ -83,6 +83,24 @@ public class DriverPortalActivity extends AppCompatActivity {
         web.loadUrl("https://gyungana8-cmd.github.io/HONDA-Zambia/?portal=partner&driver_portal_version=20261122-partner4");
     }
 
+    // The web partner portal requests the native FCM token after a user signs in.
+    private final class TwendePushBridge {
+        @JavascriptInterface
+        public void requestPushToken() {
+            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+                if (!task.isSuccessful() || task.getResult() == null) {
+                    android.util.Log.e("TWENDE", "Could not obtain Firebase push token", task.getException());
+                    return;
+                }
+                String token = task.getResult();
+                runOnUiThread(() -> {
+                    if (web != null) web.evaluateJavascript(
+                        "window.twendeReceivePushToken && window.twendeReceivePushToken(" + org.json.JSONObject.quote(token) + ")", null);
+                });
+            });
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
