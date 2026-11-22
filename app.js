@@ -889,7 +889,7 @@ $("#driverDashboard").onclick=async e=>{
   action.disabled=true;
   const {data,error}=await db.rpc(rpc,{p_ride_id:action.dataset.rideId});
   if(error){action.disabled=false;toast("Ride update failed: "+error.message);return;}
-  if(choice==="reject") toast(data?"Request passed to the next eligible nearby driver.":"Request released to the TWENDE queue for another nearby driver.");
+  if(choice==="reject") toast(data?.assigned_vehicle_id?"Request passed to the next eligible nearby driver.":"Request queued for the next eligible nearby driver.");
   else toast(choice==="accept"?"Ride accepted. Contact the passenger to confirm pickup.":"Trip marked completed.");
   await loadDriverDashboard();await loadPassengerRides();
 };
