@@ -29,7 +29,8 @@
     if(!error&&data)settings={...settings,...data};
     apply();
   }
-  function renderAdminPanel(){
+  async function renderAdminPanel(){
+    await load();
     const host=document.getElementById("adminContent");
     if(!host||host.querySelector("#twendeHomepageMediaAdmin"))return;
     const panel=document.createElement("section");
@@ -65,8 +66,10 @@
         const next={...settings,[key]:path,updated_at:new Date().toISOString(),updated_by:userData.user.id};
         const {error:saveError}=await db.from("twende_homepage_settings").upsert(next,{onConflict:"id"});
         if(saveError){await db.storage.from(bucket).remove([path]);throw saveError;}
+        const previousPath=settings[key];
         settings=next;apply();status.textContent="Image updated successfully. Refresh the passenger homepage to see the new image.";
-        panel.remove();renderAdminPanel();
+        if(previousPath)await db.storage.from(bucket).remove([previousPath]);
+        panel.remove();await renderAdminPanel();
       }catch(err){status.textContent="Upload failed: "+(err.message||"Please try again.");}
       finally{input.disabled=false;input.value="";}
     });
@@ -82,7 +85,10 @@
         const next={...settings,[key]:null,updated_at:new Date().toISOString(),updated_by:userData.user.id};
         const {error}=await db.from("twende_homepage_settings").upsert(next,{onConflict:"id"});
         if(error)throw error;
-        settings=next;apply();panel.remove();renderAdminPanel();
+        const previousPath=settings[key];
+        settings=next;apply();
+        if(previousPath)await db.storage.from(bucket).remove([previousPath]);
+        panel.remove();await renderAdminPanel();
       }catch(err){status.textContent="Could not restore default: "+(err.message||"Please try again.");button.disabled=false;}
     });
   }
