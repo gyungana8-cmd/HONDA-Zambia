@@ -279,7 +279,10 @@ $("#passengerNameForm").onsubmit=async e=>{
     verifiedPassengerPhone=phone;pendingPassengerPhone=null;
     $("#passengerNameForm").reset();$("#authDialog").close();
     toast("Passenger registration complete. Welcome to TWENDE, "+first+".");
-    $("#locationPermissionDialog").showModal();
+    // Registration ends at the passenger homepage. GPS is optional and can be
+    // requested later from the homepage when the passenger sets a pickup.
+    $("#locationPermissionDialog").close();
+    $("#ride-services")?.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(error){showAuthNotice("#passengerNameForm","Could not save passenger profile: "+(error?.message||"Please try again."));}
   finally{b.disabled=false;}
 };
@@ -561,8 +564,13 @@ function openRideDialog(service) {
   $("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
   const pickup=$("#ridePickup"), destination=$("#rideDestination");
-  if(pickup&&!pickup.value)pickup.value=window.twendePickupCoords?.label||$("#twendeCurrentLocation")?.textContent?.trim()||"Current GPS location";
-  if(destination&&!destination.value&&window.twendeDestinationCoords?.label)destination.value=window.twendeDestinationCoords.label;
+  if(pickup&&!pickup.value){
+    const current=$("#twendeCurrentLocation")?.textContent?.trim();
+    pickup.value=window.twendePickupCoords?.label||(current&&current!=="Location not set yet"?current:"");
+  }
+  if(destination&&!destination.value){
+    destination.value=window.twendeDestinationCoords?.label||$("#twendeDestinationSearch")?.value?.trim()||"";
+  }
   (async()=>{
     try{
       let {data,error}=await db.auth.getSession();if(error)throw error;
