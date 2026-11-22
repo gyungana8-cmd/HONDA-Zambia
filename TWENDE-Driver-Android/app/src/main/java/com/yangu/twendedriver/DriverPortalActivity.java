@@ -76,11 +76,47 @@ public class DriverPortalActivity extends AppCompatActivity {
         });
         setContentView(web);
         web.addJavascriptInterface(new TwendePushBridge(), "TwendePush");
+        web.addJavascriptInterface(new TwendeNativeBridge(), "TwendeNative");
         TwendeMessagingService.ensureChannel(this);
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
         }
         web.loadUrl("https://gyungana8-cmd.github.io/HONDA-Zambia/?portal=partner&driver_portal_version=20261122-partner4");
+    }
+
+    // Web partner portal controls this foreground service only after a driver
+    // explicitly selects Go Online. Tokens stay in private app storage.
+    private final class TwendeNativeBridge {
+        @JavascriptInterface
+        public void startLocationTracking(String accessToken, String refreshToken) {
+            if (accessToken == null || accessToken.trim().isEmpty()) return;
+            getSharedPreferences("twende_driver", MODE_PRIVATE).edit()
+                .putString("access_token", accessToken)
+                .putString("refresh_token", refreshToken == null ? "" : refreshToken)
+                .apply();
+            runOnUiThread(() -> {
+                boolean fine = ContextCompat.checkSelfPermission(DriverPortalActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                boolean coarse = ContextCompat.checkSelfPermission(DriverPortalActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                if (!fine && !coarse) {
+                    ActivityCompat.requestPermissions(DriverPortalActivity.this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                        LOCATION_PERMISSION_REQUEST);
+                    return;
+                }
+                Intent service = new Intent(DriverPortalActivity.this, DriverLocationService.class);
+                service.setAction(DriverLocationService.ACTION_START);
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(service); else startService(service);
+            });
+        }
+
+        @JavascriptInterface
+        public void stopLocationTracking() {
+            runOnUiThread(() -> {
+                Intent service = new Intent(DriverPortalActivity.this, DriverLocationService.class);
+                service.setAction(DriverLocationService.ACTION_STOP);
+                startService(service);
+            });
+        }
     }
 
     // The web partner portal requests the native FCM token after a user signs in.
@@ -104,12 +140,18 @@ public class DriverPortalActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST && pendingGeoCallback != null) {
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
             boolean granted = false;
             for (int result : grantResults) if (result == PackageManager.PERMISSION_GRANTED) granted = true;
-            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
-            pendingGeoCallback = null;
-            pendingGeoOrigin = null;
+            if (pendingGeoCallback != null) {
+                pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
+                pendingGeoCallback = null;
+                pendingGeoOrigin = null;
+            } else if (granted) {
+                Intent service = new Intent(this, DriverLocationService.class);
+                service.setAction(DriverLocationService.ACTION_START);
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(service); else startService(service);
+            }
         }
     }
 
