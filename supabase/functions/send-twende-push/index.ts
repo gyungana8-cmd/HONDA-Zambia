@@ -63,6 +63,17 @@ Deno.serve(async (req) => {
       recipientIds = [...new Set((data || []).flatMap((x: any) => [x.user_id,x.owner_id]).filter(Boolean))];
       title = record.service_type === "motorcycle" ? "New motorcycle taxi request" : "New car taxi request";
       body = (record.pickup_text || "New pickup") + " → " + (record.destination_text || "Destination");
+    } else if (table === "ride_requests" && type === "UPDATE" && record.status === "pending" && record.driver_vehicle_id) {
+      // Reassigned request: notify only the newly selected driver and vehicle owner.
+      const { data: vehicle, error } = await supabase.from("driver_vehicles")
+        .select("user_id,owner_id,approval_status,is_online")
+        .eq("id", record.driver_vehicle_id).maybeSingle();
+      if (error) throw error;
+      if (vehicle?.approval_status === "approved" && vehicle?.is_online) {
+        recipientIds = [...new Set([vehicle.user_id, vehicle.owner_id].filter(Boolean))];
+      }
+      title = record.service_type === "motorcycle" ? "TWENDE: motorcycle request available" : "TWENDE: car taxi request available";
+      body = (record.pickup_text || "New pickup") + " → " + (record.destination_text || "Destination");
     } else if (table === "ride_requests" && type === "UPDATE" && record.status === "accepted") {
       // Notify the passenger and the owner of the actual vehicle used.
       recipientIds = record.rider_id ? [record.rider_id] : [];
@@ -97,7 +108,11 @@ Deno.serve(async (req) => {
       const response = await fetch("https://fcm.googleapis.com/v1/projects/" + sa.project_id + "/messages:send", {
         method: "POST",
         headers: { "Authorization": "Bearer " + accessToken, "Content-Type": "application/json" },
-        body: JSON.stringify({ message: { token: item.token, notification: { title, body }, android: { priority: "HIGH", notification: { channel_id: "twende_bookings", sound: "default" } }, data: { table, event_type: type, record_id: String(record.id || "") } } }),
+        body: JSON.stringify({ message: { token: item.token, android: { priority: "HIGH", ttl: "900s" }, data: {
+          title, body, table, event_type: type, record_id: String(record.id || ""),
+          ride_id: String(record.id || ""),
+          action_type: record.status === "pending" && table === "ride_requests" ? "ride_request" : "ride_update"
+        } } }),
       });
       if (response.ok) sent++;
       else failures.push({ status: response.status, response: await response.text() });

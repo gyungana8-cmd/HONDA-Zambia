@@ -79,6 +79,9 @@ final class TwendeApi {
     static void acceptRide(android.content.Context context,String rideId) throws Exception {
         requestWithSession(context,"/rest/v1/rpc/accept_twende_ride","POST",new JSONObject().put("p_ride_id",rideId),null);
     }
+    static void rejectRide(android.content.Context context,String rideId) throws Exception {
+        requestWithSession(context,"/rest/v1/rpc/reject_twende_ride","POST",new JSONObject().put("p_ride_id",rideId),null);
+    }
     static void registerToken(android.content.Context context,String fcm) throws Exception {
         requestWithSession(context,"/rest/v1/rpc/register_twende_push_token","POST",
             new JSONObject().put("p_token",fcm).put("p_platform","android"),null);

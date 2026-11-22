@@ -859,10 +859,10 @@ async function loadDriverDashboard(){
   const metrics='<div class="owner-metrics"><article class="metric-card"><span>Completed car taxi value</span><strong>'+money(carValue)+'</strong><small>'+completed.filter(x=>x.service_type==="car").length+' completed trips</small></article><article class="metric-card"><span>Completed motorcycle taxi value</span><strong>'+money(motoValue)+'</strong><small>'+completed.filter(x=>x.service_type==="motorcycle").length+' completed trips</small></article><article class="metric-card"><span>Total completed trip value</span><strong>'+money(carValue+motoValue)+'</strong><small>Based on saved estimated fares; not verified cash receipts</small></article></div>';
   const vehicleCards=(vehicles||[]).map(v=>'<article class="dash-card twende-owner-vehicle-card">'+(v.vehicle_photo_url?'<img class="twende-fleet-photo" src="'+esc(v.vehicle_photo_url)+'" alt="'+esc((v.vehicle_color||"")+" "+v.vehicle_make+" "+v.vehicle_model)+'" loading="lazy">':twendeVehicleImage(v.vehicle_type,v.vehicle_type==="car"?"TWENDE branded owner car taxi":"TWENDE branded owner motorcycle taxi"))+'<div><span class="fleet-brand-tag">TWENDE '+(v.vehicle_type==="car"?"CAR TAXI":"MOTORCYCLE TAXI")+'</span><h3>'+esc(v.vehicle_make)+' '+esc(v.vehicle_model)+' • '+esc(v.vehicle_type)+'</h3><p>Registration: '+esc(v.plate_number)+' • Colour: '+esc(v.vehicle_color||"Not recorded")+' • Area: '+esc(v.operating_area)+'</p><p>Verification: <strong>'+esc(v.approval_status)+'</strong></p><p>Availability: <strong>'+(v.is_online?"Online":"Offline")+'</strong></p>'+(v.approval_status==="approved"?'<button class="btn btn-red" data-vehicle-online="'+v.id+'" data-online="'+(!v.is_online)+'">'+(v.is_online?"Go offline":"Go online")+'</button>':'<p class="muted">An administrator must approve this vehicle before it can receive requests.</p>')+'</div></article>').join("");
   const rideCards=rideError?'<p class="muted">Could not load taxi requests: '+esc(rideError.message)+'</p>':(rides||[]).map(x=>{
-    const passengerCall=x.passenger_phone?'<a class="btn btn-red twende-call-passenger" href="tel:'+esc(String(x.passenger_phone).replace(/[^\\d+]/g,""))+'">Call passenger</a>':"";
+    const passengerCall=x.passenger_phone?'<a class="btn btn-red twende-call-passenger" href="tel:'+esc(String(x.passenger_phone).replace(/[^\d+]/g,""))+'">Call passenger</a>':"";
     const canAccept=x.status==="pending"&&approved.some(v=>v.is_online&&v.id===x.driver_vehicle_id);
     const canComplete=x.driver_id===currentUser.id&&x.status==="accepted";
-    const action=canAccept?'<button class="btn btn-red" data-ride-action="accept" data-ride-id="'+x.id+'">Accept ride</button>':canComplete?'<button class="btn btn-red" data-ride-action="complete" data-ride-id="'+x.id+'">Complete trip</button>':"";
+    const action=canAccept?'<button class="btn btn-red" data-ride-action="accept" data-ride-id="'+x.id+'">Accept ride</button><button class="btn btn-secondary" data-ride-action="reject" data-ride-id="'+x.id+'">Reject</button>':canComplete?'<button class="btn btn-red" data-ride-action="complete" data-ride-id="'+x.id+'">Complete trip</button>':"";
     return '<article class="dash-card"><h3>'+(x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi")+' request</h3><p><strong>Requested:</strong> '+esc(x.created_at?new Date(x.created_at).toLocaleTimeString("en-ZM",{hour:"2-digit",minute:"2-digit"}):"Time unavailable")+' • <strong>Waiting:</strong> <span data-request-created="'+esc(x.created_at||"")+'">'+twendeRequestAge(x.created_at)+'</span>'+(x.status==="pending"&&x.expires_at?' • <strong><span data-request-expires="'+esc(x.expires_at)+'">'+twendeRequestExpiry(x.expires_at)+'</span></strong>':"")+'</p><p>'+esc(x.pickup_text)+' → '+esc(x.destination_text)+'</p><p>Passenger: '+esc(x.passenger_name)+' • '+esc(x.passenger_phone)+'</p><p>'+(x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":"")+(x.estimated_fare?money(x.estimated_fare)+" estimated • ":"")+'Payment: Cash • Status: <strong>'+esc(x.status)+'</strong></p><div class="twende-request-actions">'+passengerCall+action+'</div></article>';
   }).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
   host.innerHTML=expiryWarning+metrics+'<h3>Your assigned vehicle ('+(vehicles||[]).length+')</h3>'+(vehicleCards||'<p class="muted">No vehicle has been assigned to you yet. An approved vehicle owner can assign you a vehicle after your operator application is approved.</p>')+'<h3 id="driverTaxiRequests">Taxi requests and trip management</h3>'+rideCards;
@@ -875,6 +875,7 @@ $("#driverDashboard").onclick=async e=>{
     const {error}=await db.rpc("twende_set_vehicle_online",{p_vehicle_id:vehicleToggle.dataset.vehicleOnline,p_online:desired});
     if(error){vehicleToggle.disabled=false;toast("Could not change vehicle availability: "+error.message);return;}
     await window.twendeSyncNativeDriverLocation?.(desired);
+    if(desired){const {error:dispatchError}=await db.rpc("twende_dispatch_waiting_rides");if(dispatchError)console.warn("TWENDE waiting request dispatch:",dispatchError.message);}
     toast(desired?"Vehicle is now online. GPS will continue in the background while TWENDE remains online.":"Vehicle is now offline.");
     window.dispatchEvent(new CustomEvent("twende-vehicle-online",{detail:{online:desired}}));
     await loadDriverDashboard();
@@ -883,10 +884,13 @@ $("#driverDashboard").onclick=async e=>{
   const online=e.target.closest("#driverOnlineBtn");
   if(online){const {error}=await db.rpc("set_twende_driver_online",{p_online:online.dataset.online==="true"});if(error){toast("Could not change availability. Check driver approval and database setup.");return;}toast("Driver availability updated.");await loadDriverDashboard();return;}
   const action=e.target.closest("[data-ride-action]");if(!action)return;
-  const rpc=action.dataset.rideAction==="accept"?"accept_twende_ride":"complete_twende_ride";
-  const {error}=await db.rpc(rpc,{p_ride_id:action.dataset.rideId});
-  if(error){toast("Ride update failed: "+error.message);return;}
-  toast(action.dataset.rideAction==="accept"?"Ride accepted. Contact the passenger to confirm pickup.":"Trip marked completed.");
+  const choice=action.dataset.rideAction;
+  const rpc=choice==="accept"?"accept_twende_ride":choice==="reject"?"reject_twende_ride":"complete_twende_ride";
+  action.disabled=true;
+  const {data,error}=await db.rpc(rpc,{p_ride_id:action.dataset.rideId});
+  if(error){action.disabled=false;toast("Ride update failed: "+error.message);return;}
+  if(choice==="reject") toast(data?.assigned_vehicle_id?"Request passed to the next eligible nearby driver.":"Request queued for the next eligible nearby driver.");
+  else toast(choice==="accept"?"Ride accepted. Contact the passenger to confirm pickup.":"Trip marked completed.");
   await loadDriverDashboard();await loadPassengerRides();
 };
 

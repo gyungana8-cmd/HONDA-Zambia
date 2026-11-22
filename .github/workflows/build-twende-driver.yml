@@ -2,6 +2,11 @@ name: Build TWENDE Driver APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'TWENDE-Driver-Android/**'
+      - '.github/workflows/build-twende-driver.yml'
   push:
     paths:
       - 'TWENDE-Driver-Android/**'
