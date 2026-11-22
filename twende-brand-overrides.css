@@ -981,3 +981,26 @@ body.passenger-mode .twende-hero-bike-brand small{font-size:7px;letter-spacing:.
  body.passenger-mode .twende-hero-bike-brand{right:2%;bottom:32%;font-size:9px;padding:4px 6px}
  body.passenger-mode .twende-hero-bike-brand small{font-size:6px}
 }
+
+
+/* Critical fix: an older legacy rule hid the entire hero vehicle layer with !important.
+   Re-enable it here so the branded TWENDE car and motorcycle are visible in the passenger app. */
+body.passenger-mode .twende-passenger-hero-vehicles{
+ display:flex!important;
+ visibility:visible!important;
+ opacity:1!important;
+ position:absolute!important;
+ z-index:4!important;
+ pointer-events:none!important;
+}
+body.passenger-mode .twende-passenger-hero-vehicles img{
+ display:block!important;
+ visibility:visible!important;
+ opacity:1!important;
+}
+body.passenger-mode .twende-passenger-hero .twende-hero-car{
+ z-index:1!important;
+}
+body.passenger-mode .twende-passenger-hero .twende-hero-motorcycle{
+ z-index:2!important;
+}
