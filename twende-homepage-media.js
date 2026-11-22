@@ -24,7 +24,7 @@
     // The top hero uses the background image only. Vehicle images belong exclusively
     // in the two ride-selection cards below, preventing duplicate vehicles in the banner.
     const vehicleLayer=hero.querySelector(".twende-passenger-hero-vehicles");
-    if(vehicleLayer)vehicleLayer.hidden=true;
+    if(vehicleLayer){vehicleLayer.hidden=true;vehicleLayer.style.setProperty("display","none","important");}
 
     // Keep the two service-selection cards in sync with the same Admin-managed assets.
     // These cards previously used fixed local files, so Admin uploads never reached them.
