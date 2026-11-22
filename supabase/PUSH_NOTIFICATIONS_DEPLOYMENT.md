@@ -37,8 +37,14 @@ Configure events:
 
 Use the webhook's JSON payload format with `type`, `table`, and `record` fields. The function sends requests only to approved online drivers with the matching vehicle type, sends hire requests to the motorcycle owner, and sends acceptance updates to the passenger.
 
-## 5. Test
+## 5. Driver rejection and automatic reassignment
 
-Build and install the new APK. Sign in on a driver/owner phone, allow notifications, and confirm that a row appears in `device_push_tokens`. Then create a test request from a second account. Test with the receiving app in the background and screen locked.
+After the base booking-expiry and driver-request-delivery migrations have been applied, run `supabase/twende_driver_reassignment.sql` in Supabase SQL Editor. This adds an auditable rejection record, prevents rejected requests returning to the same driver, and assigns the request to the next approved online matching driver with a fresh GPS location within 15 km. If no eligible driver is currently available, the request remains pending and unassigned; a later online driver's GPS update triggers another dispatch attempt.
+
+The `ride_requests` UPDATE webhook must be enabled. The push function now sends high-priority data-only FCM messages for both new and reassigned pending requests. The Partner Android app displays native Accept and Reject actions so drivers can respond without opening the dashboard. Keep Android notifications enabled on the phone.
+
+## 6. Test
+
+Build and install the updated TWENDE Partner APK. Sign in on a driver phone, allow notifications, and confirm that a row appears in `device_push_tokens`. Create a test request from a second account. Test with the driver app in the background and screen locked; use Accept and Reject directly from the notification. When rejecting, confirm the next eligible nearby driver receives the same ride request. Also test that Call passenger opens the dialler with the complete +260 number.
 
 **Current limitations:** push delivery will not start until the SQL is applied, the function is deployed, Firebase service-account secret is configured, and all three database webhooks are enabled. Android 13+ users must allow notifications. The service account private key must remain secret.
