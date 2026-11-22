@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
       // Match the current multi-vehicle registry. Each approved online vehicle
       // belongs to its registering owner/driver account (driver_vehicles.user_id).
       const { data, error } = await supabase.from("driver_vehicles").select("user_id")
-        .eq("approval_status", "approved").eq("is_online", true).eq("vehicle_type", record.service_type);
+        .eq("id", record.driver_vehicle_id)
+        .eq("approval_status", "approved").eq("is_online", true);
       if (error) throw error;
       recipientIds = [...new Set((data || []).map((x: any) => x.user_id).filter(Boolean))];
       title = record.service_type === "motorcycle" ? "New motorcycle taxi request" : "New car taxi request";
