@@ -111,7 +111,7 @@ begin
  if not found then raise exception 'Request changed while reassignment was being processed'; end if;
  return jsonb_build_object('assigned_vehicle_id',v_next_vehicle,'queued',v_next_vehicle is null);
 end;
-$;
+$$;
 
 -- When a driver goes online, let that driver claim any unassigned pending
 -- request of the matching service within 15 km, excluding prior rejections.
