@@ -6,9 +6,6 @@ body.partner-entry-mode #motorcycle-marketplace,
 body.partner-entry-mode #how,
 body.partner-entry-mode .twende-bottom-nav,
 body.partner-entry-mode .twende-footer,
-body.partner-entry-mode #twendeHeaderProfileButton,
-body.partner-entry-mode #twendeNotificationsButton,
-body.partner-entry-mode #twendeNotificationsPanel,
 body.partner-entry-mode #authButton { display:none !important; }
 body.partner-entry-mode #partnerEntryWelcome { display:block !important; min-height:65vh; padding:32px 22px; max-width:900px; margin:24px auto; }
 body.partner-entry-mode #partnerEntryWelcome h1 { font-size:clamp(28px,5vw,42px); line-height:1.12; margin:14px 0; }
@@ -23,3 +20,14 @@ body.partner-entry-mode #signOutButton { display:inline-flex; }
 body.partner-entry-mode #partnerEntryWelcome { display:block !important; }
 body.partner-entry-mode.partner-authenticated #partnerEntryWelcome { display:none !important; }
 body.partner-entry-mode .search-panel, body.partner-entry-mode #motorcycle-marketplace { display:none !important; }
+
+/* Driver and owner portals must always show the booking bell in the shared header. */
+body.partner-entry-mode #twendeNotificationsButton{
+ display:grid!important;visibility:visible!important;opacity:1!important;
+ position:relative!important;inset:auto!important;transform:none!important;
+ flex:0 0 48px!important;width:48px!important;height:48px!important;
+ margin-left:auto!important;z-index:10040!important;
+}
+body.partner-entry-mode #twendeNotificationsButton>span{font-size:29px!important;line-height:1!important}
+body.partner-entry-mode #twendeNotificationsPanel{display:block!important;position:fixed!important;z-index:2147482500!important;top:82px!important;right:12px!important}
+body.partner-entry-mode #twendeNotificationsPanel.hidden{display:none!important}
