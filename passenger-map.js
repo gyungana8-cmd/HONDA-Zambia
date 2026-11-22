@@ -296,7 +296,8 @@
       const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
       const namedDistrict=/\b(solwezi|mufumbwe|kasempa|kabompo|manyinga|mwinilunga|zambezi|chavuma|ikelenge|kalumbila)\b/i.test(query);
       const userInNorthWest=userPoint&&userPoint.lat<=-8&&userPoint.lat>=-14.8&&userPoint.lng>=21.5&&userPoint.lng<=26.8;
-      const localCenter=/mufumbwe/i.test(query)?{lat:-13.13683,lng:25.00296}:userPoint;\n      const searchArea=!namedDistrict&&userInNorthWest?"(around:60000,"+localCenter.lat+","+localCenter.lng+")":bbox;
+      const localCenter=/mufumbwe/i.test(query)?{lat:-13.13683,lng:25.00296}:userPoint;
+      const searchArea=!namedDistrict&&userInNorthWest?"(around:60000,"+localCenter.lat+","+localCenter.lng+")":bbox;
       const selectors=[];
       if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+nameFilter+searchArea+';');
       if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+nameFilter+searchArea+';');
