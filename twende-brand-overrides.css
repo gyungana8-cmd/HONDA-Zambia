@@ -1018,3 +1018,12 @@ body.passenger-mode .twende-passenger-hero:before{z-index:-1!important;}
 .twende-homepage-media-file{display:grid;gap:6px;font-weight:700;font-size:13px}
 .twende-homepage-media-file input{max-width:100%;font-size:13px}
 .twende-homepage-media-status{min-height:20px;font-weight:700;color:#22543d}
+
+/* Correct admin background stacking: uploaded scenery must sit above the hero base,
+   with the readability veil above it and the live copy/vehicles above both. */
+body.passenger-mode .twende-passenger-hero{isolation:isolate!important;}
+body.passenger-mode .twende-passenger-hero .twende-hero-admin-background{z-index:0!important;}
+body.passenger-mode .twende-passenger-hero:before{z-index:1!important;}
+body.passenger-mode .twende-passenger-hero:after{z-index:1!important;}
+body.passenger-mode .twende-passenger-hero-copy{z-index:3!important;}
+body.passenger-mode .twende-passenger-hero-vehicles{z-index:2!important;}
