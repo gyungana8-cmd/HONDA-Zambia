@@ -763,7 +763,7 @@ async function loadAvailableTaxiFleet(service=selectedRideService){
     const kind=motorcycle?"Motorcycle taxi":"Car taxi";
     const assigned=x.status==="accepted";
     const vehicleName=[x.vehicle_make,x.vehicle_model].filter(Boolean).join(" ");
-    const vehiclePhoto=assigned&&x.vehicle_photo_url
+    const vehiclePhoto=x.vehicle_photo_url
       ? '<img class="twende-ride-assigned-photo" src="'+esc(x.vehicle_photo_url)+'" alt="'+esc([x.vehicle_color,vehicleName].filter(Boolean).join(" "))+'" loading="lazy">'
       : twendeVehicleImage(x.service_type,motorcycle?"TWENDE motorcycle taxi":"TWENDE car taxi");
     const statusLabel=assigned?"Driver accepted":x.status==="pending"?"Finding a driver":String(x.status||"").replace(/_/g," ");
@@ -851,7 +851,7 @@ async function loadDriverDashboard(){
     },30000);
   }
   const approved=(vehicles||[]).filter(v=>v.approval_status==="approved");
-  const {data:rides,error:rideError}=await db.from("ride_requests").select("*").or("status.eq.pending,driver_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(100);
+  const {data:rides,error:rideError}=await db.rpc("twende_driver_ride_queue");
   const ownRides=(rides||[]).filter(x=>x.driver_id===currentUser.id);
   const completed=ownRides.filter(x=>x.status==="completed");
   const carValue=completed.filter(x=>x.service_type==="car").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
@@ -1109,8 +1109,16 @@ function startTwendeRealtime(){
       if(isGuestRider())loadAvailableTaxiFleet();
       else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
     })
-    .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; check Supabase Realtime publication.");});
+    .subscribe(status=>{if(status==="CHANNEL_ERROR")console.warn("TWENDE live updates could not connect; polling fallback remains active.");});
+   // Android can suspend realtime delivery in the background. Poll the exact
+   // authenticated driver's queue while the Partner Portal is visible.
+   if(!window.twendeDriverQueuePoll)window.twendeDriverQueuePoll=setInterval(()=>{
+     if(currentUser && activePortal==="driver" && !document.hidden)loadDriverDashboard();
+   },5000);
 }
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden && currentUser && activePortal==="driver")loadDriverDashboard();
+});
 
 // Public extension hooks for TWENDE GPS/fare module (publishable Supabase client only).
 window.twendeDb = db;
