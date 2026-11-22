@@ -291,52 +291,34 @@
         }
       }
     }catch(e){console.warn("Photon search:",e);}
-    // Add named OpenStreetMap features across Mufumbwe and North-Western Province.
-    // This covers schools, health facilities, markets, roads and named compounds
-    // where those features have been mapped by local contributors.
+    // Search named OpenStreetMap features across Mufumbwe and North-Western Province.
+    // Coverage depends on what local contributors have mapped.
     try{
-      const term=query.trim().replace(/[.*+?^${}()|[\]\\]/g,"\\    }catch(e){console.warn("Photon search:",e);}
-    // Use slower school-register and Nominatim lookups only if Photon found nothing.
-    if(found.length){const result=found.slice(0,15);cache.set(normalized,result);return result;}").slice(0,70);
-      const bbox="(-14.8,21.5,-8.0,26.8)"; // South, West, North, East: North-Western Province search area
+      const term=query.trim().replace(/[^a-zA-Z0-9 ]/g," ").replace(/\\s+/g," ").trim().slice(0,70);
+      const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
       const qLower=query.toLowerCase();
       const selectors=[];
-      if(/school|primary|secondary|college|university|class|academy/.test(qLower)){
-        selectors.push('nwr["amenity"~"school|college|university|kindergarten|training" i]'+bbox+';');
-      }
-      if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)){
-        selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy" i]'+bbox+';');
-      }
-      if(/market|trading|shop/.test(qLower)){
-        selectors.push('nwr["amenity"="marketplace"]'+bbox+';');
-        selectors.push('nwr["shop"="market"]'+bbox+';');
-      }
-      if(/road|street|avenue|highway/.test(qLower)){
-        selectors.push('way["highway"]["name"~"'+term+'",i]'+bbox+';');
-      }
-      if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){
-        selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential" i]'+bbox+';');
-        selectors.push('nwr["landuse"="residential"]["name"~"'+term+'",i]'+bbox+';');
-      }
+      if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+bbox+';');
+      if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+bbox+';');
+      if(/market|trading|shop/.test(qLower)){selectors.push('nwr["amenity"="marketplace"]'+bbox+';');selectors.push('nwr["shop"="market"]'+bbox+';');}
+      if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]["name"~"'+term+'",i]'+bbox+';');
+      if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+bbox+';');selectors.push('nwr["landuse"="residential"]["name"~"'+term+'",i]'+bbox+';');}
       if(!selectors.length) selectors.push('nwr["name"~"'+term+'",i]'+bbox+';');
-      const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center tags 30;';
+      const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center tags;';
       const body=new URLSearchParams({data:overpassQuery});
       const response=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});
       if(response.ok){
         const data=await response.json();
         for(const element of (data.elements||[])){
           const tags=element.tags||{};
-          const lat=element.lat??element.center?.lat;
-          const lng=element.lon??element.center?.lon;
-          const name=tags.name||tags["name:en"]||tags["name:local"]||query;
-          const district=tags["addr:district"]||tags["is_in:district"]||"";
-          const category=tags.amenity||tags.shop||tags.highway||tags.place||tags.landuse||"";
-          const label=[name,category,district,"North-Western Province","Zambia"].filter(Boolean).join(", ");
+          const lat=element.lat??element.center?.lat,lng=element.lon??element.center?.lon;
+          const name=tags.name||tags["name:en"]||query;
+          const category=tags.amenity||tags.shop||tags.highway||tags.place||tags.landuse||"landmark";
+          const label=[name,category,tags["addr:suburb"]||tags["addr:district"]||"","North-Western Province","Zambia"].filter(Boolean).join(", ");
           add(lat,lng,label);
         }
       }
     }catch(e){console.warn("North-Western OpenStreetMap place search:",e);}
-    // Keep a good result set from both Photon and the regional OSM feature search.
     if(found.length){const result=found.slice(0,15);cache.set(normalized,result);return result;}
     // Zambia GRID3/NSDI operational school point register. This is a
     // province-wide school dataset compiled from ZamStats and Ministry of
