@@ -15,7 +15,14 @@
   function getPosition(options={}) {
     return new Promise((resolve,reject)=>{
       if(!navigator.geolocation) return reject(new Error("This device/browser does not support GPS."));
-      navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:20000,maximumAge:10000,...options});
+      navigator.geolocation.getCurrentPosition(position=>{
+        const accuracy=Number(position.coords.accuracy)||Infinity;
+        if(accuracy>100){
+          reject(new Error("Your location is only accurate to about "+Math.round(accuracy)+" metres. Turn on Precise Location and GPS, then try again outdoors."));
+          return;
+        }
+        resolve(position);
+      },reject,{enableHighAccuracy:true,timeout:45000,maximumAge:0,...options});
     });
   }
 
