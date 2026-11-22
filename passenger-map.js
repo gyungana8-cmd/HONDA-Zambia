@@ -179,7 +179,7 @@
     if(window.TwendeAndroid && typeof window.TwendeAndroid.requestCurrentLocation==="function"){
       return new Promise((resolve,reject)=>{
         let settled=false;
-        const timer=setTimeout(()=>finish(new Error("Android GPS did not respond. Turn on Location and try again.")),30000);
+        const timer=setTimeout(()=>finish(new Error("Android GPS did not respond. Turn on Precise Location and try again outdoors.")),45000);
         function finish(error,position){
           if(settled)return;settled=true;clearTimeout(timer);
           window.onTwendeNativeLocation=null;
@@ -188,19 +188,25 @@
         window.onTwendeNativeLocation=(lat,lng,accuracy,error)=>{
           if(error){finish(new Error(error));return;}
           if(!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng))){finish(new Error("Android returned an invalid location. Check your phone GPS."));return;}
-          finish(null,{coords:{latitude:Number(lat),longitude:Number(lng),accuracy:Number(accuracy)||0}});
+          const metres=Number(accuracy)||Infinity;
+          if(metres>100){finish(new Error("Your GPS accuracy is about "+Math.round(metres)+" metres. Enable Precise Location and wait for a stronger GPS signal outdoors."));return;}
+          finish(null,{coords:{latitude:Number(lat),longitude:Number(lng),accuracy:metres}});
         };
         try{window.TwendeAndroid.requestCurrentLocation();}
         catch(error){finish(new Error("Could not start Android GPS: "+error.message));}
       });
     }
     if(!navigator.geolocation)throw new Error("This browser does not support GPS. Please enable location services or select your pickup on the map.");
-    return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,error=>{
-      if(error.code===1)reject(new Error("Location permission is blocked. Allow location access for Twende in Android settings."));
+    return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(position=>{
+      const accuracy=Number(position.coords.accuracy)||Infinity;
+      if(accuracy>100){reject(new Error("Your location is only accurate to about "+Math.round(accuracy)+" metres. Turn on Precise Location and GPS, then try again outdoors."));return;}
+      resolve(position);
+    },error=>{
+      if(error.code===1)reject(new Error("Location permission is blocked. Allow precise location access for TWENDE in Android settings."));
       else if(error.code===2)reject(new Error("Your device could not determine its location. Turn on Location/GPS and try again, or tap your pickup point on the map."));
       else if(error.code===3)reject(new Error("GPS took too long. Move somewhere with a clearer sky view and try again, or tap your pickup point on the map."));
       else reject(new Error("GPS could not find your location. Check device location settings and try again."));
-    },{enableHighAccuracy:true,timeout:25000,maximumAge:30000}));
+    },{enableHighAccuracy:true,timeout:45000,maximumAge:0}));
   }
   async function locate(){
     setStatus("Requesting your phone's GPS location…");
