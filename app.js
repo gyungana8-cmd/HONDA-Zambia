@@ -1041,7 +1041,7 @@ function startTwendeRealtime(){
   twendeRealtimeChannel=db.channel("twende-live-operations")
     .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
       if(isGuestRider()){loadPassengerRides();loadAvailableTaxiFleet();}
-      else if(currentUser){loadDriverDashboard();loadAdminDashboard();}
+      else if(currentUser){loadPassengerRides();loadDriverDashboard();loadAdminDashboard();}
       if(currentUser && typeof loadTwendeNotifications==="function") loadTwendeNotifications();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"driver_vehicles"},()=>{
