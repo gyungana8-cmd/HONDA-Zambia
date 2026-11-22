@@ -1130,13 +1130,55 @@ document.addEventListener("click",e=>{
  if(!e.target.closest("#twendeNotificationsPanel")&&!e.target.closest("#twendeNotificationsButton"))closeTwendeNotifications();
 });
 
+// Driver-only immediate alert for a new request assigned to this driver's online vehicle.
+const twendeDriverAlertedRideIds=new Set();
+let twendeDriverAudioContext=null;
+function unlockTwendeDriverAlertAudio(){
+  if(twendeDriverAudioContext)return;
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)return;
+  try{twendeDriverAudioContext=new AudioContextClass();void twendeDriverAudioContext.resume();}catch(error){console.warn("TWENDE driver alert audio unavailable:",error);}
+}
+document.addEventListener("pointerdown",unlockTwendeDriverAlertAudio,{capture:true});
+function playTwendeDriverAlert(){
+  try{
+    if(twendeDriverAudioContext?.state==="suspended")void twendeDriverAudioContext.resume();
+    if(twendeDriverAudioContext){
+      const now=twendeDriverAudioContext.currentTime;
+      [0,0.28,0.56].forEach(offset=>{
+        const oscillator=twendeDriverAudioContext.createOscillator();
+        const gain=twendeDriverAudioContext.createGain();
+        oscillator.type="sine";oscillator.frequency.value=880;
+        gain.gain.setValueAtTime(0.0001,now+offset);
+        gain.gain.exponentialRampToValueAtTime(0.24,now+offset+0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+0.18);
+        oscillator.connect(gain);gain.connect(twendeDriverAudioContext.destination);
+        oscillator.start(now+offset);oscillator.stop(now+offset+0.2);
+      });
+    }
+  }catch(error){console.warn("TWENDE driver alert sound failed:",error);}
+  try{if(navigator.vibrate)navigator.vibrate([350,150,350,150,500]);}catch(_){}
+}
+async function alertTwendeDriverForNewRequest(ride){
+  if(!currentUser||activePortal!=="driver"||!ride?.id||twendeDriverAlertedRideIds.has(ride.id))return;
+  const {data:vehicle,error}=await db.from("driver_vehicles").select("id")
+    .eq("id",ride.driver_vehicle_id).eq("user_id",currentUser.id)
+    .eq("approval_status","approved").eq("is_online",true).maybeSingle();
+  if(error||!vehicle)return;
+  twendeDriverAlertedRideIds.add(ride.id);
+  playTwendeDriverAlert();
+  toast("NEW TWENDE BOOKING! "+(ride.service_type==="car"?"Car taxi":"Motorcycle taxi")+" request. Check your driver dashboard.");
+}
 // Live updates keep taxi requests and vehicle availability current without manual refresh.
 // Online state is stored on each approved vehicle and is not reset on app restart.
 let twendeRealtimeChannel=null;
 function startTwendeRealtime(){
   if(twendeRealtimeChannel) return;
   twendeRealtimeChannel=db.channel("twende-live-operations")
-    .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},()=>{
+    .on("postgres_changes",{event:"*",schema:"public",table:"ride_requests"},(payload)=>{
+      if(currentUser && activePortal==="driver" && payload?.new?.status==="pending" && payload?.new?.driver_vehicle_id){
+        void alertTwendeDriverForNewRequest(payload.new);
+      }
       if(isGuestRider()){loadPassengerRides();loadAvailableTaxiFleet();}
       else if(currentUser){loadPassengerRides();loadDriverDashboard();loadAdminDashboard();}
       if(currentUser && typeof loadTwendeNotifications==="function") loadTwendeNotifications();
