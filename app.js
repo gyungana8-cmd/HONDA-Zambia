@@ -830,6 +830,30 @@ function refreshTwendeRequestAges(){
   document.querySelectorAll("[data-request-expires]").forEach(node=>{node.textContent=twendeRequestExpiry(node.dataset.requestExpires);});
 }
 if(!window.twendeRequestAgeTimer)window.twendeRequestAgeTimer=setInterval(refreshTwendeRequestAges,1000);
+// Driver dashboard alert for newly assigned requests.
+let twendeKnownDriverRideIds = null;
+const twendeUnseenDriverRideIds = new Set();
+let twendeAlarmAudioContext = null;
+function alertDriverForNewBookings(count) {
+  if (!count) return;
+  try { if (navigator.vibrate) navigator.vibrate([450,180,450,180,700]); } catch (_) {}
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    twendeAlarmAudioContext = twendeAlarmAudioContext || new AudioCtx();
+    const ctx = twendeAlarmAudioContext;
+    if (ctx.state === 'suspended') ctx.resume();
+    [0,0.32,0.64].forEach((delay,i) => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = i === 1 ? 1040 : 880;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + delay + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.22);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.24);
+    });
+  } catch (error) { console.info('TWENDE dashboard sound unavailable; native alert remains enabled.', error); }
+}
 async function loadDriverDashboard(){
   const host=$("#driverDashboard");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to register or manage your vehicles.</p>';return;}
@@ -852,6 +876,17 @@ async function loadDriverDashboard(){
   }
   const approved=(vehicles||[]).filter(v=>v.approval_status==="approved");
   const {data:rides,error:rideError}=await db.rpc("twende_driver_ride_queue");
+  const activePending=(rides||[]).filter(x=>x.status==='pending'&&approved.some(v=>v.is_online&&v.id===x.driver_vehicle_id));
+  const currentPendingIds=new Set(activePending.map(x=>x.id));
+  if(twendeKnownDriverRideIds===null){twendeKnownDriverRideIds=currentPendingIds;}
+  else{
+    const arrivals=[...currentPendingIds].filter(id=>!twendeKnownDriverRideIds.has(id));
+    arrivals.forEach(id=>twendeUnseenDriverRideIds.add(id));
+    if(arrivals.length)alertDriverForNewBookings(arrivals.length);
+    [...twendeUnseenDriverRideIds].forEach(id=>{if(!currentPendingIds.has(id))twendeUnseenDriverRideIds.delete(id);});
+    twendeKnownDriverRideIds=currentPendingIds;
+  }
+  const driverBell=twendeUnseenDriverRideIds.size ? '<section role="alert" style="border:2px solid #d9ad00;background:#fff6c9;border-radius:14px;padding:14px;margin:12px 0"><strong style="font-size:19px">🔔 NEW TWENDE BOOKING ('+twendeUnseenDriverRideIds.size+')</strong><p>A passenger is waiting. An alert sound and vibration have been triggered. Review the request below.</p><a class="btn btn-red" href="#driverTaxiRequests">VIEW NEW REQUEST</a></section>' : '';
   const ownRides=(rides||[]).filter(x=>x.driver_id===currentUser.id);
   const completed=ownRides.filter(x=>x.status==="completed");
   const carValue=completed.filter(x=>x.service_type==="car").reduce((sum,x)=>sum+Number(x.estimated_fare||0),0);
@@ -865,7 +900,7 @@ async function loadDriverDashboard(){
     const action=canAccept?'<button class="btn btn-red" data-ride-action="accept" data-ride-id="'+x.id+'">Accept ride</button><button class="btn btn-secondary" data-ride-action="reject" data-ride-id="'+x.id+'">Reject</button>':canComplete?'<button class="btn btn-red" data-ride-action="complete" data-ride-id="'+x.id+'">Complete trip</button>':"";
     return '<article class="dash-card"><h3>'+(x.service_type==="car"?"🚕 Car taxi":"🏍️ Motorcycle taxi")+' request</h3><p><strong>Requested:</strong> '+esc(x.created_at?new Date(x.created_at).toLocaleTimeString("en-ZM",{hour:"2-digit",minute:"2-digit"}):"Time unavailable")+' • <strong>Waiting:</strong> <span data-request-created="'+esc(x.created_at||"")+'">'+twendeRequestAge(x.created_at)+'</span>'+(x.status==="pending"&&x.expires_at?' • <strong><span data-request-expires="'+esc(x.expires_at)+'">'+twendeRequestExpiry(x.expires_at)+'</span></strong>':"")+'</p><p>'+esc(x.pickup_text)+' → '+esc(x.destination_text)+'</p><p>Passenger: '+esc(x.passenger_name)+' • '+esc(x.passenger_phone)+'</p><p>'+(x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":"")+(x.estimated_fare?money(x.estimated_fare)+" estimated • ":"")+'Payment: Cash • Status: <strong>'+esc(x.status)+'</strong></p><div class="twende-request-actions">'+passengerCall+action+'</div></article>';
   }).join("")||'<p class="muted">No matching taxi requests at the moment.</p>';
-  host.innerHTML=expiryWarning+metrics+'<h3>Your assigned vehicle ('+(vehicles||[]).length+')</h3>'+(vehicleCards||'<p class="muted">No vehicle has been assigned to you yet. An approved vehicle owner can assign you a vehicle after your operator application is approved.</p>')+'<h3 id="driverTaxiRequests">Taxi requests and trip management</h3>'+rideCards;
+  host.innerHTML=driverBell+expiryWarning+metrics+'<h3>Your assigned vehicle ('+(vehicles||[]).length+')</h3>'+(vehicleCards||'<p class="muted">No vehicle has been assigned to you yet. An approved vehicle owner can assign you a vehicle after your operator application is approved.</p>')+'<h3 id="driverTaxiRequests">🔔 Taxi requests and trip management</h3>'+rideCards;
 }
 $("#driverDashboard").onclick=async e=>{
   const vehicleToggle=e.target.closest("[data-vehicle-online]");
