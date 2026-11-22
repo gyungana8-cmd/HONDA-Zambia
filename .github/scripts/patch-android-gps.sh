@@ -122,8 +122,7 @@ public class MainActivity extends Activity {
 
   private boolean allowed() {
     return Build.VERSION.SDK_INT<23 ||
-      checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED ||
-      checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED;
+      checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;
   }
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);
@@ -152,23 +151,23 @@ public class MainActivity extends Activity {
     sent=false;
     try {
       lm=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
-      if(lm==null || (!lm.isProviderEnabled("gps") && !lm.isProviderEnabled("network"))) { fail("Turn on Location/GPS in your phone settings."); return; }
-      Location last=null;
-      if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED) last=lm.getLastKnownLocation("gps");
-      if(last==null && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED) last=lm.getLastKnownLocation("network");
-      if(last!=null && System.currentTimeMillis()-last.getTime()<30000) { success(last); return; }
-      sent=false;
+      if(lm==null || !lm.isProviderEnabled("gps")) { fail("Turn on device GPS and enable Precise Location for TWENDE."); return; }
+      if(Build.VERSION.SDK_INT>=23 && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) {
+        fail("TWENDE needs Precise Location permission. Open Android app permissions and select Allow precise location.");
+        return;
+      }
+      // Do not use cached or network-only fixes: these can place passengers at a province centroid.
+      // Wait for a fresh satellite GPS fix and accept it only when reported accuracy is <=100m.
       listener=new LocationListener() {
-        @Override public void onLocationChanged(Location l) { success(l); }
+        @Override public void onLocationChanged(Location l) {
+          if(l!=null && l.hasAccuracy() && l.getAccuracy()<=100f) success(l);
+        }
         @Override public void onProviderEnabled(String p) {}
         @Override public void onProviderDisabled(String p) {}
         @Override public void onStatusChanged(String p,int status,Bundle extras) {}
       };
-      if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED && lm.isProviderEnabled("gps"))
-        lm.requestLocationUpdates("gps",1000,0,listener,Looper.getMainLooper());
-      if(checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED && lm.isProviderEnabled("network"))
-        lm.requestLocationUpdates("network",1000,0,listener,Looper.getMainLooper());
-      handler.postDelayed(() -> { if(!sent) fail("GPS is taking too long. Check that Location is on and try again outdoors."); },25000);
+      lm.requestLocationUpdates("gps",1000,0,listener,Looper.getMainLooper());
+      handler.postDelayed(() -> { if(!sent) fail("A precise GPS fix was not available. Move outdoors, turn on Precise Location and try again."); },45000);
     } catch(SecurityException e) { fail("Allow precise location for Twende in Android settings."); }
       catch(Exception e) { fail("Could not read phone location: "+e.getMessage()); }
   }
