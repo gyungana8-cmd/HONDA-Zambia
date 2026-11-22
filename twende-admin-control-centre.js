@@ -88,7 +88,7 @@
   if(typeof original==="function"){
     window.loadAdminDashboard=async function(){
       await original();
-      if(window.twendeRoleSnapshot?.admin){await appendAdminControls();await appendPartnerApplications();}
+      if(window.twendeRoleSnapshot?.admin){await appendAdminControls();await appendPartnerApplications();await window.twendeHomepageMedia?.renderAdminPanel?.();}
     };
   }
   window.addEventListener("load",()=>setTimeout(()=>window.loadAdminDashboard?.(),250));
