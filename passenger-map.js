@@ -19,6 +19,7 @@
     .twende-destination-wrap label{display:block;font-size:19px;font-weight:850;margin-bottom:8px;color:var(--ink)}
     .twende-destination-input{width:100%;min-height:58px;padding:15px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:16px;box-shadow:0 5px 18px #1018200a}
     .twende-destination-results{display:grid;gap:6px;margin-top:5px}
+     .twende-destination-results[hidden]{display:none!important}
     .twende-destination-results button{width:100%;text-align:left;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);min-height:44px}
     .twende-map-status{font-size:13px;color:var(--muted);margin:8px 2px}
     #twendeMapDetails{margin-top:12px}
@@ -53,7 +54,7 @@
     <div class="twende-destination-wrap">
       <label for="twendeDestinationSearch">Where to?</label>
       <input class="twende-destination-input" id="twendeDestinationSearch" type="search" autocomplete="off" placeholder="Search schools, hospitals, markets, roads, compounds or landmarks" aria-label="Search a destination or local landmark">
-      <div class="twende-destination-results" id="twendeDestinationResults" role="listbox"></div>
+      <div class="twende-destination-results" id="twendeDestinationResults" role="listbox" hidden></div>
     </div>
     <p id="twendeMapStatus" class="twende-map-status" role="status">Set your location and destination, or choose a TWENDE service below.</p>
     <div id="twendeMapDetails" hidden>
@@ -369,21 +370,33 @@
     const result=found.slice(0,15);cache.set(normalized,result);return result;
   }
   function addSearch(inputId,resultsId,onSelect){
-    const input=$("#"+inputId),results=$("#"+resultsId);let timer=null;
+    const input=$("#"+inputId),results=$("#"+resultsId);let timer=null,searchVersion=0;
     input.addEventListener("input",()=>{
-      clearTimeout(timer);const q=input.value.trim();if(q.length<3){results.replaceChildren();return;}
+      clearTimeout(timer);
+      const q=input.value.trim(),version=++searchVersion;
+      if(q.length<3){results.replaceChildren();results.hidden=true;return;}
+      results.hidden=false;
       timer=setTimeout(async()=>{
         try{
           const places=await searchPlaces(q);
+          if(version!==searchVersion || input.value.trim()!==q)return;
           results.replaceChildren(...places.map(p=>{
             const b=document.createElement("button");b.type="button";b.textContent=p.label;
-            b.addEventListener("click",()=>{input.value=p.label;results.replaceChildren();onSelect(p);});
+            b.setAttribute("role","option");
+            b.addEventListener("click",()=>{
+              searchVersion++;
+              input.value=p.label;
+              results.replaceChildren();
+              results.hidden=true;
+              onSelect(p);
+            });
             return b;
           }));
           if(!places.length){const p=document.createElement("p");p.className="muted";p.textContent="No matching places found. Try a nearby landmark or town.";results.replaceChildren(p);}
-        }catch(e){setStatus(e.message);}
+        }catch(e){if(version===searchVersion)setStatus(e.message);}
       },350);
     });
+    input.addEventListener("blur",()=>setTimeout(()=>{if(document.activeElement!==input)results.hidden=true;},180));
   }
   async function drawRoute(){
     if(!userPoint||!destinationPoint)return;
@@ -461,6 +474,9 @@
     destinationPoint=place;
     window.twendeDestinationCoords=place;
     $("#rideDestination").value=place.label;
+    const destinationResults=$("#twendeDestinationResults");
+    if(destinationResults){destinationResults.replaceChildren();destinationResults.hidden=true;}
+    $("#twendeDestinationSearch").value=place.label;
     if(userPoint){
       try{
         await ensureMap();
