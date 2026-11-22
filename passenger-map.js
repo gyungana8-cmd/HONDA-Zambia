@@ -52,7 +52,7 @@
     <div class="twende-pickup-wrap"><label for="twendePickupSearch">Pickup location</label><input id="twendePickupSearch" type="text" autocomplete="street-address" placeholder="Use GPS or enter pickup location"></div>
     <div class="twende-destination-wrap">
       <label for="twendeDestinationSearch">Where to?</label>
-      <input class="twende-destination-input" id="twendeDestinationSearch" type="search" autocomplete="off" placeholder="Enter destination" aria-label="Where to destination">
+      <input class="twende-destination-input" id="twendeDestinationSearch" type="search" autocomplete="off" placeholder="Search schools, hospitals, markets, roads, compounds or landmarks" aria-label="Search a destination or local landmark">
       <div class="twende-destination-results" id="twendeDestinationResults" role="listbox"></div>
     </div>
     <p id="twendeMapStatus" class="twende-map-status" role="status">Set your location and destination, or choose a TWENDE service below.</p>
@@ -294,7 +294,7 @@
       const term=query.replace(categoryWords," ").replace(/[^a-zA-Z0-9 ]/g," ").replace(/\s+/g," ").trim().slice(0,70);
       const nameFilter=term.length>=3&&!/mufumbwe|north western|zambia/i.test(term)?'["name"~"'+term+'",i]':"";
       const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
-      const searchArea=/mufumbwe/i.test(query)?"(around:60000,-13.13683,25.00296)":bbox;
+      const namedDistrict=/\\b(solwezi|mufumbwe|kasempa|kabompo|manyinga|mwinilunga|zambezi|chavuma|ikelenge|kalumbila)\\b/i.test(query);\n      const userInNorthWest=userPoint&&userPoint.lat<=-8&&userPoint.lat>=-14.8&&userPoint.lng>=21.5&&userPoint.lng<=26.8;\n      const localCenter=/mufumbwe/i.test(query)?{lat:-13.13683,lng:25.00296}:userPoint;\n      const searchArea=!namedDistrict&&userInNorthWest?"(around:60000,"+localCenter.lat+","+localCenter.lng+")":bbox;
       const selectors=[];
       if(/school|primary|secondary|college|university|academy/.test(qLower)) selectors.push('nwr["amenity"~"school|college|university|kindergarten",i]'+nameFilter+searchArea+';');
       if(/hospital|clinic|health|medical|dispensary|pharmacy/.test(qLower)) selectors.push('nwr["amenity"~"hospital|clinic|doctors|health_post|pharmacy",i]'+nameFilter+searchArea+';');
@@ -302,7 +302,7 @@
       if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]'+nameFilter+searchArea+';');
       if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+nameFilter+searchArea+';');selectors.push('nwr["landuse"="residential"]'+nameFilter+searchArea+';');}
       if(!selectors.length) selectors.push('nwr["name"~"'+term+'",i]'+bbox+';');
-      const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center;';
+      const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center 50;';
       const body=new URLSearchParams({data:overpassQuery});
       const response=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});
       if(response.ok){
