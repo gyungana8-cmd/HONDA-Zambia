@@ -143,24 +143,19 @@
     window.addEventListener("resize",()=>{if(map)map.invalidateSize();},{passive:true});
   }
   async function reverse(lat,lng){
+    const fallback="GPS pin ("+Number(lat).toFixed(5)+", "+Number(lng).toFixed(5)+")";
     try{
-      const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng);
+      const url="https://photon.komoot.io/reverse?lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng)+"&lang=en";
       const response=await fetch(url,{headers:{Accept:"application/json"}});
       if(response.ok){
-        const data=await response.json(),a=data.address||{};
-        // Prefer a useful local pickup label over a long administrative string.
-        const locality=a.suburb||a.neighbourhood||a.village||a.town||a.city||a.hamlet||a.county;
-        const road=[a.house_number,a.road].filter(Boolean).join(" ");
-        const localParts=[road,locality].filter(Boolean);
-        // Never display a province-only reverse-geocode result as the passenger's pickup.
-        // If the map provider cannot identify a nearby locality, keep the exact GPS pin visible.
-        if(localParts.length){
-          const parts=[...localParts,a.city_district,a.state,a.country].filter(Boolean);
-          return [...new Set(parts)].join(", ");
-        }
+        const data=await response.json();
+        const p=data.features?.[0]?.properties||{};
+        const road=[p.housenumber,p.street].filter(Boolean).join(" ");
+        const local=[p.name,road,p.district,p.city||p.county].filter(Boolean);
+        if(local.length)return [...new Set([...local,p.state,p.country||"Zambia"].filter(Boolean))].join(", ");
       }
-    }catch(error){console.warn("TWENDE GPS address lookup:",error);}
-    return "GPS location ("+Number(lat).toFixed(5)+", "+Number(lng).toFixed(5)+")";
+    }catch(error){console.warn("TWENDE Photon reverse lookup:",error);}
+    return fallback;
   }
   function showPickup(){
     if(!map||!userPoint)return;
@@ -355,28 +350,13 @@
       const n=name.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
       return n.includes(normalizedSchoolQuery)||normalizedSchoolQuery.includes(n);
     });
-    // If the government point layer does not contain a supplied school name,
-    // ask the geocoder specifically for that school in Mufumbwe, Zambia.
-    for(const schoolName of matchingMufumbweSchools){
-      try{
-        const params=new URLSearchParams({format:"jsonv2",q:schoolName+", Mufumbwe, North-Western Province, Zambia",countrycodes:"zm",limit:"3",addressdetails:"1"});
-        const r=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
-        if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,[schoolName,"Mufumbwe","North-Western Province","Zambia"].join(", "));}
-      }catch(e){console.warn("Mufumbwe school lookup:",schoolName,e);}
-    }
-    // Verified official facility entry: Mufumbwe District Hospital.
+    // School matches are sourced from the GRID3 point register, Photon and regional OSM results.\n    // Verified official facility entry: Mufumbwe District Hospital.
     // Keep this local record so the exact hospital remains searchable even when
     // third-party geocoders omit or mislabel the facility.
     const normalizedQuery=query.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
     if(normalizedQuery.includes("mufumbwe") && (normalizedQuery.includes("hospital") || normalizedQuery.includes("district"))){
       add(-13.144667,25.034417,"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia");
     }
-    // Nominatim fallback broadens results to named places throughout Zambia.
-    try{
-      const params=new URLSearchParams({format:"jsonv2",q:query+", Zambia",countrycodes:"zm",limit:"10",addressdetails:"1"});
-      const r=await fetch("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json"}});
-      if(r.ok){const rows=await r.json();for(const item of rows||[])add(item.lat,item.lon,item.display_name||query);}
-    }catch(e){console.warn("Nominatim search:",e);}
     // Verified directory fallback for Mufumbwe District Hospital.
     // Coordinates cross-checked against Zambia's consolidated health-facility register.
     if (/mufumbwe.*district.*hospital|district.*hospital.*mufumbwe|mufumbwe hospital/i.test(query)) {
