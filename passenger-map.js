@@ -302,7 +302,7 @@
       if(/road|street|avenue|highway/.test(qLower)) selectors.push('way["highway"]'+nameFilter+searchArea+';');
       if(/compound|township|residential|neighbourhood|neighborhood/.test(qLower)){selectors.push('nwr["place"~"suburb|neighbourhood|quarter|residential",i]'+nameFilter+searchArea+';');selectors.push('nwr["landuse"="residential"]'+nameFilter+searchArea+';');}
       if(!selectors.length) selectors.push('nwr["name"~"'+term+'",i]'+bbox+';');
-      const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center tags;';
+      const overpassQuery='[out:json][timeout:18];('+selectors.join('')+');out center;';
       const body=new URLSearchParams({data:overpassQuery});
       const response=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});
       if(response.ok){
