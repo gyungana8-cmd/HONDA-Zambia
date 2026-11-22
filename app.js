@@ -562,7 +562,8 @@ let pendingPassengerService=null;
 function openRideDialog(service) {
   selectedRideService=service;pendingPassengerService=service;
   $("#rideServiceType").value=service;
-  $("#rideDialogTitle").textContent=service==="car"?"Request a car taxi":"Request a motorcycle taxi";
+  $("#rideDialogTitle").textContent=service==="car"?"Choose a car taxi":"Choose a motorcycle taxi";
+  $("#selectedTwendeVehicleId").value="";$("#rideRequestSubmit").disabled=true;$("#rideRequestSubmit").textContent="Choose a vehicle first";
   const pickup=$("#ridePickup"), destination=$("#rideDestination");
   if(pickup&&!pickup.value){
     const current=$("#twendeCurrentLocation")?.textContent?.trim();
@@ -597,6 +598,8 @@ function openRideDialog(service) {
       $("#passengerName").value=profile.full_name||user.user_metadata?.full_name||"";
       $("#passengerPhone").value=user.phone||profile.phone||user.user_metadata?.phone||"";
       if(!$("#rideDialog").open)$("#rideDialog").showModal();
+      $("#twendePickerPickup").textContent=$("#ridePickup").value||"Set pickup location on the homepage";
+      $("#twendePickerDestination").textContent=$("#rideDestination").value||"Enter destination on the homepage";
       await loadAvailableTaxiFleet(service);
     }catch(error){
       console.error("TWENDE passenger setup:",error);
@@ -636,7 +639,9 @@ async function submitTwendeTaxiRequest(){
     const pickup=$("#ridePickup").value.trim();
     const destination=$("#rideDestination").value.trim();
     const service=$("#rideServiceType").value;
-    if(!passengerName||!passengerPhone||!pickup||!destination)throw new Error("Please complete your name, phone number, pickup and destination.");
+    const selectedVehicleId=$("#selectedTwendeVehicleId").value;
+    if(!passengerName||!passengerPhone||!pickup||!destination)throw new Error("Please set your pickup and destination on the homepage.");
+    if(!selectedVehicleId)throw new Error("Choose one of the available vehicles before requesting your taxi.");
     // Calculate and save the actual route-based fare with the booking. Do not
     // create a fare-less ride request when the tariff cannot be verified.
     let fareEstimate=window.getTwendePassengerFareEstimate?.();
@@ -649,7 +654,7 @@ async function submitTwendeTaxiRequest(){
     }
     const row={
       rider_id:user.id,passenger_name:passengerName,passenger_phone:passengerPhone,
-      service_type:service,pickup_text:pickup,destination_text:destination,
+      service_type:service,driver_vehicle_id:selectedVehicleId,pickup_text:pickup,destination_text:destination,
       pickup_lat:fareEstimate.pickup.lat,pickup_lng:fareEstimate.pickup.lng,
       destination_lat:fareEstimate.destination.lat,destination_lng:fareEstimate.destination.lng,
       route_distance_km:Number(fareEstimate.km.toFixed(2)),
@@ -687,8 +692,9 @@ async function loadAvailableTaxiFleet(service=selectedRideService){
      host.innerHTML='<p class="muted">Nearby vehicles could not be loaded. Please try again.</p>';return;
    }
    const rows=(data||[]).filter(v=>v.vehicle_type===service);
-   const card=v=>`<article class="fleet-vehicle-card">${v.vehicle_photo_url?`<img class="twende-fleet-photo" src="${esc(v.vehicle_photo_url)}" alt="${esc((v.vehicle_color||"")+" "+(v.vehicle_make||"")+" "+(v.vehicle_model||""))}" loading="lazy">`:twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")} ${esc(v.vehicle_model||"")}</strong><span>Colour: ${esc(v.vehicle_color||"Not recorded")}</span><span>Driver: ${esc(v.driver_name||"TWENDE driver")}</span></div></article>`;
-   host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online nearby at the moment.</p>`;
+    const card=v=>`<article class="fleet-vehicle-card" data-vehicle-card="${esc(v.id)}">${v.vehicle_photo_url?`<img class="twende-fleet-photo" src="${esc(v.vehicle_photo_url)}" alt="${esc((v.vehicle_color||"")+" "+(v.vehicle_make||"")+" "+(v.vehicle_model||""))}" loading="lazy">`:twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")} ${esc(v.vehicle_model||"")}</strong><span>Colour: ${esc(v.vehicle_color||"Not recorded")}</span><span>Driver: ${esc(v.driver_name||"TWENDE driver")}</span><button type="button" class="twende-select-vehicle" data-select-vehicle="${esc(v.id)}">Choose this taxi</button></div></article>`;
+    host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online nearby at the moment.</p>`;
+    host.querySelectorAll("[data-select-vehicle]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.selectVehicle;$("#selectedTwendeVehicleId").value=id;host.querySelectorAll(".fleet-vehicle-card").forEach(card=>card.classList.toggle("is-selected",card.dataset.vehicleCard===id));host.querySelectorAll("[data-select-vehicle]").forEach(b=>{b.textContent=b.dataset.selectVehicle===id?"Selected":"Choose this taxi";});$("#rideRequestSubmit").disabled=false;$("#rideRequestSubmit").textContent="Confirm booking";}));
  }
  async function loadPassengerRides(){
   const host=$("#passengerRides");if(!host)return;
