@@ -73,12 +73,7 @@
   // Surface passenger tools to both signed-out and passenger sessions; operator dashboards remain unchanged.
   document.body.classList.add("twende-passenger-ui");
   const originalSplash=$("#twendeSplash");if(originalSplash){originalSplash.setAttribute("aria-label","TWENDE Zambia — Move with confidence");}
-  // Add saved-place quick select above booking inputs when the booking form is opened.
-  const rideForm=$("#rideForm");if(rideForm){
-    const quick=document.createElement("div");quick.className="twende-quick-address";quick.innerHTML='<label>Saved place<select id="twendeQuickAddress"><option value="">Choose a saved address…</option></select></label><button type="button" class="btn btn-outline" id="twendeSaveCurrentAddress">Save pickup</button>';
-    const pickup=$("#ridePickup")?.parentElement;if(pickup)pickup.after(quick);
-    const refresh=()=>{const select=$("#twendeQuickAddress");if(!select)return;select.innerHTML='<option value="">Choose a saved address…</option>'+saved().map((x,i)=>'<option value="'+i+'">'+esc(x.name)+" — "+esc(x.value)+'</option>').join("");};
-    refresh();$("#twendeQuickAddress").onchange=()=>{const x=saved()[Number($("#twendeQuickAddress").value)];if(x)$("#ridePickup").value=x.value;};
-    $("#twendeSaveCurrentAddress").onclick=()=>{const value=$("#ridePickup").value.trim();if(!value){alert("Enter a pickup address first.");return;}const name=prompt("Name this address, for example Home:");if(!name)return;const rows=saved();rows.push({name,value});store(rows);refresh();};
-  }
+  // Saved addresses remain available in the passenger profile hub.
+  // The booking sheet intentionally does not inject a second long address form.
+
 })();
