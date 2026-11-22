@@ -21,10 +21,10 @@
     bg.style.backgroundImage=bgUrl?"url('"+bgUrl.replace(/'/g,"%27")+"')":"none";
     const carUrl=publicUrl(settings.hero_car_path);
     const bikeUrl=publicUrl(settings.hero_motorcycle_path);
-    const car=hero.querySelector(".twende-hero-car");
-    const bike=hero.querySelector(".twende-hero-motorcycle");
-    if(car&&carUrl)car.src=carUrl;
-    if(bike&&bikeUrl)bike.src=bikeUrl;
+    // The top hero uses the background image only. Vehicle images belong exclusively
+    // in the two ride-selection cards below, preventing duplicate vehicles in the banner.
+    const vehicleLayer=hero.querySelector(".twende-passenger-hero-vehicles");
+    if(vehicleLayer)vehicleLayer.hidden=true;
 
     // Keep the two service-selection cards in sync with the same Admin-managed assets.
     // These cards previously used fixed local files, so Admin uploads never reached them.
