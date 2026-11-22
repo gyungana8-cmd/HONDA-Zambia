@@ -578,7 +578,22 @@ $("#menuBtn").onclick=()=>window.twendeShowRoleMenu?.();
    Live map/GPS matching and fare routing are intentionally not claimed until a maps provider is configured. */
 let selectedRideService = "motorcycle";
 let pendingPassengerService=null;
+function clearTwendeRidePickerState(){
+  const message=$("#rideSubmitMessage");
+  if(message){
+    message.hidden=true;
+    message.textContent="";
+    message.classList.remove("is-visible");
+    message.style.removeProperty("display");
+    message.style.removeProperty("visibility");
+  }
+  const selected=$("#selectedTwendeVehicleId");
+  if(selected)selected.value="";
+  const button=$("#rideRequestSubmit");
+  if(button){button.disabled=true;button.textContent="Choose a vehicle first";}
+}
 function openRideDialog(service) {
+  clearTwendeRidePickerState();
   selectedRideService=service;pendingPassengerService=service;
   $("#rideServiceType").value=service;
   $("#rideDialogTitle").textContent=service==="car"?"Choose a car taxi":"Choose a motorcycle taxi";
@@ -698,8 +713,15 @@ async function submitTwendeTaxiRequest(){
       if(insertResult.error.code==="42703")throw new Error("Booking database update is required. Apply supabase/twende_booking_reliability_fix.sql first.");
       throw new Error("Booking failed: "+(insertResult.error.message||"database error"));
     }
+    // The database has confirmed the booking. Close the picker immediately,
+    // remove its transient sending state, and leave the ride request active.
     twendeTaxiRequestKey=null;
-    closeDialog("rideDialog");form.reset();
+    const rideDialog=$("#rideDialog");
+    if(rideDialog?.open)rideDialog.close();
+    form.reset();
+    clearTwendeRidePickerState();
+    const fleet=$("#nearbyTaxiFleet");
+    if(fleet)fleet.innerHTML='<p class="muted">Choose a taxi service to make another request.</p>';
     toast("Taxi request sent successfully. Waiting for the selected driver.");
     void loadPassengerRides().catch(error=>console.warn("Passenger history refresh:",error));
     if(typeof loadAvailableTaxiFleet==="function")void loadAvailableTaxiFleet();
@@ -711,8 +733,12 @@ async function submitTwendeTaxiRequest(){
     toast(message);
   }finally{
     twendeTaxiSubmitInFlight=false;
-    b.disabled=false;
-    b.textContent=$("#selectedTwendeVehicleId")?.value?"Confirm booking":"Choose a vehicle first";
+    // Restore controls only when the dialog remains open (validation/network
+    // error). A confirmed booking has already closed and reset the picker.
+    if($("#rideDialog")?.open){
+      b.disabled=!$("#selectedTwendeVehicleId")?.value;
+      b.textContent=$("#selectedTwendeVehicleId")?.value?"Confirm booking":"Choose a vehicle first";
+    }
   }
 }
 window.submitTwendeTaxiRequest=submitTwendeTaxiRequest;
