@@ -27,11 +27,13 @@
   }
 
   async function reverseGeocode(lat,lng) {
-    const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng);
+    const url="https://photon.komoot.io/reverse?lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng)+"&lang=en";
     const response=await fetch(url,{headers:{Accept:"application/json"}});
-    if(!response.ok) throw new Error("GPS found your position, but the address could not be identified. Enter your pickup manually.");
-    const data=await response.json();
-    return data.display_name||"Current GPS location";
+    if(!response.ok) throw new Error("GPS found your position, but the nearby place name could not be identified. Use the map pin or enter your pickup manually.");
+    const data=await response.json(),p=data.features?.[0]?.properties||{};
+    const road=[p.housenumber,p.street].filter(Boolean).join(" ");
+    const parts=[p.name,road,p.district,p.city||p.county,p.state,p.country||"Zambia"].filter(Boolean);
+    return parts.length? [...new Set(parts)].join(", "):"GPS pin ("+Number(lat).toFixed(5)+", "+Number(lng).toFixed(5)+")";
   }
   window.twendeCapturePassengerLocation=async()=>{
     const p=await getPosition();
