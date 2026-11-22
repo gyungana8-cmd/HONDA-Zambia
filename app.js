@@ -1101,12 +1101,32 @@ async function loadTwendeNotifications(){
  if(!host)return;
  if(!currentUser){host.innerHTML='<p class="muted">Open a passenger or partner session to view booking updates.</p>';if(badge)badge.classList.add("hidden");return;}
  host.innerHTML='<p class="muted">Checking your latest booking updates…</p>';
- let query=db.from("ride_requests").select("id,service_type,pickup_text,destination_text,status,created_at,rider_id,driver_id").order("created_at",{ascending:false}).limit(30);
- if(isGuestRider()||role==="rider")query=query.eq("rider_id",currentUser.id);
- else if(role==="driver")query=query.or("status.eq.pending,driver_id.eq."+currentUser.id);
- else if(role==="owner")query=query.or("status.eq.pending,driver_id.eq."+currentUser.id);
- // Verified administrators can see system-wide booking activity.
- const {data,error}=await query;
+ const fields="id,service_type,pickup_text,destination_text,status,created_at,rider_id,driver_id,driver_vehicle_id";
+ let data=null,error=null;
+ if(isGuestRider()||role==="rider"){
+  const result=await db.from("ride_requests").select(fields).eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(30);
+  data=result.data;error=result.error;
+ }else if(role==="driver"){
+  // Use the same secured queue as the driver dashboard so a request assigned
+  // to this driver's selected vehicle appears in the bell even before acceptance.
+  const result=await db.rpc("twende_driver_ride_queue");
+  data=result.data||null;error=result.error;
+  if(!error)data=(data||[]).slice(0,30);
+ }else if(role==="owner"){
+  const vehicles=await db.from("driver_vehicles").select("id").eq("owner_id",currentUser.id);
+  if(vehicles.error){error=vehicles.error;}
+  else{
+   const ids=(vehicles.data||[]).map(v=>v.id);
+   if(ids.length){
+    const result=await db.from("ride_requests").select(fields).in("driver_vehicle_id",ids).order("created_at",{ascending:false}).limit(30);
+    data=result.data;error=result.error;
+   }else data=[];
+  }
+ }else{
+  // Verified administrators can see system-wide booking activity subject to RLS.
+  const result=await db.from("ride_requests").select(fields).order("created_at",{ascending:false}).limit(30);
+  data=result.data;error=result.error;
+ }
  if(error){console.warn("TWENDE notifications:",error);host.innerHTML='<p class="muted">Booking notifications could not be loaded. Check your connection or access permissions, then refresh.</p>';if(badge)badge.classList.add("hidden");return;}
  const rows=data||[];
  const pending=rows.filter(x=>x.status==="pending").length;
