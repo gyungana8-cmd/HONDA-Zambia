@@ -127,11 +127,13 @@ public class TwendeFirebaseMessagingService extends FirebaseMessagingService {
         PendingIntent pending = launch == null ? null : PendingIntent.getActivity(
             this, 0, launch, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(getApplicationInfo().icon)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVibrate(new long[]{0, 500, 250, 500})
             .setAutoCancel(true);
         if (pending != null) builder.setContentIntent(pending);
         manager.notify((int) System.currentTimeMillis(), builder.build());
