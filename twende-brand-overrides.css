@@ -940,3 +940,44 @@ body.passenger-mode #ride-services .service-vehicle-image{background:linear-grad
  body.passenger-mode #ride-services .service-card{grid-template-columns:minmax(0,1.1fr) minmax(106px,.9fr)!important}
  body.passenger-mode #ride-services .service-vehicle-image{height:130px!important}
 }
+
+
+/* TWENDE branded taxi hero v2: use the approved branded car illustration,
+   strengthen the brand callout, and keep the hero clean of national flags. */
+body.passenger-mode .twende-passenger-hero{
+ background:
+  radial-gradient(ellipse at 76% 74%,rgba(255,204,0,.24),transparent 38%),
+  linear-gradient(120deg,#071c32 0%,#123e5c 48%,#182c35 100%)!important;
+}
+body.passenger-mode .twende-passenger-hero-copy strong em{
+ display:inline-block;color:#ffcc00;font-style:italic;font-weight:1000;
+ text-shadow:0 2px 10px #0008;
+}
+body.passenger-mode .twende-passenger-hero-vehicles{
+ right:0!important;width:65%!important;height:91%!important;
+}
+body.passenger-mode .twende-passenger-hero-vehicles .twende-hero-car{
+ width:78%!important;height:72%!important;right:18%!important;bottom:1%!important;
+ object-fit:contain!important;filter:drop-shadow(0 15px 14px #0008);
+}
+body.passenger-mode .twende-passenger-hero-vehicles .twende-hero-motorcycle{
+ width:43%!important;height:66%!important;right:0!important;left:auto!important;bottom:0!important;
+ object-fit:contain!important;filter:drop-shadow(0 15px 14px #0009);
+}
+body.passenger-mode .twende-hero-bike-brand{
+ position:absolute;z-index:5;right:3%;bottom:34%;padding:5px 8px;
+ border-radius:7px;background:#ffcc00;color:#171717;text-align:center;
+ font-size:11px;font-weight:1000;line-height:1.05;letter-spacing:.03em;
+ box-shadow:0 2px 8px #0006;transform:rotate(-5deg);
+}
+body.passenger-mode .twende-hero-bike-brand small{font-size:7px;letter-spacing:.02em}
+@media(max-width:800px){
+ body.passenger-mode .twende-passenger-hero{height:300px!important;min-height:300px!important}
+ body.passenger-mode .twende-passenger-hero-copy{max-width:65%!important}
+ body.passenger-mode .twende-passenger-hero-copy strong{font-size:clamp(25px,7.2vw,36px)!important}
+ body.passenger-mode .twende-passenger-hero-vehicles{right:-3%!important;width:76%!important;height:78%!important}
+ body.passenger-mode .twende-passenger-hero-vehicles .twende-hero-car{width:83%!important;height:65%!important;right:16%!important}
+ body.passenger-mode .twende-passenger-hero-vehicles .twende-hero-motorcycle{width:45%!important;height:61%!important;right:0!important}
+ body.passenger-mode .twende-hero-bike-brand{right:2%;bottom:32%;font-size:9px;padding:4px 6px}
+ body.passenger-mode .twende-hero-bike-brand small{font-size:6px}
+}
