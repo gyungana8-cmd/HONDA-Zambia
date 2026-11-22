@@ -402,13 +402,14 @@
     try{
       const {data,error}=await window.twendeDb.rpc("get_nearby_twende_drivers",{p_latitude:userPoint.lat,p_longitude:userPoint.lng,p_radius_km:15});
       if(error)throw error;
-      const rows=data||[],active=new Set(rows.map(x=>x.driver_id));
+      const rows=data||[],active=new Set(rows.map(x=>x.vehicle_id||[x.driver_id,x.vehicle_type].join(":")));
       for(const [id,m] of driverMarkers){if(!active.has(id)){map.removeLayer(m);driverMarkers.delete(id);}}
       for(const d of rows){
         const p=[Number(d.latitude),Number(d.longitude)];
-        let marker=driverMarkers.get(d.driver_id);
+        const markerId=d.vehicle_id||[d.driver_id,d.vehicle_type].join(":");
+        let marker=driverMarkers.get(markerId);
         const car=d.vehicle_type==="car";
-        if(!marker){marker=L.marker(p,{icon:pin(car?"#1769aa":"#198754",car?"🚕":"🏍️")}).addTo(map);driverMarkers.set(d.driver_id,marker);}
+        if(!marker){marker=L.marker(p,{icon:pin(car?"#1769aa":"#198754",car?"🚕":"🏍️")}).addTo(map);driverMarkers.set(markerId,marker);}
         else marker.setLatLng(p);
         const safe=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
         const photo=d.vehicle_photo_url?'<img src="'+safe(d.vehicle_photo_url)+'" alt="Vehicle photo" style="width:100%;max-width:230px;height:125px;object-fit:cover;border-radius:9px;margin-bottom:7px">':'';
@@ -417,11 +418,13 @@
           '<strong>'+vehicleName+'</strong><br>'+
           'Colour: <strong>'+safe(d.vehicle_color||"Not provided")+'</strong><br>'+
           'Registration: <strong>'+safe(d.plate_number||"Not provided")+'</strong><br>'+
-          '<span style="color:#16803c;font-weight:700">Available • Online</span></div>';
+          '<span style="color:#16803c;font-weight:700">Available • Online</span><br>'+
+          '<span>Distance: <strong>'+Number(d.distance_km||0).toFixed(1)+' km</strong></span><br>'+
+          '<span>Driver: <strong>'+safe(d.driver_name||"TWENDE driver")+'</strong></span></div>';
         marker.bindPopup(details);
         // Keep the actual vehicle identity visible beside its map marker,
         // rather than showing only a generic car/motorcycle icon.
-        const markerLabel=vehicleName+" • "+safe(d.plate_number||"Registration unavailable");
+        const markerLabel=vehicleName+" • "+Number(d.distance_km||0).toFixed(1)+" km";
         marker.bindTooltip(markerLabel,{permanent:true,direction:"top",offset:[0,-24],opacity:0.96,className:"twende-vehicle-map-label"});
       }
       setStatus(rows.length?rows.length+" nearby TWENDE driver"+(rows.length===1?"":"s")+" online within 15 km.":"No online TWENDE taxis found within 15 km yet. Try again shortly.");
@@ -472,7 +475,7 @@
   window.addEventListener("twende-session-ready",()=>{if(map&&userPoint)refreshDrivers();});
   const originalRefresh=window.refreshTwendeRideViews;
   window.refreshTwendeRideViews=async()=>{await originalRefresh?.();if(map&&userPoint)await refreshDrivers();};
-  refreshTimer=setInterval(()=>{if(map&&userPoint&&window.currentTwendeUser)refreshDrivers();},45000);
+  refreshTimer=setInterval(()=>{if(map&&userPoint&&window.currentTwendeUser)refreshDrivers();},20000);
   window.addEventListener("beforeunload",()=>clearInterval(refreshTimer));
   $("#twendeMapDetails")?.addEventListener("toggle",()=>{if($("#twendeMapDetails").open)ensureMap().then(()=>setTimeout(()=>map?.invalidateSize(true),100)).catch(e=>setStatus(e.message));});
 })();
