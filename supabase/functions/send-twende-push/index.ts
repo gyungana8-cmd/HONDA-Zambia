@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       const response = await fetch("https://fcm.googleapis.com/v1/projects/" + sa.project_id + "/messages:send", {
         method: "POST",
         headers: { "Authorization": "Bearer " + accessToken, "Content-Type": "application/json" },
-        body: JSON.stringify({ message: { token: item.token, android: { priority: "HIGH", ttl: "45s" }, data: {
+        body: JSON.stringify({ message: { token: item.token, android: { priority: "HIGH", ttl: "900s" }, data: {
           title, body, table, event_type: type, record_id: String(record.id || ""),
           ride_id: String(record.id || ""),
           action_type: record.status === "pending" && table === "ride_requests" ? "ride_request" : "ride_update"
