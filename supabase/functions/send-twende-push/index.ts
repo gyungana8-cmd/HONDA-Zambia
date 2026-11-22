@@ -108,11 +108,28 @@ Deno.serve(async (req) => {
       const response = await fetch("https://fcm.googleapis.com/v1/projects/" + sa.project_id + "/messages:send", {
         method: "POST",
         headers: { "Authorization": "Bearer " + accessToken, "Content-Type": "application/json" },
-        body: JSON.stringify({ message: { token: item.token, android: { priority: "HIGH", ttl: "900s" }, data: {
-          title, body, table, event_type: type, record_id: String(record.id || ""),
-          ride_id: String(record.id || ""),
-          action_type: record.status === "pending" && table === "ride_requests" ? "ride_request" : "ride_update"
-        } } }),
+        body: JSON.stringify({ message: {
+          token: item.token,
+          // A notification payload lets Android display the alert itself when
+          // the driver app is backgrounded or its WebView is suspended.
+          notification: { title, body },
+          android: {
+            priority: "HIGH",
+            ttl: "900s",
+            notification: {
+              channel_id: "twende_bookings",
+              sound: "default",
+              default_sound: true,
+              default_vibrate_timings: true,
+              priority: "PRIORITY_MAX"
+            }
+          },
+          data: {
+            title, body, table, event_type: type, record_id: String(record.id || ""),
+            ride_id: String(record.id || ""),
+            action_type: record.status === "pending" && table === "ride_requests" ? "ride_request" : "ride_update"
+          }
+        } }),
       });
       if (response.ok) sent++;
       else failures.push({ status: response.status, response: await response.text() });
