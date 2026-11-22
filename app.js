@@ -684,17 +684,31 @@ $("#rideForm").addEventListener("submit",e=>{e.preventDefault();submitTwendeTaxi
 async function loadAvailableTaxiFleet(service=selectedRideService){
    const host=$("#nearbyTaxiFleet");
    if(!host)return;
-   host.innerHTML='<p class="muted">Checking available vehicles…</p>';
+   host.innerHTML='<p class="muted">Finding online TWENDE taxis within 15 km…</p>';
    if(!currentUser){host.innerHTML='<p class="muted">Passenger connection is starting…</p>';return;}
-   const {data,error}=await db.rpc("get_available_twende_vehicles");
+   const pickup=window.twendePickupCoords;
+   if(!pickup||!Number.isFinite(Number(pickup.lat))||!Number.isFinite(Number(pickup.lng))){
+     host.innerHTML='<p class="muted">Use GPS or set your pickup on the map first. TWENDE searches for online taxis within 15 km of your pickup.</p>';
+     return;
+   }
+   const {data,error}=await db.rpc("get_nearby_twende_drivers",{
+     p_latitude:Number(pickup.lat),p_longitude:Number(pickup.lng),p_radius_km:15
+   });
    if(error){
-     console.warn("Available taxi fleet:",error);
-     host.innerHTML='<p class="muted">Nearby vehicles could not be loaded. Please try again.</p>';return;
+     console.warn("Nearby online TWENDE vehicles:",error);
+     host.innerHTML='<p class="muted">Nearby taxis could not be loaded. Check the 15 km passenger-discovery SQL migration and try again.</p>';return;
    }
    const rows=(data||[]).filter(v=>v.vehicle_type===service);
-    const card=v=>`<article class="fleet-vehicle-card" data-vehicle-card="${esc(v.id)}">${v.vehicle_photo_url?`<img class="twende-fleet-photo" src="${esc(v.vehicle_photo_url)}" alt="${esc((v.vehicle_color||"")+" "+(v.vehicle_make||"")+" "+(v.vehicle_model||""))}" loading="lazy">`:twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")} ${esc(v.vehicle_model||"")}</strong><span>Colour: ${esc(v.vehicle_color||"Not recorded")}</span><span>Driver: ${esc(v.driver_name||"TWENDE driver")}</span><button type="button" class="twende-select-vehicle" data-select-vehicle="${esc(v.id)}">Choose this taxi</button></div></article>`;
-    host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online nearby at the moment.</p>`;
-    host.querySelectorAll("[data-select-vehicle]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.selectVehicle;$("#selectedTwendeVehicleId").value=id;host.querySelectorAll(".fleet-vehicle-card").forEach(card=>card.classList.toggle("is-selected",card.dataset.vehicleCard===id));host.querySelectorAll("[data-select-vehicle]").forEach(b=>{b.textContent=b.dataset.selectVehicle===id?"Selected":"Choose this taxi";});$("#rideRequestSubmit").disabled=false;$("#rideRequestSubmit").textContent="Confirm booking";}));
+   const card=v=>`<article class="fleet-vehicle-card" data-vehicle-card="${esc(v.vehicle_id)}">${v.vehicle_photo_url?`<img class="twende-fleet-photo" src="${esc(v.vehicle_photo_url)}" alt="${esc((v.vehicle_color||"")+" "+(v.vehicle_make||"")+" "+(v.vehicle_model||""))}" loading="lazy">`:twendeVehicleImage(service,service==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div class="fleet-vehicle-details"><span class="fleet-brand-tag">TWENDE ${service==="car"?"CAR TAXI":"MOTORCYCLE TAXI"}</span><div class="fleet-plate">${esc(v.plate_number||"Registration pending")}</div><strong>${esc(v.vehicle_make||"Make not supplied")} ${esc(v.vehicle_model||"")}</strong><span>Colour: ${esc(v.vehicle_color||"Not recorded")}</span><span>Driver: ${esc(v.driver_name||"TWENDE driver")}</span><span><strong>${Number(v.distance_km||0).toFixed(1)} km away</strong> • Online now</span><button type="button" class="twende-select-vehicle" data-select-vehicle="${esc(v.vehicle_id)}">Choose this taxi</button></div></article>`;
+   host.innerHTML=rows.map(card).join("")||`<p class="muted">No ${service==="car"?"car taxis":"motorcycle taxis"} are online within 15 km of your pickup right now. Try again shortly.</p>`;
+   host.querySelectorAll("[data-select-vehicle]").forEach(button=>button.addEventListener("click",()=>{
+     const id=button.dataset.selectVehicle;
+     $("#selectedTwendeVehicleId").value=id;
+     host.querySelectorAll(".fleet-vehicle-card").forEach(card=>card.classList.toggle("is-selected",card.dataset.vehicleCard===id));
+     host.querySelectorAll("[data-select-vehicle]").forEach(b=>{b.textContent=b.dataset.selectVehicle===id?"Selected":"Choose this taxi";});
+     $("#rideRequestSubmit").disabled=false;
+     $("#rideRequestSubmit").textContent="Confirm booking";
+   }));
  }
  async function loadPassengerRides(){
   const host=$("#passengerRides");if(!host)return;
