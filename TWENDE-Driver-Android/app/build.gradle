@@ -23,3 +23,5 @@ dependencies {
     implementation 'androidx.core:core:1.15.0'
     implementation 'androidx.appcompat:appcompat:1.7.0'
 }
+
+// TWENDE Partner v1.0.4: booking alert channel refresh and dashboard alarm.
