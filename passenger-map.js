@@ -266,7 +266,7 @@
        (isNearMufumbwe && (localQuery==="hospital" || localQuery==="district hospital" || localQuery==="mufumbwe hospital"))){
       return [{lat:-13.144667,lng:25.034417,label:"Mufumbwe District Hospital, Mufumbwe, North-Western Province, Zambia"}];
     }
-    const normalized=normalizedInput.replace(/\\s+/g," ");
+    const normalized=normalizedInput.replace(/\s+/g," ");
     if(cache.has(normalized))return cache.get(normalized);
     const center=userPoint||{lat:fallbackCenter[0],lng:fallbackCenter[1]};
     const found=[],seen=new Set();
@@ -295,8 +295,8 @@
     // Coverage depends on what local contributors have mapped.
     try{
       const qLower=query.toLowerCase();
-      const categoryWords=/\\b(schools?|primary|secondary|colleges?|universities|academies|hospitals?|clinics?|health|medical|dispensaries|pharmacies|markets?|trading|shops?|roads?|streets?|avenues?|highways?|compounds?|townships?|residential|neighbourhoods?|neighborhoods?)\\b/gi;
-      const term=query.replace(categoryWords," ").replace(/[^a-zA-Z0-9 ]/g," ").replace(/\\s+/g," ").trim().slice(0,70);
+      const categoryWords=/\b(schools?|primary|secondary|colleges?|universities|academies|hospitals?|clinics?|health|medical|dispensaries|pharmacies|markets?|trading|shops?|roads?|streets?|avenues?|highways?|compounds?|townships?|residential|neighbourhoods?|neighborhoods?)\b/gi;
+      const term=query.replace(categoryWords," ").replace(/[^a-zA-Z0-9 ]/g," ").replace(/\s+/g," ").trim().slice(0,70);
       const nameFilter=term.length>=3?'["name"~"'+term+'",i]':"";
       const bbox="(-14.8,21.5,-8.0,26.8)"; // south,west,north,east
       const selectors=[];
