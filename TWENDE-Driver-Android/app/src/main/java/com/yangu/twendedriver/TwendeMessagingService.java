@@ -65,7 +65,7 @@ public class TwendeMessagingService extends FirebaseMessagingService {
                 rejectIntent, flags);
             builder.addAction(android.R.drawable.checkbox_on_background, "Accept", acceptPending);
             builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Reject", rejectPending);
-            builder.setTimeoutAfter(45000);
+            builder.setTimeoutAfter(15 * 60 * 1000L);
         }
 
         int notificationId = rideId == null || rideId.isEmpty()
