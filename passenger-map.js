@@ -46,6 +46,7 @@
       <div class="twende-location-copy"><strong>Your location</strong><span id="twendeCurrentLocation">Location not set yet</span></div>
       <button class="twende-location-action" id="twendeLocateMe" type="button">Use GPS</button>
     </div>
+    <div class="twende-pickup-wrap"><label for="twendePickupSearch">Pickup location</label><input id="twendePickupSearch" type="text" autocomplete="street-address" placeholder="Use GPS or enter pickup location"></div>
     <div class="twende-destination-wrap">
       <label for="twendeDestinationSearch">Where to?</label>
       <input class="twende-destination-input" id="twendeDestinationSearch" type="search" autocomplete="off" placeholder="Enter destination" aria-label="Where to destination">
@@ -204,6 +205,7 @@
     userPoint={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"Current GPS location ("+pos.coords.latitude.toFixed(5)+", "+pos.coords.longitude.toFixed(5)+")"};
     window.twendePickupCoords=userPoint;
     $("#ridePickup").value=userPoint.label;
+    if($("#twendePickupSearch"))$("#twendePickupSearch").value=userPoint.label;
     const locationLabel=$("#twendeCurrentLocation");
     if(locationLabel)locationLabel.textContent="Finding your address…";
     destinationPoint=null;
@@ -416,6 +418,11 @@
       button.disabled=false;
       button.textContent="Use GPS";
     }
+  });
+  $("#twendePickupSearch").addEventListener("input",()=>{
+    const value=$("#twendePickupSearch").value.trim();
+    $("#ridePickup").value=value;
+    if(value)window.twendePickupCoords=null;
   });
   $("#twendeDestinationSearch").addEventListener("input",()=>{
     const typed=$("#twendeDestinationSearch").value.trim();
