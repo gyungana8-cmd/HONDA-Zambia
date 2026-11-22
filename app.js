@@ -699,9 +699,23 @@ async function loadAvailableTaxiFleet(service=selectedRideService){
  async function loadPassengerRides(){
   const host=$("#passengerRides");if(!host)return;
   if(!currentUser){host.innerHTML='<p class="muted">Sign in to see your taxi requests.</p>';return;}
-  const {data,error}=await db.from("ride_requests").select("id,service_type,pickup_text,destination_text,payment_method,status,created_at,route_distance_km,estimated_fare").eq("rider_id",currentUser.id).order("created_at",{ascending:false}).limit(8);
-  if(error){host.innerHTML='<p class="muted">Taxi request history will appear after the ride-hailing database is configured.</p>';return;}
-  host.innerHTML='<h3>Your taxi requests</h3>'+(data||[]).map(x=>`<article class="dash-card twende-ride-history-card">${twendeVehicleImage(x.service_type,x.service_type==="car"?"TWENDE car taxi":"TWENDE motorcycle taxi")}<div><h3>${x.service_type==="car"?"Car taxi":"Motorcycle taxi"}</h3><p>${esc(x.pickup_text)} → ${esc(x.destination_text)}</p><p>${x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":""}${x.estimated_fare?money(x.estimated_fare)+" estimated • ":""}Payment: Cash • Status: <strong>${esc(x.status)}</strong></p></div></article>`).join("")||'<p class="muted">You have not requested a taxi yet.</p>';
+  const {data,error}=await db.rpc("twende_passenger_ride_history");
+  if(error){console.warn("Passenger ride history:",error);host.innerHTML='<p class="muted">Taxi request history is temporarily unavailable.</p>';return;}
+  const cards=(data||[]).map(x=>{
+    const motorcycle=x.service_type==="motorcycle";
+    const kind=motorcycle?"Motorcycle taxi":"Car taxi";
+    const assigned=x.status==="accepted";
+    const vehicleName=[x.vehicle_make,x.vehicle_model].filter(Boolean).join(" ");
+    const vehiclePhoto=assigned&&x.vehicle_photo_url
+      ? '<img class="twende-ride-assigned-photo" src="'+esc(x.vehicle_photo_url)+'" alt="'+esc([x.vehicle_color,vehicleName].filter(Boolean).join(" "))+'" loading="lazy">'
+      : twendeVehicleImage(x.service_type,motorcycle?"TWENDE motorcycle taxi":"TWENDE car taxi");
+    const statusLabel=assigned?"Driver accepted":x.status==="pending"?"Finding a driver":String(x.status||"").replace(/_/g," ");
+    const vehicleInfo=assigned
+      ? '<div class="twende-assigned-vehicle"><strong>'+esc(vehicleName||kind)+'</strong><span>Colour: '+esc(x.vehicle_color||"Not recorded")+'</span><span>Registration: <strong class="fleet-plate">'+esc(x.plate_number||"Not recorded")+'</strong></span><span>Driver: '+esc(x.driver_name||"Not recorded")+'</span>'+(x.driver_phone?'<a class="twende-call-driver" href="tel:'+esc(x.driver_phone)+'">Call driver</a>':'')+'</div>'
+      : '<p class="muted">'+(x.status==="pending"?"Vehicle and driver details will appear here after a driver accepts.":"Vehicle details are unavailable for this booking.")+'</p>';
+    return '<article class="dash-card twende-ride-history-card">'+vehiclePhoto+'<div><h3>'+kind+'</h3><p>'+esc(x.pickup_text||"")+' → '+esc(x.destination_text||"")+'</p><p>'+(x.route_distance_km?Number(x.route_distance_km).toFixed(1)+" km • ":"")+(x.estimated_fare?money(x.estimated_fare)+" estimated • ":"")+'Payment: Cash • Status: <strong>'+esc(statusLabel)+'</strong></p>'+vehicleInfo+'</div></article>';
+  }).join("");
+  host.innerHTML='<h3>Your taxi requests</h3>'+(cards||'<p class="muted">You have not requested a taxi yet.</p>');
 }
 function syncDriverTaxiFields(){
   const hasVehicle=$("#driverHasVehicle")?.checked===true;
