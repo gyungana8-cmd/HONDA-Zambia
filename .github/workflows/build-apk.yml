@@ -81,6 +81,9 @@ jobs:
       - name: Apply native Firebase Messaging integration
         shell: bash
         run: bash .github/scripts/patch-fcm.sh
+\n      - name: Apply TWENDE call links and reliable push bridge
+        shell: bash
+        run: bash .github/scripts/patch-android-communications.sh
 
       - name: Inspect Android wrapper sources for GPS support
         shell: bash
