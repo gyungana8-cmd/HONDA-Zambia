@@ -80,27 +80,28 @@ begin
 
  select v.id into v_next_vehicle
  from public.driver_vehicles v
+ join public.driver_locations l on l.driver_id=v.user_id
  join public.twende_partner_applications a
    on a.user_id=v.user_id and a.partner_type='driver'
   and a.application_status='approved' and a.account_status='active'
  where v.id<>v_current_vehicle
    and v.approval_status='approved' and v.is_online=true
    and v.vehicle_type=v_ride.service_type
-   and v.last_latitude is not null and v.last_longitude is not null
-   and v.location_updated_at>now()-interval '15 minutes'
+   and l.latitude is not null and l.longitude is not null
+   and l.updated_at>now()-interval '2 minutes'
    and not exists (
      select 1 from public.twende_ride_rejections x
      where x.ride_id=p_ride_id and x.driver_id=v.user_id
    )
    and 6371 * acos(least(1.0,greatest(-1.0,
-       sin(radians(v_ride.pickup_lat))*sin(radians(v.last_latitude))+
-       cos(radians(v_ride.pickup_lat))*cos(radians(v.last_latitude))*
-       cos(radians(v.last_longitude-v_ride.pickup_lng))
+       sin(radians(v_ride.pickup_lat))*sin(radians(l.latitude))+
+       cos(radians(v_ride.pickup_lat))*cos(radians(l.latitude))*
+       cos(radians(l.longitude-v_ride.pickup_lng))
    ))) <= 15
  order by 6371 * acos(least(1.0,greatest(-1.0,
-       sin(radians(v_ride.pickup_lat))*sin(radians(v.last_latitude))+
-       cos(radians(v_ride.pickup_lat))*cos(radians(v.last_latitude))*
-       cos(radians(v.last_longitude-v_ride.pickup_lng))
+       sin(radians(v_ride.pickup_lat))*sin(radians(l.latitude))+
+       cos(radians(v_ride.pickup_lat))*cos(radians(l.latitude))*
+       cos(radians(l.longitude-v_ride.pickup_lng))
    )))
  limit 1;
 
@@ -138,23 +139,24 @@ begin
  loop
    select v.id into v_vehicle
    from public.driver_vehicles v
+   join public.driver_locations l on l.driver_id=v.user_id
    where v.user_id=auth.uid() and v.approval_status='approved'
      and v.is_online=true and v.vehicle_type=v_ride.service_type
-     and v.last_latitude is not null and v.last_longitude is not null
-     and v.location_updated_at>now()-interval '15 minutes'
+     and l.latitude is not null and l.longitude is not null
+     and l.updated_at>now()-interval '2 minutes'
      and not exists (
        select 1 from public.twende_ride_rejections x
        where x.ride_id=v_ride.id and x.driver_id=auth.uid()
      )
      and 6371 * acos(least(1.0,greatest(-1.0,
-       sin(radians(v_ride.pickup_lat))*sin(radians(v.last_latitude))+
-       cos(radians(v_ride.pickup_lat))*cos(radians(v.last_latitude))*
-       cos(radians(v.last_longitude-v_ride.pickup_lng))
+       sin(radians(v_ride.pickup_lat))*sin(radians(l.latitude))+
+       cos(radians(v_ride.pickup_lat))*cos(radians(l.latitude))*
+       cos(radians(l.longitude-v_ride.pickup_lng))
      ))) <= 15
    order by 6371 * acos(least(1.0,greatest(-1.0,
-       sin(radians(v_ride.pickup_lat))*sin(radians(v.last_latitude))+
-       cos(radians(v_ride.pickup_lat))*cos(radians(v.last_latitude))*
-       cos(radians(v.last_longitude-v_ride.pickup_lng))
+       sin(radians(v_ride.pickup_lat))*sin(radians(l.latitude))+
+       cos(radians(v_ride.pickup_lat))*cos(radians(l.latitude))*
+       cos(radians(l.longitude-v_ride.pickup_lng))
      )))
    limit 1;
 
@@ -176,3 +178,29 @@ grant execute on function public.twende_dispatch_waiting_rides() to authenticate
 grant execute on function public.twende_driver_ride_queue() to authenticated;
 
 select 'TWENDE rejection and reassignment functions installed' as status;
+
+
+-- GPS writes also try to dispatch any unassigned pending requests to this
+-- newly located online driver. The two-minute freshness rule matches the
+-- passenger nearby-vehicle discovery query.
+create or replace function public.update_twende_driver_location(
+ p_latitude double precision,p_longitude double precision,
+ p_accuracy_m numeric default null,p_heading numeric default null,p_speed_mps numeric default null
+) returns void language plpgsql security definer set search_path=public,auth as $$
+begin
+ if auth.uid() is null then raise exception 'Driver sign-in is required'; end if;
+ if p_latitude is null or p_longitude is null
+   or p_latitude not between -90 and 90 or p_longitude not between -180 and 180 then
+   raise exception 'Invalid GPS coordinates'; end if;
+ if not exists(select 1 from public.driver_vehicles
+   where user_id=auth.uid() and approval_status='approved' and is_online=true) then
+   raise exception 'Set an approved vehicle online before sharing GPS'; end if;
+ insert into public.driver_locations(driver_id,latitude,longitude,accuracy_m,heading,speed_mps,updated_at)
+ values(auth.uid(),p_latitude,p_longitude,p_accuracy_m,p_heading,p_speed_mps,now())
+ on conflict(driver_id) do update set latitude=excluded.latitude,longitude=excluded.longitude,
+   accuracy_m=excluded.accuracy_m,heading=excluded.heading,speed_mps=excluded.speed_mps,updated_at=now();
+ perform public.twende_dispatch_waiting_rides();
+end;
+$$;
+revoke all on function public.update_twende_driver_location(double precision,double precision,numeric,numeric,numeric) from public;
+grant execute on function public.update_twende_driver_location(double precision,double precision,numeric,numeric,numeric) to authenticated;
