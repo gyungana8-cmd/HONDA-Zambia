@@ -19,10 +19,19 @@
     if(!bg){bg=document.createElement("div");bg.className="twende-hero-admin-background";bg.setAttribute("aria-hidden","true");hero.prepend(bg);}
     const bgUrl=publicUrl(settings.hero_background_path);
     bg.style.backgroundImage=bgUrl?"url('"+bgUrl.replace(/'/g,"%27")+"')":"none";
+    const carUrl=publicUrl(settings.hero_car_path);
+    const bikeUrl=publicUrl(settings.hero_motorcycle_path);
     const car=hero.querySelector(".twende-hero-car");
     const bike=hero.querySelector(".twende-hero-motorcycle");
-    if(car&&settings.hero_car_path)car.src=publicUrl(settings.hero_car_path);
-    if(bike&&settings.hero_motorcycle_path)bike.src=publicUrl(settings.hero_motorcycle_path);
+    if(car&&carUrl)car.src=carUrl;
+    if(bike&&bikeUrl)bike.src=bikeUrl;
+
+    // Keep the two service-selection cards in sync with the same Admin-managed assets.
+    // These cards previously used fixed local files, so Admin uploads never reached them.
+    const carCard=document.querySelector("#ride-services .service-card:first-child .service-vehicle-image");
+    const bikeCard=document.querySelector("#ride-services .service-card:nth-child(2) .service-vehicle-image");
+    if(carCard&&carUrl)carCard.src=carUrl;
+    if(bikeCard&&bikeUrl)bikeCard.src=bikeUrl;
   }
   async function load(){
     const {data,error}=await db.from("twende_homepage_settings").select("*").eq("id","passenger").maybeSingle();
