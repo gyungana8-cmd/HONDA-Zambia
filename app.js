@@ -681,9 +681,15 @@ async function submitTwendeTaxiRequest(){
 window.submitTwendeTaxiRequest=submitTwendeTaxiRequest;
 $("#rideForm").addEventListener("submit",e=>{e.preventDefault();submitTwendeTaxiRequest();});
 
+let twendeNearbyFleetTimer=null;
 async function loadAvailableTaxiFleet(service=selectedRideService){
    const host=$("#nearbyTaxiFleet");
    if(!host)return;
+   if(!twendeNearbyFleetTimer)twendeNearbyFleetTimer=setInterval(()=>{
+     const dialog=$("#rideDialog");
+     if(dialog?.open&&currentUser)loadAvailableTaxiFleet($("#rideServiceType")?.value||selectedRideService);
+     else if(!dialog?.open){clearInterval(twendeNearbyFleetTimer);twendeNearbyFleetTimer=null;}
+   },20000);
    host.innerHTML='<p class="muted">Finding online TWENDE taxis within 15 km…</p>';
    if(!currentUser){host.innerHTML='<p class="muted">Passenger connection is starting…</p>';return;}
    const pickup=window.twendePickupCoords;
