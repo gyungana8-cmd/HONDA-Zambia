@@ -6,6 +6,8 @@
   const money = n => "K" + Number(n).toFixed(2);
   let driverWatchId = null;
   let lastGps = null;
+  let driverHeartbeatTimer = null;
+  let locationPublishBusy = false;
 
   function notify(msg) {
     const t=$("#toast"); if(!t) return;
@@ -194,27 +196,45 @@
     const calculated=base+Number(km)*rate;
     return Math.max(minimum,calculated);
   }
+  async function publishDriverLocation(coords){
+    if(!coords||!window.twendeDb||locationPublishBusy)return;
+    locationPublishBusy=true;
+    try{
+      const {error}=await window.twendeDb.rpc("update_twende_driver_location",{
+        p_latitude:coords.latitude,p_longitude:coords.longitude,
+        p_accuracy_m:coords.accuracy,p_heading:coords.heading,
+        p_speed_mps:coords.speed
+      });
+      if(error)console.warn("TWENDE GPS heartbeat:",error.message);
+      else{
+        const status=$("#driverGpsStatus");
+        if(status)status.textContent="GPS sharing active • accuracy ±"+Math.round(Number(coords.accuracy)||0)+" m";
+      }
+    }catch(error){console.warn("TWENDE GPS heartbeat:",error);}
+    finally{locationPublishBusy=false;}
+  }
   function startDriverGps() {
     if(driverWatchId!==null || !navigator.geolocation) return;
-    driverWatchId=navigator.geolocation.watchPosition(async p=>{
+    driverWatchId=navigator.geolocation.watchPosition(p=>{
       lastGps=p.coords;
-      const {error}=await window.twendeDb.rpc("update_twende_driver_location",{
-        p_latitude:p.coords.latitude,p_longitude:p.coords.longitude,
-        p_accuracy_m:p.coords.accuracy,p_heading:p.coords.heading,
-        p_speed_mps:p.coords.speed
-      });
-      if(error) console.warn("TWENDE GPS update:",error.message);
-      const status=$("#driverGpsStatus");
-      if(status) status.textContent="GPS sharing active • accuracy ±"+Math.round(p.coords.accuracy)+" m";
+      publishDriverLocation(lastGps);
     },err=>{
       notify("GPS unavailable: "+err.message);
       stopDriverGps();
     },{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+    // watchPosition may not fire again while a taxi is stationary. Send a
+    // 30-second heartbeat so passengers can still see an online parked taxi.
+    if(driverHeartbeatTimer===null)driverHeartbeatTimer=setInterval(()=>{
+      if(lastGps)publishDriverLocation(lastGps);
+    },30000);
     let status=$("#driverGpsStatus"); if(!status){status=document.createElement("p");status.id="driverGpsStatus";status.className="muted";$("#driverDashboard")?.prepend(status);} status.textContent="Waiting for GPS fix…";
   }
   function stopDriverGps() {
     if(driverWatchId!==null) navigator.geolocation.clearWatch(driverWatchId);
     driverWatchId=null;
+    if(driverHeartbeatTimer!==null)clearInterval(driverHeartbeatTimer);
+    driverHeartbeatTimer=null;
+    lastGps=null;
     const status=$("#driverGpsStatus"); if(status) status.textContent="GPS sharing stopped";
   }
 
