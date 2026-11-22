@@ -49,7 +49,7 @@ $$;
 -- Driver explicitly rejects a request. The row lock and conditional update
 -- prevent two drivers receiving the same reassignment at the same time.
 create or replace function public.reject_twende_ride(p_ride_id uuid)
-returns uuid
+returns jsonb
 language plpgsql security definer set search_path=public,auth
 as $$
 declare
@@ -109,9 +109,9 @@ begin
  set driver_id=null,driver_vehicle_id=v_next_vehicle
  where id=p_ride_id and status='pending' and expires_at>now();
  if not found then raise exception 'Request changed while reassignment was being processed'; end if;
- return v_next_vehicle;
+ return jsonb_build_object('assigned_vehicle_id',v_next_vehicle,'queued',v_next_vehicle is null);
 end;
-$$;
+$;
 
 -- When a driver goes online, let that driver claim any unassigned pending
 -- request of the matching service within 15 km, excluding prior rejections.
