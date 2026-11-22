@@ -12,6 +12,9 @@
     .twende-location-copy strong{font-size:14px;color:var(--ink)}
     .twende-location-copy span{font-size:12px;color:var(--muted)}
     .twende-location-action{border:0;background:#fff3bf;color:#6f5700;border-radius:10px;padding:9px 12px;font-weight:800}
+    .twende-pickup-wrap{display:grid;gap:6px;margin:4px 0 10px}
+    .twende-pickup-wrap label{font-size:14px;font-weight:800;color:var(--ink)}
+    .twende-pickup-wrap input{width:100%;min-height:52px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:15px}
     .twende-destination-wrap{margin:12px 0 14px}
     .twende-destination-wrap label{display:block;font-size:19px;font-weight:850;margin-bottom:8px;color:var(--ink)}
     .twende-destination-input{width:100%;min-height:58px;padding:15px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:16px;box-shadow:0 5px 18px #1018200a}
