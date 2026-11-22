@@ -11,6 +11,10 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.JavascriptInterface;
+import android.app.NotificationManager;
+import android.os.Build;
+import com.google.firebase.messaging.FirebaseMessaging;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -18,6 +22,7 @@ import androidx.core.content.ContextCompat;
 public class DriverPortalActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST = 701;
     private static final int FILE_CHOOSER_REQUEST = 702;
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 703;
     private WebView web;
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
@@ -70,6 +75,11 @@ public class DriverPortalActivity extends AppCompatActivity {
             }
         });
         setContentView(web);
+        web.addJavascriptInterface(new TwendePushBridge(), "TwendePush");
+        TwendeMessagingService.ensureChannel(this);
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
+        }
         web.loadUrl("https://gyungana8-cmd.github.io/HONDA-Zambia/?portal=partner&driver_portal_version=20261122-partner4");
     }
 
