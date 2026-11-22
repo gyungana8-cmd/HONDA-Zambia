@@ -2,6 +2,7 @@ package com.yangu.twendedriver;
 
 import android.Manifest;
 import android.content.Intent;
+import android.widget.Toast;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -38,7 +39,23 @@ public class DriverPortalActivity extends AppCompatActivity {
         settings.setAllowFileAccess(false);
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         web.clearCache(true);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            private boolean openExternal(String url) {
+                if (url == null || !url.toLowerCase().startsWith("tel:")) return false;
+                try {
+                    startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse(url)));
+                } catch (Exception ex) {
+                    Toast.makeText(DriverPortalActivity.this, "No phone dialler is available.", Toast.LENGTH_LONG).show();
+                }
+                return true;
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return openExternal(url);
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                return openExternal(request.getUrl().toString());
+            }
+        });
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
