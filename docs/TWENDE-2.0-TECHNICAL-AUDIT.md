@@ -42,7 +42,7 @@ The Passenger app is the protected baseline. All new functionality must be devel
 - The finance SQL creates commission settings and a completed-trip finance snapshot. The initial commission rate is 15%.
 - The owner/driver agreement SQL preserves the 15% TWENDE commission and 85% owner share independently of any optional driver compensation agreement.
 - The driver wallet SQL describes a read-only earnings ledger, not an electronic money transfer wallet.
-- Current finance reporting covers trip fares, commission, earnings/owner entitlement and cash reconciliation foundations. Separate subscription, advertising and cancellation-fee revenue modules were not found in the audited files.
+- Current finance reporting covers trip fares, commission, earnings/owner entitlement and cash reconciliation foundations. Separate subscription, advertising and cancellation-fee revenue modules were not found in the audited files. The finance SQL also exposes a Primary-Administrator-only commission-setting RPC; because the agreed business rule is to preserve 15% / 85%, the new work must add a policy guard/approval control so the rate cannot be changed accidentally or by ancillary revenue features.
 
 ## 3. Confirmed gaps for TWENDE 2.0
 
