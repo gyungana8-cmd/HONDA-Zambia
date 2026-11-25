@@ -14,7 +14,7 @@
 --   * No changes to ride_requests, driver_vehicles, passenger booking, or dispatch.
 --   * No owner/driver finance SELECT policies. Those require verified ownership/assignment
 --     relationships and must be implemented separately.
---   * No changes to twende_finance_set_commission until its definition and grants are audited.
+--   * Harden commission RPC execution and reject NULL inputs after function/grant audit.
 --
 -- Review the resulting grants and policies after applying in a disposable/staging project.
 
@@ -135,6 +135,65 @@ BEGIN
   END IF;
 END
 $$;
+
+
+-- Commission management was audited after the initial migration draft.
+-- Keep authenticated execution because the function performs its own Primary
+-- Administrator check. Remove anonymous and implicit PUBLIC execution.
+REVOKE EXECUTE ON FUNCTION public.twende_finance_set_commission(text, numeric)
+FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.twende_finance_set_commission(text, numeric)
+TO authenticated, service_role;
+
+REVOKE EXECUTE ON FUNCTION public.twende_is_primary_admin()
+FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.twende_is_primary_admin()
+TO authenticated, service_role;
+
+-- Harden input validation while preserving the existing Primary Administrator
+-- gate, supported service types, rate range, updated_by audit field and upsert.
+CREATE OR REPLACE FUNCTION public.twende_finance_set_commission(
+  p_service_type text,
+  p_rate numeric
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT public.twende_is_primary_admin() THEN
+    RAISE EXCEPTION 'Only the Primary Administrator can change commission rates';
+  END IF;
+
+  IF p_service_type IS NULL
+     OR p_rate IS NULL
+     OR p_service_type NOT IN ('car', 'motorcycle')
+     OR p_rate < 0
+     OR p_rate > 1 THEN
+    RAISE EXCEPTION 'Invalid service type or commission rate';
+  END IF;
+
+  UPDATE public.twende_finance_settings
+  SET commission_rate = p_rate,
+      updated_at = now(),
+      updated_by = auth.uid()
+  WHERE service_type = p_service_type;
+
+  IF NOT FOUND THEN
+    INSERT INTO public.twende_finance_settings(
+      service_type,
+      commission_rate,
+      updated_by
+    )
+    VALUES (
+      p_service_type,
+      p_rate,
+      auth.uid()
+    );
+  END IF;
+END;
+$function$;
 
 COMMIT;
 
