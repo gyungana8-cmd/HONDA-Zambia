@@ -10,7 +10,8 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 public class TwendeMessagingService extends FirebaseMessagingService {
-    // A new channel ID avoids Android reusing an old channel configuration.\n    private static final String CHANNEL = "twende_bookings_v2";
+    // A new channel ID avoids Android reusing an old channel configuration.
+    private static final String CHANNEL = "twende_bookings_v2";
 
     @Override public void onNewToken(String token) {
         android.content.SharedPreferences prefs = getSharedPreferences("twende_driver", MODE_PRIVATE);
