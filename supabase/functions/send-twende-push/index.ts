@@ -110,20 +110,10 @@ Deno.serve(async (req) => {
         headers: { "Authorization": "Bearer " + accessToken, "Content-Type": "application/json" },
         body: JSON.stringify({ message: {
           token: item.token,
-          // A notification payload lets Android display the alert itself when
-          // the driver app is backgrounded or its WebView is suspended.
-          notification: { title, body },
-          android: {
-            priority: "HIGH",
-            ttl: "900s",
-            notification: {
-              channel_id: "twende_bookings",
-              sound: "default",
-              default_sound: true,
-              default_vibrate_timings: true,
-              priority: "PRIORITY_MAX"
-            }
-          },
+          // Data-only high-priority delivery makes TwendeMessagingService
+          // create the notification on its fresh v2 channel, preserving
+          // native sound, vibration and Accept/Reject actions.
+          android: { priority: "HIGH", ttl: "900s" },
           data: {
             title, body, table, event_type: type, record_id: String(record.id || ""),
             ride_id: String(record.id || ""),
